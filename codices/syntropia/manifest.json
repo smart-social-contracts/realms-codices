@@ -1,0 +1,40 @@
+{
+  "name": "syntropia",
+  "description": "Codex for Syntropia realm - adaptive, protocol-based governance with AI-powered systems",
+  
+  "extensions": [
+    "admin_dashboard",
+    "member_dashboard",
+    "vault",
+    "voting",
+    "codex_viewer",
+    "task_monitor",
+    "welcome",
+    "llm_chat"
+  ],
+  
+  "entity_method_overrides": [
+    {
+      "entity": "User",
+      "method": "user_register_posthook",
+      "type": "staticmethod",
+      "implementation": "Codex.user_registration_hook_codex.user_register_posthook",
+      "description": "Custom post-registration hook for new users"
+    },
+    {
+      "entity": "Treasury",
+      "method": "send",
+      "type": "staticmethod",
+      "implementation": "Codex.treasury_send_hook_codex.send_hook",
+      "description": "Custom send hook for treasuries"
+    }
+  ],
+  
+  "codex_files": [
+    "user_registration_hook_codex.py",
+    "treasury_send_hook_codex.py",
+    "governance_automation_codex.py",
+    "satoshi_transfer_codex.py",
+    "adjustments.py"
+  ]
+}
