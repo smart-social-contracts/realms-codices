@@ -5,7 +5,7 @@ Creates a 1 satoshi invoice expiring in 1 day for new users.
 """
 
 from kybra import ic
-from ggg import Invoice
+from ggg import Invoice, Notification
 from datetime import datetime, timedelta
 
 def user_register_posthook(user):
@@ -33,6 +33,19 @@ def user_register_posthook(user):
         ic.print(f"✅ Created welcome invoice {invoice.id} for user {user.id}")
         ic.print(f"   Deposit to: {vault_principal} (subaccount: {subaccount_hex[:16]}...)")
         ic.print(f"   Amount: 1 satoshi, expires in 1 day")
+        
+        # Notify the user about their welcome invoice
+        Notification(
+            topic="welcome",
+            title="Welcome! Please complete your registration",
+            message=f"A 1 satoshi welcome invoice has been created. Deposit to: {vault_principal} (subaccount: {subaccount_hex[:16]}...). Expires in 1 day.",
+            user=user,
+            read=False,
+            icon="wallet",
+            href="/extensions/member_dashboard#my_taxes",
+            color="green",
+            metadata=f"invoice_id:{invoice.id}"
+        )
         
     except Exception as e:
         ic.print(f"❌ Error creating invoice: {e}")
