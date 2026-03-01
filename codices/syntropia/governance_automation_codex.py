@@ -1,109 +1,176 @@
 """
-Governance Automation Codex
-Processes proposals and votes for democratic governance
+Governance Codex
+Implements separation of powers for a generic western-style democratic state.
+
+Three branches:
+  - Legislative: Parliament debates and votes on proposals (bills)
+  - Executive: Head of state approves or vetoes bills passed by parliament
+  - Judicial: Constitutional court reviews enacted laws for constitutionality
 """
 
 from ggg import Proposal, Vote, User
 from datetime import datetime, timedelta
 import json
 
-def create_sample_proposal(title: str, description: str) -> str:
-    """Create a new governance proposal"""
+
+# ---------------------------------------------------------------------------
+# Legislative Branch
+# ---------------------------------------------------------------------------
+
+def create_legislative_proposal(title: str, description: str, branch: str = "legislative") -> str:
+    """Create a new legislative proposal (bill) for parliamentary debate"""
     proposal = Proposal(
         metadata=json.dumps({
             "title": title,
             "description": description,
-            "status": "active",
-            "created_by": "system",
-            "voting_deadline": (datetime.now() + timedelta(days=7)).isoformat(),
+            "branch": branch,
+            "status": "debate",
+            "created_by": "parliament",
+            "voting_deadline": (datetime.now() + timedelta(days=14)).isoformat(),
             "votes_for": 0,
             "votes_against": 0,
-            "total_votes": 0
+            "votes_abstain": 0,
+            "total_votes": 0,
+            "executive_approval": None,
+            "judicial_review": None
         })
     )
-    
     return proposal.id
 
+
+# ---------------------------------------------------------------------------
+# Executive Branch
+# ---------------------------------------------------------------------------
+
+def executive_approve(proposal_id: str, approved: bool) -> dict:
+    """Executive branch approves or vetoes a bill that passed parliament"""
+    proposal = Proposal.get(proposal_id)
+    if not proposal:
+        return {"error": "Proposal not found"}
+
+    metadata = json.loads(proposal.metadata)
+
+    if metadata.get("status") != "passed_parliament":
+        return {"error": "Proposal must pass parliament before executive review"}
+
+    metadata["executive_approval"] = approved
+    metadata["status"] = "enacted" if approved else "vetoed"
+    metadata["executive_decision_at"] = datetime.now().isoformat()
+    proposal.metadata = json.dumps(metadata)
+
+    return {"proposal_id": proposal_id, "status": metadata["status"]}
+
+
+# ---------------------------------------------------------------------------
+# Judicial Branch
+# ---------------------------------------------------------------------------
+
+def judicial_review(proposal_id: str, constitutional: bool) -> dict:
+    """Judicial branch reviews an enacted law for constitutionality"""
+    proposal = Proposal.get(proposal_id)
+    if not proposal:
+        return {"error": "Proposal not found"}
+
+    metadata = json.loads(proposal.metadata)
+
+    if metadata.get("status") != "enacted":
+        return {"error": "Only enacted laws can be judicially reviewed"}
+
+    metadata["judicial_review"] = constitutional
+    if not constitutional:
+        metadata["status"] = "struck_down"
+    metadata["judicial_review_at"] = datetime.now().isoformat()
+    proposal.metadata = json.dumps(metadata)
+
+    return {
+        "proposal_id": proposal_id,
+        "constitutional": constitutional,
+        "status": metadata["status"]
+    }
+
+
+# ---------------------------------------------------------------------------
+# Vote Processing
+# ---------------------------------------------------------------------------
+
 def process_votes():
-    """Process all active proposals and tally votes"""
+    """Tally votes on proposals whose deadline has passed and advance them"""
     results = []
-    
-    # Get all proposals
     proposals = Proposal.get_all()
-    
+
     for proposal in proposals:
         metadata = json.loads(proposal.metadata)
-        
-        if metadata.get("status") == "active":
-            # Check if voting deadline has passed
-            deadline = datetime.fromisoformat(metadata["voting_deadline"])
-            
-            if datetime.now() > deadline:
-                # Tally votes and close proposal
-                votes_for = metadata.get("votes_for", 0)
-                votes_against = metadata.get("votes_against", 0)
-                total_votes = votes_for + votes_against
-                
-                # Determine outcome
-                if total_votes > 0:
-                    if votes_for > votes_against:
-                        status = "passed"
-                    else:
-                        status = "rejected"
-                else:
-                    status = "no_votes"
-                
-                # Update proposal
-                metadata["status"] = status
-                metadata["final_tally"] = {
-                    "votes_for": votes_for,
-                    "votes_against": votes_against,
-                    "total_votes": total_votes,
-                    "closed_at": datetime.now().isoformat()
-                }
-                
-                proposal.metadata = json.dumps(metadata)
-                
-                results.append({
-                    "proposal_id": proposal.id,
-                    "title": metadata["title"],
-                    "status": status,
-                    "votes_for": votes_for,
-                    "votes_against": votes_against
-                })
-    
+
+        if metadata.get("status") != "debate":
+            continue
+
+        deadline = datetime.fromisoformat(metadata["voting_deadline"])
+        if datetime.now() <= deadline:
+            continue
+
+        votes_for = metadata.get("votes_for", 0)
+        votes_against = metadata.get("votes_against", 0)
+        total_votes = votes_for + votes_against
+
+        # Simple majority required
+        if total_votes > 0 and votes_for > votes_against:
+            status = "passed_parliament"
+        elif total_votes == 0:
+            status = "no_quorum"
+        else:
+            status = "rejected"
+
+        metadata["status"] = status
+        metadata["final_tally"] = {
+            "votes_for": votes_for,
+            "votes_against": votes_against,
+            "total_votes": total_votes,
+            "closed_at": datetime.now().isoformat()
+        }
+        proposal.metadata = json.dumps(metadata)
+
+        results.append({
+            "proposal_id": proposal.id,
+            "title": metadata["title"],
+            "status": status,
+            "votes_for": votes_for,
+            "votes_against": votes_against
+        })
+
     return results
 
+
+# ---------------------------------------------------------------------------
+# Sample Data
+# ---------------------------------------------------------------------------
+
 def create_sample_proposals():
-    """Create sample governance proposals"""
+    """Create sample proposals typical of a western parliamentary democracy"""
     proposals = [
         {
-            "title": "Increase Social Benefits by 10%",
-            "description": "Proposal to increase monthly social benefits for all eligible citizens by 10% to account for inflation."
+            "title": "Annual Budget Appropriations Act",
+            "description": "Allocate public funds for healthcare, education, infrastructure, and defence for the fiscal year."
         },
         {
-            "title": "Implement Green Energy Tax Credits",
-            "description": "Provide tax credits for citizens and organizations investing in renewable energy infrastructure."
+            "title": "Income Tax Rate Adjustment",
+            "description": "Adjust progressive income tax brackets to account for inflation and economic growth."
         },
         {
-            "title": "Digital Identity Verification System",
-            "description": "Implement a new digital identity verification system to streamline government services."
+            "title": "Universal Healthcare Coverage Extension",
+            "description": "Extend basic healthcare coverage to all registered citizens and permanent residents."
         }
     ]
-    
-    created_proposals = []
-    for proposal in proposals:
-        proposal_id = create_sample_proposal(proposal["title"], proposal["description"])
-        created_proposals.append(proposal_id)
-    
-    return created_proposals
+
+    created = []
+    for p in proposals:
+        pid = create_legislative_proposal(p["title"], p["description"])
+        created.append(pid)
+    return created
+
 
 # Main execution
 if __name__ == "__main__":
-    # Create sample proposals
     proposals = create_sample_proposals()
     print(f"Created {len(proposals)} sample proposals")
-    
-    # Process votes
     results = process_votes()
     print(f"Processed {len(results)} proposals")

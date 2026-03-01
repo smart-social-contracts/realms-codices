@@ -1,62 +1,79 @@
 """
-Tax Collection Automation Codex
-Automatically calculates and processes tax payments for citizens
+Tax Collection Codex
+Progressive income tax with standard deductions and multiple brackets,
+typical of western democracies.
 """
 
 from ggg import User, Transfer, Treasury, Instrument
-from datetime import datetime, timedelta
+from datetime import datetime
 import json
 
+# Standard personal deduction before tax applies
+STANDARD_DEDUCTION = 5000
+
+# Progressive tax brackets: (upper_limit, rate)
+# Income up to 12000 taxed at 10%, up to 40000 at 22%, etc.
+TAX_BRACKETS = [
+    (12000, 0.10),
+    (40000, 0.22),
+    (85000, 0.32),
+    (float("inf"), 0.40),
+]
+
+
 def calculate_tax_for_user(user_id: str, tax_year: int = None) -> dict:
-    """Calculate tax owed by a user for a given year"""
+    """Calculate progressive income tax owed by a citizen"""
     if tax_year is None:
         tax_year = datetime.now().year
-    
-    # Get user's transfers for the tax year
+
     user = User.get(user_id)
     if not user:
         return {"error": "User not found"}
-    
-    # Calculate income from transfers received
-    income_transfers = [t for t in user.transfers_to if 
-                       datetime.fromisoformat(t.created_at).year == tax_year]
-    
-    total_income = sum(t.amount for t in income_transfers)
-    
-    # Progressive tax calculation
-    if total_income <= 10000:
-        tax_rate = 0.10
-    elif total_income <= 50000:
-        tax_rate = 0.20
-    else:
-        tax_rate = 0.30
-    
-    tax_owed = int(total_income * tax_rate)
-    
+
+    # Calculate gross income from transfers received during the tax year
+    income_transfers = [
+        t for t in user.transfers_to
+        if datetime.fromisoformat(t.created_at).year == tax_year
+    ]
+    gross_income = sum(t.amount for t in income_transfers)
+    taxable_income = max(0, gross_income - STANDARD_DEDUCTION)
+
+    # Apply progressive brackets
+    tax_owed = 0
+    remaining = taxable_income
+    for bracket_limit, rate in TAX_BRACKETS:
+        taxable_in_bracket = min(remaining, bracket_limit)
+        tax_owed += int(taxable_in_bracket * rate)
+        remaining -= taxable_in_bracket
+        if remaining <= 0:
+            break
+
+    effective_rate = round(tax_owed / gross_income, 4) if gross_income > 0 else 0.0
+
     return {
         "user_id": user_id,
         "tax_year": tax_year,
-        "total_income": total_income,
-        "tax_rate": tax_rate,
+        "gross_income": gross_income,
+        "standard_deduction": STANDARD_DEDUCTION,
+        "taxable_income": taxable_income,
         "tax_owed": tax_owed,
+        "effective_rate": effective_rate,
         "calculated_at": datetime.now().isoformat()
     }
 
+
 def process_tax_collection():
-    """Main tax collection process"""
+    """Collect taxes from all citizens"""
     results = []
-    
-    # Get all users
     users = User.get_all()
-    
+
     for user in users:
         if user.id == "system":
             continue
-            
+
         tax_info = calculate_tax_for_user(user.id)
-        
+
         if "error" not in tax_info and tax_info["tax_owed"] > 0:
-            # Create tax payment transfer
             tax_instrument = Instrument.get_by_name("Realm Token")
             if tax_instrument:
                 transfer = Transfer(
@@ -68,10 +85,12 @@ def process_tax_collection():
                 results.append({
                     "user_id": user.id,
                     "tax_collected": tax_info["tax_owed"],
+                    "effective_rate": tax_info["effective_rate"],
                     "status": "collected"
                 })
-    
+
     return results
+
 
 # Main execution
 if __name__ == "__main__":
