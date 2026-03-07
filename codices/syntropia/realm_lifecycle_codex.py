@@ -2,54 +2,65 @@
 Realm Lifecycle Codex
 Manages the realm through its full lifecycle stages:
 
-  alpha        — Realm announced. Users register interest and deposit a
-                 refundable fee. Goal: reach critical mass (e.g. 10 000 users).
-                 Deposits can be withdrawn at any time.
+  registration  — Realm announced. Users register interest with ZK proof of
+                  unique personhood (Rarimo passport extension) and a refundable
+                  deposit. Goal: reach critical mass (e.g. 10 000 users).
+                  Deposits can be withdrawn at any time.
 
-  beta         — Critical mass reached. Deposits are now locked.
-                 Auctions open for service-provider licenses and land bidding.
-                 New users can still join (their deposits lock immediately).
+  accreditation — Critical mass reached. Deposits are now locked.
+                  Infrastructure built: electricity, roads, buildings, hospitals.
+                  Service-provider licenses auctioned, land allocated.
+                  New users can still join (their deposits lock immediately).
 
-  production   — Land acquired, service providers contracted, infrastructure
-                 ready. Citizens can move in and the realm is fully operational.
-                 Taxes, welfare, budgets, and governance run normally.
+  operational   — Infrastructure ready. Citizens move in. Taxes, welfare,
+                  budgets, and governance run normally.
 
-  deprecation  — Realm is winding down. No new members accepted.
-                 Services continue for existing citizens while migration or
-                 shutdown is organised. Providers fulfill remaining contracts.
+  stable        — Realm fully self-sustaining. All services running,
+                  treasury healthy.
 
-  terminated   — Realm is closed. Remaining treasury funds are distributed
-                 back to citizens. All licenses revoked. Read-only archive.
+  deprecation   — Realm is winding down. No new members accepted.
+                  Services continue for existing citizens while migration or
+                  shutdown is organised. Providers fulfill remaining contracts.
+
+  terminated    — Realm is closed. Remaining treasury funds are distributed
+                  back to citizens. All licenses revoked. Read-only archive.
 
 Transitions:
-  alpha → beta           (auto when critical mass reached, or by governance vote)
-  beta → production      (governance vote after land & providers secured)
-  production → deprecation (governance vote)
-  deprecation → terminated (governance vote after wind-down complete)
+  registration → accreditation  (auto when critical mass reached, or by governance vote)
+  accreditation → operational   (governance vote after land & providers secured)
+  operational → stable          (governance vote or auto when self-sustaining)
+  stable → deprecation          (governance vote)
+  deprecation → terminated      (governance vote after wind-down complete)
 """
 
 from ggg import Realm, RealmStatus, Proposal, User, Member, Transfer, Instrument, Notification
 from datetime import datetime
 import json
 
+# NOTE: Registration requires ZK proof of unique personhood via Rarimo passport
+# extension. The ZK proof hash is stored in Member.criminal_record field for
+# deduplication (see membership_codex.py).
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
 STAGES = [
-    RealmStatus.ALPHA,
-    RealmStatus.BETA,
-    RealmStatus.PRODUCTION,
+    RealmStatus.REGISTRATION,
+    RealmStatus.ACCREDITATION,
+    RealmStatus.OPERATIONAL,
+    RealmStatus.STABLE,
     RealmStatus.DEPRECATION,
     RealmStatus.TERMINATED,
 ]
 
 STAGE_DESCRIPTIONS = {
-    RealmStatus.ALPHA:        "Gathering interest — deposits refundable",
-    RealmStatus.BETA:         "Deposits locked — auctions & land bidding open",
-    RealmStatus.PRODUCTION:   "Fully operational",
-    RealmStatus.DEPRECATION:  "Winding down — no new members",
-    RealmStatus.TERMINATED:   "Closed — read-only archive",
+    RealmStatus.REGISTRATION:  "Gathering interest — ZK proof + deposit, refundable",
+    RealmStatus.ACCREDITATION: "Deposits locked — infrastructure, auctions & land",
+    RealmStatus.OPERATIONAL:   "Citizens moving in — governance active",
+    RealmStatus.STABLE:        "Fully self-sustaining",
+    RealmStatus.DEPRECATION:   "Winding down — no new members",
+    RealmStatus.TERMINATED:    "Closed — read-only archive",
 }
 
 DEFAULT_CRITICAL_MASS = 10_000  # users needed to auto-advance from alpha → beta
@@ -96,7 +107,7 @@ def initialize_lifecycle(critical_mass: int = DEFAULT_CRITICAL_MASS,
     if not realm:
         return {"error": "No realm found"}
 
-    realm.status = RealmStatus.ALPHA
+    realm.status = RealmStatus.REGISTRATION
 
     lifecycle = {
         "critical_mass": critical_mass,
@@ -105,9 +116,10 @@ def initialize_lifecycle(critical_mass: int = DEFAULT_CRITICAL_MASS,
         "total_deposits": 0,
         "deposits_locked": False,
         "land_acquired": False,
+        "infrastructure_ready": False,
         "providers_ready": False,
         "history": [
-            {"stage": RealmStatus.ALPHA, "at": datetime.now().isoformat(), "reason": "Realm created"}
+            {"stage": RealmStatus.REGISTRATION, "at": datetime.now().isoformat(), "reason": "Realm created"}
         ],
     }
     _save_lifecycle_data(realm, lifecycle)
@@ -125,18 +137,18 @@ def register_interest(user_id: str) -> dict:
     if not realm:
         return {"error": "No realm found"}
 
-    if realm.status in (RealmStatus.DEPRECATION, RealmStatus.TERMINATED):
+    if realm.status in (RealmStatus.STABLE, RealmStatus.DEPRECATION, RealmStatus.TERMINATED):
         return {"error": f"Realm is in '{realm.status}' — no new registrations accepted"}
 
     lc = _get_lifecycle_data(realm)
     deposit = lc.get("deposit_amount", DEFAULT_DEPOSIT_AMOUNT)
 
-    user = User.get(user_id)
+    user = User[user_id]
     if not user:
         return {"error": "User not found"}
 
-    system_user = User.get("system")
-    instrument = Instrument.get_by_name("Realm Token")
+    system_user = User["system"]
+    instrument = Instrument["Realm Token"]
     if not system_user or not instrument:
         return {"error": "System user or instrument not found"}
 
@@ -160,9 +172,9 @@ def register_interest(user_id: str) -> dict:
     }
 
     # Check critical mass auto-transition
-    if realm.status == RealmStatus.ALPHA and lc["registered_users"] >= lc.get("critical_mass", DEFAULT_CRITICAL_MASS):
-        lc = _advance_to_beta(realm, lc)
-        result["stage_advanced"] = RealmStatus.BETA
+    if realm.status == RealmStatus.REGISTRATION and lc["registered_users"] >= lc.get("critical_mass", DEFAULT_CRITICAL_MASS):
+        lc = _advance_to_accreditation(realm, lc)
+        result["stage_advanced"] = RealmStatus.ACCREDITATION
 
     _save_lifecycle_data(realm, lc)
     return result
@@ -179,13 +191,13 @@ def withdraw_deposit(user_id: str) -> dict:
     if lc.get("deposits_locked", False):
         return {"error": "Deposits are locked — withdrawal not allowed"}
 
-    if realm.status != RealmStatus.ALPHA:
-        return {"error": f"Withdrawals only allowed in alpha stage (current: {realm.status})"}
+    if realm.status != RealmStatus.REGISTRATION:
+        return {"error": f"Withdrawals only allowed in registration stage (current: {realm.status})"}
 
     deposit = lc.get("deposit_amount", DEFAULT_DEPOSIT_AMOUNT)
-    user = User.get(user_id)
-    system_user = User.get("system")
-    instrument = Instrument.get_by_name("Realm Token")
+    user = User[user_id]
+    system_user = User["system"]
+    instrument = Instrument["Realm Token"]
 
     if not all([user, system_user, instrument]):
         return {"error": "Cannot resolve user, system, or instrument"}
@@ -208,12 +220,12 @@ def withdraw_deposit(user_id: str) -> dict:
 # Stage Transitions
 # ---------------------------------------------------------------------------
 
-def _advance_to_beta(realm, lc: dict) -> dict:
-    """Internal: transition from alpha to beta."""
-    realm.status = RealmStatus.BETA
+def _advance_to_accreditation(realm, lc: dict) -> dict:
+    """Internal: transition from registration to accreditation."""
+    realm.status = RealmStatus.ACCREDITATION
     lc["deposits_locked"] = True
     lc["history"].append({
-        "stage": RealmStatus.BETA,
+        "stage": RealmStatus.ACCREDITATION,
         "at": datetime.now().isoformat(),
         "reason": f"Critical mass reached ({lc['registered_users']} users)",
     })
@@ -231,7 +243,7 @@ def advance_stage(reason: str = "") -> dict:
     if not realm:
         return {"error": "No realm found"}
 
-    current = realm.status or RealmStatus.ALPHA
+    current = realm.status or RealmStatus.REGISTRATION
     lc = _get_lifecycle_data(realm)
 
     idx = STAGES.index(current) if current in STAGES else -1
@@ -241,14 +253,16 @@ def advance_stage(reason: str = "") -> dict:
     next_stage = STAGES[idx + 1]
 
     # Stage-specific pre-conditions
-    if next_stage == RealmStatus.BETA:
+    if next_stage == RealmStatus.ACCREDITATION:
         lc["deposits_locked"] = True
 
-    if next_stage == RealmStatus.PRODUCTION:
+    if next_stage == RealmStatus.OPERATIONAL:
         if not lc.get("land_acquired"):
-            return {"error": "Cannot enter production — land has not been acquired"}
+            return {"error": "Cannot enter operational — land has not been acquired"}
+        if not lc.get("infrastructure_ready"):
+            return {"error": "Cannot enter operational — infrastructure not ready"}
         if not lc.get("providers_ready"):
-            return {"error": "Cannot enter production — service providers not ready"}
+            return {"error": "Cannot enter operational — service providers not ready"}
 
     realm.status = next_stage
     lc["history"].append({
@@ -284,6 +298,21 @@ def mark_land_acquired(details: str = "") -> dict:
     return {"land_acquired": True, "details": details}
 
 
+def mark_infrastructure_ready(details: str = "") -> dict:
+    """Mark that infrastructure is built (electricity, roads, buildings, hospitals)."""
+    realm = _get_realm()
+    if not realm:
+        return {"error": "No realm found"}
+
+    lc = _get_lifecycle_data(realm)
+    lc["infrastructure_ready"] = True
+    lc["infrastructure_details"] = details
+    lc["infrastructure_ready_at"] = datetime.now().isoformat()
+    _save_lifecycle_data(realm, lc)
+
+    return {"infrastructure_ready": True, "details": details}
+
+
 def mark_providers_ready(details: str = "") -> dict:
     """Mark that essential service providers have been contracted."""
     realm = _get_realm()
@@ -312,9 +341,9 @@ def distribute_remaining_funds() -> dict:
     if realm.status not in (RealmStatus.DEPRECATION, RealmStatus.TERMINATED):
         return {"error": "Fund distribution only allowed during deprecation or termination"}
 
-    members = Member.get_all()
-    system_user = User.get("system")
-    instrument = Instrument.get_by_name("Realm Token")
+    members = Member.instances()
+    system_user = User["system"]
+    instrument = Instrument["Realm Token"]
 
     if not system_user or not instrument:
         return {"error": "System user or instrument not found"}
@@ -365,6 +394,7 @@ def get_lifecycle_status() -> dict:
         "critical_mass": lc.get("critical_mass", DEFAULT_CRITICAL_MASS),
         "deposits_locked": lc.get("deposits_locked", False),
         "land_acquired": lc.get("land_acquired", False),
+        "infrastructure_ready": lc.get("infrastructure_ready", False),
         "providers_ready": lc.get("providers_ready", False),
         "history": lc.get("history", []),
     }
@@ -380,5 +410,5 @@ def get_stage() -> str:
 
 # Main execution
 if __name__ == "__main__":
-    lc = initialize_lifecycle(critical_mass=10_000, deposit_amount=100)
+    lc = initialize_lifecycle(critical_mass=10000, deposit_amount=100)
     print(json.dumps(lc, indent=2))

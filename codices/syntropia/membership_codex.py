@@ -3,14 +3,15 @@ Membership Codex
 Defines join criteria for the realm.
 
 To become a citizen a user must:
-  1. Be verified via the Rarimo ZK Passport verification (passport_verification
-     extension) — proving age >= 18, uniqueness, and valid passport — all
-     without revealing personal data.
+  1. Be verified as a unique human via the Rarimo ZK Passport verification
+     (passport_verification extension) — proving age >= 18, uniqueness, and
+     valid passport — all without revealing personal data.
   2. Pay the initial registration invoice (handled by the common
      user_registration_hook).
 
-This codex provides helpers that the realm can call during onboarding to
-enforce these requirements.
+This codex also provides:
+  - revoke_membership(): used by monthly_billing_codex to kick non-payers
+  - Sybil-resistance: the same ZK identity hash cannot register twice
 """
 
 from ggg import User, Member, Notification
@@ -95,7 +96,7 @@ def finalize_membership(user_id: str, verification_result: str) -> dict:
     Returns:
         Membership decision dict.
     """
-    user = User.get(user_id)
+    user = User[user_id]
     if not user:
         return {"accepted": False, "reason": "User not found"}
 
@@ -105,7 +106,8 @@ def finalize_membership(user_id: str, verification_result: str) -> dict:
         vdata = {}
 
     # Check proof was successful
-    verified = vdata.get("data", {}).get("attributes", {}).get("status") == "verified"
+    attrs = vdata.get("data", {}).get("attributes", {})
+    verified = attrs.get("status") == "verified"
     if not verified:
         return {
             "accepted": False,
@@ -113,7 +115,19 @@ def finalize_membership(user_id: str, verification_result: str) -> dict:
                       "Please use the RariMe app to verify your identity.",
         }
 
-    # Create membership record
+    # Sybil resistance: extract the ZK identity hash and reject duplicates
+    zk_identity_hash = attrs.get("identity_hash", "")
+    if zk_identity_hash:
+        existing_members = Member.instances()
+        for m in existing_members:
+            if m.criminal_record and zk_identity_hash in m.criminal_record:
+                return {
+                    "accepted": False,
+                    "reason": "This identity has already been used to register. "
+                              "One person = one membership.",
+                }
+
+    # Create membership record (store zk hash in criminal_record field for dedup)
     member = Member(
         user=user,
         identity_verification="verified",
@@ -121,7 +135,7 @@ def finalize_membership(user_id: str, verification_result: str) -> dict:
         tax_compliance="compliant",
         public_benefits_eligibility="eligible",
         voting_eligibility="eligible",
-        criminal_record="clean",
+        criminal_record="clean|zk:" + zk_identity_hash,
     )
 
     # Notify user
@@ -130,12 +144,11 @@ def finalize_membership(user_id: str, verification_result: str) -> dict:
         title="Citizenship Granted",
         message="Your identity has been verified and citizenship has been granted. "
                 "Welcome to the Realm.",
-        user=user,
         read=False,
         icon="shield_check",
         href="/",
         color="green",
-        metadata=f"member_id:{member.id}"
+        metadata="uid:" + user_id + "|mid:" + str(member.id)
     )
 
     return {
@@ -148,11 +161,11 @@ def finalize_membership(user_id: str, verification_result: str) -> dict:
 
 def check_membership_status(user_id: str) -> dict:
     """Check whether a user is already a verified member."""
-    user = User.get(user_id)
+    user = User[user_id]
     if not user:
         return {"is_member": False, "reason": "User not found"}
 
-    members = Member.get_all()
+    members = Member.instances()
     for member in members:
         if member.user and member.user.id == user_id:
             return {
@@ -162,6 +175,58 @@ def check_membership_status(user_id: str) -> dict:
             }
 
     return {"is_member": False, "reason": "No membership record found. Please verify your passport."}
+
+
+# ---------------------------------------------------------------------------
+# Membership Revocation (used by monthly_billing_codex)
+# ---------------------------------------------------------------------------
+
+def revoke_membership(user_id: str, reason: str = "Non-payment of dues") -> dict:
+    """Revoke a member's citizenship and notify them.
+
+    Called by the monthly billing codex when a user fails to pay after
+    being warned.
+
+    Returns:
+        Revocation result dict.
+    """
+    user = User[user_id]
+    if not user:
+        return {"revoked": False, "reason": "User not found"}
+
+    members = Member.instances()
+    target_member = None
+    for member in members:
+        if member.user and member.user.id == user_id:
+            target_member = member
+            break
+
+    if not target_member:
+        return {"revoked": False, "reason": "No membership found for user"}
+
+    # Mark membership as revoked
+    target_member.identity_verification = "revoked"
+    target_member.voting_eligibility = "ineligible"
+    target_member.public_benefits_eligibility = "ineligible"
+
+    Notification(
+        topic="membership",
+        title="Citizenship Revoked",
+        message="Your citizenship has been revoked. Reason: " + reason + ". You may re-apply after resolving outstanding obligations.",
+        read=False,
+        icon="shield_off",
+        href="/",
+        color="red",
+        metadata="uid:" + user_id + "|mid:" + str(target_member.id)
+    )
+
+    return {
+        "revoked": True,
+        "member_id": target_member.id,
+        "user_id": user_id,
+        "reason": reason,
+        "revoked_at": datetime.now().isoformat(),
+    }
 
 
 # Main execution
