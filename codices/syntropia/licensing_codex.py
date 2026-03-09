@@ -64,7 +64,7 @@ def issue_provider_license(provider_name: str, category: str,
     )
 
     return {
-        "license_id": lic.id,
+        "license_id": lic._id,
         "name": lic.name,
         "license_type": lic.license_type,
         "status": lic.status,
@@ -219,7 +219,7 @@ def list_licenses(category: str = None, status: str = "active") -> list:
         if status and lic.status != status:
             continue
         results.append({
-            "license_id": lic.id,
+            "license_id": lic._id,
             "name": lic.name,
             "license_type": lic.license_type,
             "status": lic.status,
