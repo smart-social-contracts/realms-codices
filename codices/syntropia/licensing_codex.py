@@ -182,25 +182,20 @@ def pay_bill(license_id: str, bill_index: int) -> dict:
     if bill["status"] != "pending":
         return {"error": f"Bill is already {bill['status']}"}
 
-    # Pay via the organization linked to the license, or fall back to system
-    system_user = User.get("system")
-    instrument = Instrument.get_by_name("Realm Token")
-
-    if not system_user or not instrument:
-        return {"error": "Cannot resolve system user or instrument"}
-
-    # If the license is linked to an organization with a user, pay that user
-    to_user = None
-    if lic.organization and hasattr(lic.organization, "user"):
-        to_user = lic.organization.user
-    if not to_user:
-        to_user = system_user  # fallback: record the transfer to system
+    # Determine receiver principal
+    to_principal = "system"
+    if lic.organization and hasattr(lic.organization, "user") and lic.organization.user:
+        to_principal = lic.organization.user.id
 
     Transfer(
-        from_user=system_user,
-        to_user=to_user,
-        instrument=instrument,
-        amount=bill["amount"]
+        id=f"bill_{license_id}_{bill_index}_{datetime.now().strftime('%Y%m%d')}",
+        principal_from="system",
+        principal_to=to_principal,
+        instrument="Realm Token",
+        amount=bill["amount"],
+        timestamp=datetime.now().isoformat(),
+        status="completed",
+        tags="license_bill_payment",
     )
 
     bill["status"] = "paid"

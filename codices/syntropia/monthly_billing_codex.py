@@ -42,22 +42,22 @@ def create_monthly_invoice(user_id: str) -> dict:
     if not user:
         return {"error": "User not found"}
 
-    due_on = (datetime.now() + timedelta(days=GRACE_PERIOD_DAYS)).isoformat()
+    due_date = (datetime.now() + timedelta(days=GRACE_PERIOD_DAYS)).isoformat()
 
     invoice = Invoice(
         amount=MONTHLY_FEE_SATOSHIS / 1e8,  # convert satoshis to ckBTC
         currency=INVOICE_CURRENCY,
-        due_on=due_on,
+        due_date=due_date,
         status="Pending",
-        type="monthly_dues",
-        metadata=user_id + "|" + datetime.now().strftime("%Y-%m"),
+        user=user,
+        metadata="monthly_dues|" + user_id + "|" + datetime.now().strftime("%Y-%m"),
     )
 
     return {
         "invoice_id": invoice.id,
         "user_id": user_id,
         "amount_ckbtc": MONTHLY_FEE_SATOSHIS / 1e8,
-        "due_on": due_on,
+        "due_date": due_date,
         "status": "Pending",
     }
 
@@ -76,21 +76,23 @@ def _get_monthly_invoices(user_id: str) -> list:
     """Return all monthly-dues invoices for a user, newest first."""
     invoices = []
     for inv in Invoice.instances():
-        if inv.type == "monthly_dues" and inv.metadata:
-            inv_uid = inv.metadata.split("|")[0] if "|" in inv.metadata else ""
+        meta = inv.metadata or ""
+        if meta.startswith("monthly_dues|"):
+            parts = meta.split("|")
+            inv_uid = parts[1] if len(parts) > 1 else ""
             if inv_uid == user_id:
                 invoices.append(inv)
-    # Sort by due_on descending
-    invoices.sort(key=lambda i: i.due_on or "", reverse=True)
+    # Sort by due_date descending
+    invoices.sort(key=lambda i: i.due_date or "", reverse=True)
     return invoices
 
 
 def _days_overdue(invoice) -> int:
     """How many days past due_date an invoice is. Returns 0 if not overdue."""
-    if not invoice.due_on:
+    if not invoice.due_date:
         return 0
     try:
-        due = datetime.fromisoformat(invoice.due_on)
+        due = datetime.fromisoformat(invoice.due_date)
         delta = (datetime.now() - due).days
         return max(0, delta)
     except (ValueError, TypeError):
@@ -107,6 +109,7 @@ def warn_user(user_id: str, invoice_id: str) -> dict:
         topic="billing",
         title="Overdue Invoice Warning",
         message="Your monthly dues invoice " + invoice_id + " is overdue. Please pay within the next billing cycle or your citizenship will be revoked.",
+        user=user,
         read=False,
         icon="alert_triangle",
         href="/extensions/member_dashboard#my_taxes",
@@ -143,6 +146,7 @@ def kick_user(user_id: str, invoice_id: str) -> dict:
                     topic="membership",
                     title="Citizenship Revoked",
                     message="Your citizenship has been revoked due to non-payment of invoice " + invoice_id + ".",
+                    user=user,
                     read=False, icon="shield_off",
                     href="/", color="red",
                     metadata="uid:" + user_id + "|inv:" + invoice_id
@@ -225,11 +229,11 @@ def run_billing_cycle():
 # Scheduled task entry point
 def async_task():
     """Entry point for scheduled execution via `realms run --every`."""
-    logger.info("💰 Monthly Billing Cycle starting...")
+    print("Monthly Billing Cycle starting...")
     results = run_billing_cycle()
-    logger.info(f"📊 Cycle complete: {len(results['invoices_created'])} invoices, "
-                f"{len(results['warnings_sent'])} warnings, "
-                f"{len(results['members_kicked'])} kicked")
+    print("Cycle complete: " + str(len(results["invoices_created"])) + " invoices, "
+          + str(len(results["warnings_sent"])) + " warnings, "
+          + str(len(results["members_kicked"])) + " kicked")
     return json.dumps(results)
 
 

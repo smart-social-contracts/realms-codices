@@ -143,7 +143,8 @@ def finalize_membership(user_id: str, verification_result: str) -> dict:
         topic="membership",
         title="Citizenship Granted",
         message="Your identity has been verified and citizenship has been granted. "
-                "Welcome to the Realm.",
+                "Welcome to Syntropia.",
+        user=user,
         read=False,
         icon="shield_check",
         href="/",
@@ -213,6 +214,7 @@ def revoke_membership(user_id: str, reason: str = "Non-payment of dues") -> dict
         topic="membership",
         title="Citizenship Revoked",
         message="Your citizenship has been revoked. Reason: " + reason + ". You may re-apply after resolving outstanding obligations.",
+        user=user,
         read=False,
         icon="shield_off",
         href="/",

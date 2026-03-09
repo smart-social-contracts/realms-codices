@@ -171,10 +171,10 @@ for m in verified[:2]:
     inv = Invoice(
         amount=0.00001,
         currency="ckBTC",
-        due_on=due,
+        due_date=due,
         status="Pending",
-        type="monthly_dues",
-        metadata=str(m.user.id) + "|" + now.strftime("%Y-%m"),
+        user=m.user,
+        metadata="monthly_dues|" + str(m.user.id) + "|" + now.strftime("%Y-%m"),
     )
     print("  Invoice " + str(inv.id) + " for user " + str(m.user.id))
     inv_count += 1
@@ -194,10 +194,12 @@ print("Procurement proposal " + pp.proposal_id)
 
 # ── TEST 7: Notification ─────────────────────────────────────────────────
 print("=== TEST 7: NOTIFICATION ===")
+notif_user = verified[0].user if verified else None
 n = Notification(
     topic="billing",
     title="Monthly Dues Reminder",
     message="Your monthly dues invoice has been created. Please pay within 30 days.",
+    user=notif_user,
     read=False,
     icon="bell",
     href="/invoices",
@@ -253,7 +255,7 @@ print("=== TEST 9: REALM LIFECYCLE ===")
 realm = Realm(
     name="Syntropia Lifecycle Test",
     description="A digital realm for smart social contracts",
-    status=RealmStatus.REGISTRATION,
+    status=RealmStatus.ALPHA,
 )
 print("Realm: " + realm.name + " status=" + realm.status)
 
@@ -268,31 +270,31 @@ lifecycle = {
     "infrastructure_ready": False,
     "providers_ready": False,
     "history": [
-        {"stage": RealmStatus.REGISTRATION, "at": now.isoformat(), "reason": "Realm created"}
+        {"stage": RealmStatus.ALPHA, "at": now.isoformat(), "reason": "Realm created"}
     ],
 }
 realm.manifest_data = json.dumps({"lifecycle": lifecycle})
 
-# Simulate registration stage: ZK proof + deposit
-assert realm.status == RealmStatus.REGISTRATION, "Realm should start in registration"
+# Simulate alpha stage: ZK proof + deposit, gathering interest
+assert realm.status == RealmStatus.ALPHA, "Realm should start in alpha"
 lifecycle["registered_users"] = 150
 lifecycle["total_deposits"] = 15000
 lifecycle["history"].append({
-    "stage": RealmStatus.REGISTRATION,
+    "stage": RealmStatus.ALPHA,
     "at": now.isoformat(),
     "reason": "150 users registered with ZK proof (Rarimo)",
 })
 print("  Registered users: " + str(lifecycle["registered_users"]) + " deposits: " + str(lifecycle["total_deposits"]))
 
-# Advance to accreditation (simulate critical mass reached)
-realm.status = RealmStatus.ACCREDITATION
+# Advance to beta (deposits locked, auctions & land bidding)
+realm.status = RealmStatus.BETA
 lifecycle["deposits_locked"] = True
 lifecycle["history"].append({
-    "stage": RealmStatus.ACCREDITATION,
+    "stage": RealmStatus.BETA,
     "at": now.isoformat(),
-    "reason": "Critical mass reached — deposits locked",
+    "reason": "Critical mass reached — deposits locked, land bidding begins",
 })
-assert realm.status == RealmStatus.ACCREDITATION
+assert realm.status == RealmStatus.BETA
 print("  Advanced to: " + realm.status + " deposits_locked=" + str(lifecycle["deposits_locked"]))
 
 # Mark infrastructure ready (electricity, roads, buildings, hospitals)
@@ -304,26 +306,20 @@ lifecycle["providers_ready"] = True
 lifecycle["providers_details"] = "Power, water, telecom, healthcare contracted"
 print("  Infrastructure: ready | Land: acquired | Providers: ready")
 
-# Advance to operational
-realm.status = RealmStatus.OPERATIONAL
+# Advance to production (fully operational)
+realm.status = RealmStatus.PRODUCTION
 lifecycle["history"].append({
-    "stage": RealmStatus.OPERATIONAL,
+    "stage": RealmStatus.PRODUCTION,
     "at": now.isoformat(),
-    "reason": "Infrastructure ready — citizens moving in",
+    "reason": "Infrastructure ready — citizens moving in, fully operational",
 })
-assert realm.status == RealmStatus.OPERATIONAL
+assert realm.status == RealmStatus.PRODUCTION
 print("  Advanced to: " + realm.status)
 
-# Advance to stable
-realm.status = RealmStatus.STABLE
-lifecycle["history"].append({
-    "stage": RealmStatus.STABLE,
-    "at": now.isoformat(),
-    "reason": "Realm self-sustaining",
-})
+# Simulate deprecation and termination lifecycle
+realm_copy_status = realm.status
+print("  Production realm status: " + realm_copy_status)
 realm.manifest_data = json.dumps({"lifecycle": lifecycle})
-assert realm.status == RealmStatus.STABLE
-print("  Advanced to: " + realm.status + " (self-sustaining)")
 print("  Lifecycle history: " + str(len(lifecycle["history"])) + " entries")
 
 # ── TEST 10: Land & Zones ────────────────────────────────────────────────

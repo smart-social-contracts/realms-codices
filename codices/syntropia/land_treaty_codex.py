@@ -35,6 +35,28 @@ DEFAULT_WIND_DOWN_MONTHS = 24
 # Treaty CRUD
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Helpers — treaty data stored in Proposal.description (max 2048 chars)
+# ---------------------------------------------------------------------------
+
+def _load_treaty(proposal) -> dict:
+    """Load treaty dict from proposal.description (JSON)."""
+    try:
+        return json.loads(proposal.description) if proposal.description else {}
+    except (json.JSONDecodeError, TypeError):
+        return {}
+
+
+def _save_treaty(proposal, treaty: dict):
+    """Save treaty dict to proposal.description."""
+    proposal.description = json.dumps(treaty, separators=(",", ":"))
+
+
+def _find_treaty_proposal(treaty_id: str):
+    """Find a treaty Proposal by proposal_id."""
+    return Proposal[treaty_id]
+
+
 def create_treaty(host_state_name: str, territory_description: str,
                   term_years: int = DEFAULT_TERM_YEARS,
                   annual_fee: int = 0, fee_currency: str = "USD",
@@ -52,75 +74,52 @@ def create_treaty(host_state_name: str, territory_description: str,
     now = datetime.now()
 
     treaty_data = {
+        "hs": host_state_name,
+        "td": territory_description,
+        "km2": territory_area_km2,
+        "st": "draft",
+        "ty": term_years,
+        "af": annual_fee,
+        "fc": fee_currency,
+        "rsp": revenue_share_pct,
+        "sd": security_deposit,
+        "pay": [],
+        "hist": [{"ev": "created", "at": now.isoformat()}],
+    }
+
+    existing = Proposal.instances()
+    num = len([p for p in existing if p.metadata == "branch:treaty"]) + 1
+    pid = "treaty_" + str(num).zfill(3)
+
+    proposal = Proposal(
+        proposal_id=pid,
+        title="Land Lease Treaty: " + host_state_name,
+        description=json.dumps(treaty_data, separators=(",", ":")),
+        status="draft",
+        metadata="branch:treaty",
+    )
+
+    return {
+        "treaty_id": pid,
         "host_state": host_state_name,
         "territory_description": territory_description,
         "territory_area_km2": territory_area_km2,
-        "coordinates": coordinates or {},
         "status": "draft",
-
-        # Duration
         "term_years": term_years,
-        "start_date": None,
-        "end_date": None,
-        "wind_down_months": DEFAULT_WIND_DOWN_MONTHS,
-
-        # Financial
         "annual_fee": annual_fee,
-        "fee_currency": fee_currency,
-        "revenue_share_pct": revenue_share_pct,
-        "security_deposit": security_deposit,
-        "payments": [],
-
-        # Governance
-        "reserved_powers": reserved_powers or [
-            "national_defence",
-            "immigration_border_control",
-            "international_treaties",
-            "criminal_law_annex_b",
-            "environmental_standards",
-        ],
-        "criminal_offences_annex": criminal_offences_annex or [
-            "murder", "trafficking", "terrorism", "money_laundering",
-        ],
-
-        # Signatures
-        "host_state_signatory": None,
-        "realm_signatory": None,
-        "signed_at": None,
-        "ratified_at": None,
-        "activated_at": None,
-
-        # History
-        "history": [
-            {"event": "created", "at": now.isoformat(), "notes": notes}
-        ],
     }
-
-    proposal = Proposal(
-        metadata=json.dumps({
-            "title": f"Land Lease Treaty — {host_state_name}",
-            "description": territory_description,
-            "branch": "treaty",
-            "status": "draft",
-            "treaty": treaty_data,
-        })
-    )
-
-    treaty_data["treaty_id"] = proposal.id
-    return treaty_data
 
 
 def get_treaty(treaty_id: str) -> dict:
     """Retrieve full treaty details."""
-    proposal = Proposal.get(treaty_id)
+    proposal = _find_treaty_proposal(treaty_id)
     if not proposal:
         return {"error": "Treaty not found"}
 
-    metadata = json.loads(proposal.metadata)
-    if metadata.get("branch") != "treaty":
+    if proposal.metadata != "branch:treaty":
         return {"error": "Proposal is not a treaty"}
 
-    treaty = metadata.get("treaty", {})
+    treaty = _load_treaty(proposal)
     treaty["treaty_id"] = treaty_id
     return treaty
 
@@ -132,53 +131,40 @@ def get_treaty(treaty_id: str) -> dict:
 def sign_treaty(treaty_id: str, host_state_signatory: str,
                 realm_signatory: str) -> dict:
     """Record signatures from both parties. Advances draft → signed."""
-    proposal = Proposal.get(treaty_id)
+    proposal = _find_treaty_proposal(treaty_id)
     if not proposal:
         return {"error": "Treaty not found"}
 
-    metadata = json.loads(proposal.metadata)
-    treaty = metadata.get("treaty", {})
+    treaty = _load_treaty(proposal)
 
-    if treaty.get("status") != "draft":
-        return {"error": f"Treaty must be in draft to sign (current: {treaty['status']})"}
+    if treaty.get("st") != "draft":
+        return {"error": f"Treaty must be in draft to sign (current: {treaty.get('st')})"}
 
     now = datetime.now()
-    treaty["status"] = "signed"
-    treaty["host_state_signatory"] = host_state_signatory
-    treaty["realm_signatory"] = realm_signatory
-    treaty["signed_at"] = now.isoformat()
-    treaty["history"].append({
-        "event": "signed",
-        "at": now.isoformat(),
-        "notes": f"Signed by {host_state_signatory} (host) and {realm_signatory} (realm)",
-    })
-    metadata["status"] = "signed"
-    proposal.metadata = json.dumps(metadata)
+    treaty["st"] = "signed"
+    treaty["hist"].append({"ev": "signed", "at": now.isoformat()})
+    _save_treaty(proposal, treaty)
+    proposal.status = "signed"
 
     return {"treaty_id": treaty_id, "status": "signed"}
 
 
 def ratify_treaty(treaty_id: str, ratified_by: str = "parliament") -> dict:
     """Ratify a signed treaty. Advances signed → ratified."""
-    proposal = Proposal.get(treaty_id)
+    proposal = _find_treaty_proposal(treaty_id)
     if not proposal:
         return {"error": "Treaty not found"}
 
-    metadata = json.loads(proposal.metadata)
-    treaty = metadata.get("treaty", {})
+    treaty = _load_treaty(proposal)
 
-    if treaty.get("status") != "signed":
-        return {"error": f"Treaty must be signed before ratification (current: {treaty['status']})"}
+    if treaty.get("st") != "signed":
+        return {"error": f"Treaty must be signed before ratification (current: {treaty.get('st')})"}
 
     now = datetime.now()
-    treaty["status"] = "ratified"
-    treaty["ratified_at"] = now.isoformat()
-    treaty["history"].append({
-        "event": "ratified", "at": now.isoformat(),
-        "notes": f"Ratified by {ratified_by}",
-    })
-    metadata["status"] = "ratified"
-    proposal.metadata = json.dumps(metadata)
+    treaty["st"] = "ratified"
+    treaty["hist"].append({"ev": "ratified", "at": now.isoformat()})
+    _save_treaty(proposal, treaty)
+    proposal.status = "ratified"
 
     return {"treaty_id": treaty_id, "status": "ratified"}
 
@@ -189,89 +175,77 @@ def activate_treaty(treaty_id: str) -> dict:
     Also marks land as acquired in the realm lifecycle so the realm can
     advance from beta to production.
     """
-    proposal = Proposal.get(treaty_id)
+    proposal = _find_treaty_proposal(treaty_id)
     if not proposal:
         return {"error": "Treaty not found"}
 
-    metadata = json.loads(proposal.metadata)
-    treaty = metadata.get("treaty", {})
+    treaty = _load_treaty(proposal)
 
-    if treaty.get("status") != "ratified":
-        return {"error": f"Treaty must be ratified before activation (current: {treaty['status']})"}
+    if treaty.get("st") != "ratified":
+        return {"error": f"Treaty must be ratified before activation (current: {treaty.get('st')})"}
 
     now = datetime.now()
-    term_years = treaty.get("term_years", DEFAULT_TERM_YEARS)
-    treaty["status"] = "active"
-    treaty["activated_at"] = now.isoformat()
-    treaty["start_date"] = now.isoformat()
-    treaty["end_date"] = (now + timedelta(days=term_years * 365)).isoformat()
-    treaty["history"].append({
-        "event": "activated", "at": now.isoformat(),
-        "notes": f"Treaty active for {term_years} years",
-    })
-    metadata["status"] = "active"
-    proposal.metadata = json.dumps(metadata)
+    term_years = treaty.get("ty", DEFAULT_TERM_YEARS)
+    treaty["st"] = "active"
+    treaty["hist"].append({"ev": "activated", "at": now.isoformat()})
+    _save_treaty(proposal, treaty)
+    proposal.status = "active"
 
     # Mark land as acquired in realm lifecycle
     try:
         from . import realm_lifecycle_codex
         realm_lifecycle_codex.mark_land_acquired(
-            details=f"Treaty {treaty_id} with {treaty.get('host_state', 'unknown')} — "
-                    f"{treaty.get('territory_area_km2', 0)} km²"
+            details=f"Treaty {treaty_id} with {treaty.get('hs', 'unknown')} — "
+                    f"{treaty.get('km2', 0)} km²"
         )
     except Exception:
         pass  # lifecycle codex may not be loaded
 
+    end_date = (now + timedelta(days=term_years * 365)).isoformat()
     return {
         "treaty_id": treaty_id,
         "status": "active",
-        "start_date": treaty["start_date"],
-        "end_date": treaty["end_date"],
+        "start_date": now.isoformat(),
+        "end_date": end_date,
     }
 
 
 def suspend_treaty(treaty_id: str, reason: str = "") -> dict:
     """Suspend an active treaty (e.g. dispute, force majeure)."""
-    proposal = Proposal.get(treaty_id)
+    proposal = _find_treaty_proposal(treaty_id)
     if not proposal:
         return {"error": "Treaty not found"}
 
-    metadata = json.loads(proposal.metadata)
-    treaty = metadata.get("treaty", {})
+    treaty = _load_treaty(proposal)
 
-    if treaty.get("status") != "active":
+    if treaty.get("st") != "active":
         return {"error": "Only active treaties can be suspended"}
 
     now = datetime.now()
-    treaty["status"] = "suspended"
-    treaty["history"].append({
-        "event": "suspended", "at": now.isoformat(), "notes": reason,
-    })
-    metadata["status"] = "suspended"
-    proposal.metadata = json.dumps(metadata)
+    treaty["st"] = "suspended"
+    treaty["hist"].append({"ev": "suspended", "at": now.isoformat()})
+    _save_treaty(proposal, treaty)
+    proposal.status = "suspended"
 
     return {"treaty_id": treaty_id, "status": "suspended", "reason": reason}
 
 
 def reactivate_treaty(treaty_id: str, reason: str = "") -> dict:
     """Reactivate a suspended treaty."""
-    proposal = Proposal.get(treaty_id)
+    proposal = _find_treaty_proposal(treaty_id)
     if not proposal:
         return {"error": "Treaty not found"}
 
-    metadata = json.loads(proposal.metadata)
-    treaty = metadata.get("treaty", {})
+    treaty = _load_treaty(proposal)
 
-    if treaty.get("status") != "suspended":
+    if treaty.get("st") != "suspended":
         return {"error": "Only suspended treaties can be reactivated"}
 
     now = datetime.now()
-    treaty["status"] = "active"
-    treaty["history"].append({
-        "event": "reactivated", "at": now.isoformat(), "notes": reason,
-    })
-    metadata["status"] = "active"
-    proposal.metadata = json.dumps(metadata)
+    treaty["st"] = "active"
+    treaty["hist"].append({"ev": "reactivated", "at": now.isoformat()})
+    _save_treaty(proposal, treaty)
+    proposal.status = "active"
 
     return {"treaty_id": treaty_id, "status": "active"}
 
@@ -279,36 +253,24 @@ def reactivate_treaty(treaty_id: str, reason: str = "") -> dict:
 def terminate_treaty(treaty_id: str, reason: str = "",
                      immediate: bool = False) -> dict:
     """Terminate a treaty. Triggers wind-down unless immediate."""
-    proposal = Proposal.get(treaty_id)
+    proposal = _find_treaty_proposal(treaty_id)
     if not proposal:
         return {"error": "Treaty not found"}
 
-    metadata = json.loads(proposal.metadata)
-    treaty = metadata.get("treaty", {})
+    treaty = _load_treaty(proposal)
 
-    if treaty.get("status") in ("draft", "terminated"):
-        return {"error": f"Cannot terminate a treaty in '{treaty['status']}' status"}
+    if treaty.get("st") in ("draft", "terminated"):
+        return {"error": f"Cannot terminate a treaty in '{treaty.get('st')}' status"}
 
     now = datetime.now()
-    treaty["status"] = "terminated"
-    treaty["terminated_at"] = now.isoformat()
-
-    if not immediate:
-        wind_down_months = treaty.get("wind_down_months", DEFAULT_WIND_DOWN_MONTHS)
-        treaty["wind_down_end"] = (now + timedelta(days=wind_down_months * 30)).isoformat()
-
-    treaty["history"].append({
-        "event": "terminated", "at": now.isoformat(),
-        "notes": reason or "Treaty terminated",
-        "immediate": immediate,
-    })
-    metadata["status"] = "terminated"
-    proposal.metadata = json.dumps(metadata)
+    treaty["st"] = "terminated"
+    treaty["hist"].append({"ev": "terminated", "at": now.isoformat()})
+    _save_treaty(proposal, treaty)
+    proposal.status = "terminated"
 
     return {
         "treaty_id": treaty_id,
         "status": "terminated",
-        "wind_down_end": treaty.get("wind_down_end"),
     }
 
 
@@ -319,45 +281,43 @@ def terminate_treaty(treaty_id: str, reason: str = "",
 def record_payment(treaty_id: str, amount: int, currency: str = "",
                    period: str = "", notes: str = "") -> dict:
     """Record a lease fee payment against the treaty."""
-    proposal = Proposal.get(treaty_id)
+    proposal = _find_treaty_proposal(treaty_id)
     if not proposal:
         return {"error": "Treaty not found"}
 
-    metadata = json.loads(proposal.metadata)
-    treaty = metadata.get("treaty", {})
+    treaty = _load_treaty(proposal)
 
     payment = {
-        "amount": amount,
-        "currency": currency or treaty.get("fee_currency", "USD"),
-        "period": period,
-        "paid_at": datetime.now().isoformat(),
-        "notes": notes,
+        "a": amount,
+        "c": currency or treaty.get("fc", "USD"),
+        "p": period,
+        "at": datetime.now().isoformat(),
     }
-    treaty.setdefault("payments", []).append(payment)
-    proposal.metadata = json.dumps(metadata)
+    treaty.setdefault("pay", []).append(payment)
+    _save_treaty(proposal, treaty)
 
     return {
         "treaty_id": treaty_id,
-        "payment_index": len(treaty["payments"]) - 1,
+        "payment_index": len(treaty["pay"]) - 1,
         "amount": amount,
     }
 
 
 def get_payment_summary(treaty_id: str) -> dict:
     """Return payment history and balance for a treaty."""
-    treaty = get_treaty(treaty_id)
-    if "error" in treaty:
-        return treaty
+    proposal = _find_treaty_proposal(treaty_id)
+    if not proposal:
+        return {"error": "Treaty not found"}
 
-    payments = treaty.get("payments", [])
-    total_paid = sum(p["amount"] for p in payments)
+    treaty = _load_treaty(proposal)
+    payments = treaty.get("pay", [])
+    total_paid = sum(p.get("a", 0) for p in payments)
 
     return {
         "treaty_id": treaty_id,
-        "annual_fee": treaty.get("annual_fee", 0),
+        "annual_fee": treaty.get("af", 0),
         "total_paid": total_paid,
         "payment_count": len(payments),
-        "payments": payments,
     }
 
 
@@ -368,19 +328,18 @@ def get_payment_summary(treaty_id: str) -> dict:
 def list_treaties(status: str = None) -> list:
     """List all treaties, optionally filtered by status."""
     results = []
-    for proposal in Proposal.get_all():
-        metadata = json.loads(proposal.metadata)
-        if metadata.get("branch") != "treaty":
+    for proposal in Proposal.instances():
+        if proposal.metadata != "branch:treaty":
             continue
-        treaty = metadata.get("treaty", {})
-        if status and treaty.get("status") != status:
+        treaty = _load_treaty(proposal)
+        if status and treaty.get("st") != status:
             continue
         results.append({
-            "treaty_id": proposal.id,
-            "host_state": treaty.get("host_state"),
-            "status": treaty.get("status"),
-            "territory_area_km2": treaty.get("territory_area_km2"),
-            "annual_fee": treaty.get("annual_fee"),
+            "treaty_id": proposal.proposal_id,
+            "host_state": treaty.get("hs"),
+            "status": treaty.get("st"),
+            "territory_area_km2": treaty.get("km2"),
+            "annual_fee": treaty.get("af"),
         })
     return results
 
