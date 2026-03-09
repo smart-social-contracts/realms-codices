@@ -93,7 +93,7 @@ def _days_overdue(invoice) -> int:
         return 0
     try:
         due = datetime.fromisoformat(invoice.due_date)
-        delta = (datetime.now() - due).days
+        delta = int((datetime.now() - due).total_seconds() // 86400)
         return max(0, delta)
     except (ValueError, TypeError):
         return 0
