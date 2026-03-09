@@ -1,24 +1,9 @@
 # Test: Billing
 # Covers: monthly invoice creation, overdue warning, membership revocation
 #         for non-payment
-import sys as _sys
 import json
-from ggg import User, Member, Invoice, Notification, Codex
-
-def load_codex(name):
-    """Load a codex module by exec'ing its source from the Codex entity."""
-    mod = _sys.modules.get(name)
-    if mod is None:
-        mod = type(_sys)(name)
-        _sys.modules[name] = mod
-    if not getattr(mod, '_codex_loaded', False):
-        for c in Codex.instances():
-            if c.name == name and c.code:
-                exec(compile(c.code, name + '.py', 'exec'), mod.__dict__)
-                mod._codex_loaded = True
-                return mod
-        raise ImportError("Codex not found: " + name)
-    return mod
+import monthly_billing_codex
+from ggg import User, Member, Invoice, Notification
 
 ts = "b" + str(id(object()))[-6:]
 
@@ -45,7 +30,7 @@ member_carol = Member(
     criminal_record="clean|zk:" + ts + "_carol",
 )
 
-billing_codex = load_codex("monthly_billing_codex")
+billing_codex = monthly_billing_codex
 
 # ── TEST 1: Monthly Invoice ─────────────────────────────────────────────
 print("=== TEST 1: MONTHLY INVOICE ===")

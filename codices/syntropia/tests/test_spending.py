@@ -1,28 +1,14 @@
 # Test: Spending & Welfare
 # Covers: welfare benefit distribution, procurement project workflow,
 #         treasury savings with supermajority withdrawal
-import sys as _sys
 import json
+import procurement_codex
+import treasury_savings_codex
 from ggg import (
-    Proposal, User, Member, Transfer, Notification, Codex,
+    Proposal, User, Member, Transfer, Notification,
     LedgerEntry, EntryType, Category,
     Budget, BudgetStatus,
 )
-
-def load_codex(name):
-    """Load a codex module by exec'ing its source from the Codex entity."""
-    mod = _sys.modules.get(name)
-    if mod is None:
-        mod = type(_sys)(name)
-        _sys.modules[name] = mod
-    if not getattr(mod, '_codex_loaded', False):
-        for c in Codex.instances():
-            if c.name == name and c.code:
-                exec(compile(c.code, name + '.py', 'exec'), mod.__dict__)
-                mod._codex_loaded = True
-                return mod
-        raise ImportError("Codex not found: " + name)
-    return mod
 
 ts = "s" + str(id(object()))[-6:]
 today = "2026-03-09"
@@ -72,8 +58,6 @@ print("Welfare notification sent")
 
 # ── TEST 2: Procurement Project Workflow ─────────────────────────────────
 print("=== TEST 2: PROCUREMENT WORKFLOW ===")
-procurement_codex = load_codex("procurement_codex")
-
 proj = procurement_codex.propose_project(
     name="Solar Farm",
     desc="Build a 10MW solar farm for the realm",
@@ -97,7 +81,7 @@ print("Total procurement projects: " + str(len(projects)))
 
 # ── TEST 3: Treasury Savings & Supermajority Withdrawal ──────────────────
 print("=== TEST 3: TREASURY SAVINGS ===")
-treasury_codex = load_codex("treasury_savings_codex")
+treasury_codex = treasury_savings_codex
 
 tsw_prop = Proposal(
     proposal_id=ts + "_tsw_001",

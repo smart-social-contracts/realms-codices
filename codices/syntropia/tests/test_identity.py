@@ -1,24 +1,9 @@
 # Test: Identity & Membership
 # Covers: user registration, ZK passport verification, membership finalization,
 #         membership status check, sybil resistance, membership revocation
-import sys as _sys
 import json
-from ggg import User, Member, Notification, Codex
-
-def load_codex(name):
-    """Load a codex module by exec'ing its source from the Codex entity."""
-    mod = _sys.modules.get(name)
-    if mod is None:
-        mod = type(_sys)(name)
-        _sys.modules[name] = mod
-    if not getattr(mod, '_codex_loaded', False):
-        for c in Codex.instances():
-            if c.name == name and c.code:
-                exec(compile(c.code, name + '.py', 'exec'), mod.__dict__)
-                mod._codex_loaded = True
-                return mod
-        raise ImportError("Codex not found: " + name)
-    return mod
+import membership_codex
+from ggg import User, Member, Notification
 
 ts = "t" + str(id(object()))[-6:]
 
@@ -46,8 +31,6 @@ print("ZK proofs simulated for 3 users")
 
 # ── TEST 3: Membership Finalization ──────────────────────────────────────
 print("=== TEST 3: MEMBERSHIP FINALIZATION ===")
-membership_codex = load_codex("membership_codex")
-
 res_alice = membership_codex.finalize_membership(user_alice.id, zk_result_alice)
 assert res_alice["accepted"], "Alice should be accepted: " + str(res_alice)
 print("Alice accepted, member_id=" + str(res_alice["member_id"]))

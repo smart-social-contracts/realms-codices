@@ -1,28 +1,13 @@
 # Test: Federation
 # Covers: quarter assignment strategies (random, least_populated, user_choice)
-import sys as _sys
-from ggg import Realm, RealmStatus, Quarter, QuarterStatus, Codex
-
-def load_codex(name):
-    """Load a codex module by exec'ing its source from the Codex entity."""
-    mod = _sys.modules.get(name)
-    if mod is None:
-        mod = type(_sys)(name)
-        _sys.modules[name] = mod
-    if not getattr(mod, '_codex_loaded', False):
-        for c in Codex.instances():
-            if c.name == name and c.code:
-                exec(compile(c.code, name + '.py', 'exec'), mod.__dict__)
-                mod._codex_loaded = True
-                return mod
-        raise ImportError("Codex not found: " + name)
-    return mod
+import quarter_assignment_codex
+from ggg import Realm, RealmStatus, Quarter, QuarterStatus
 
 ts = "q" + str(id(object()))[-6:]
 
 realm = Realm(name="Federation Test " + ts, description="Test", status=RealmStatus.PRODUCTION)
 
-quarter_codex = load_codex("quarter_assignment_codex")
+quarter_codex = quarter_assignment_codex
 
 # ── TEST 1: Quarter Assignment ───────────────────────────────────────────
 print("=== TEST 1: FEDERATION & QUARTERS ===")

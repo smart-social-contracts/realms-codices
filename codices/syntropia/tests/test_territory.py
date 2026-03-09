@@ -1,28 +1,14 @@
 # Test: Territory & Land
 # Covers: realm lifecycle stages, land & zones, land lease treaty lifecycle,
 #         zone policy & license assignment
-import sys as _sys
 import json
+import land_treaty_codex
+import zones_codex
 from ggg import (
-    Realm, RealmStatus, Codex,
+    Realm, RealmStatus,
     Land, LandStatus, LandType, Zone,
     License, LicenseType, license_issue,
 )
-
-def load_codex(name):
-    """Load a codex module by exec'ing its source from the Codex entity."""
-    mod = _sys.modules.get(name)
-    if mod is None:
-        mod = type(_sys)(name)
-        _sys.modules[name] = mod
-    if not getattr(mod, '_codex_loaded', False):
-        for c in Codex.instances():
-            if c.name == name and c.code:
-                exec(compile(c.code, name + '.py', 'exec'), mod.__dict__)
-                mod._codex_loaded = True
-                return mod
-        raise ImportError("Codex not found: " + name)
-    return mod
 
 ts = "r" + str(id(object()))[-6:]
 
@@ -100,7 +86,7 @@ print("Zones: " + str(Zone.count()))
 
 # ── TEST 3: Land Lease Treaty Lifecycle ──────────────────────────────────
 print("=== TEST 3: LAND LEASE TREATY ===")
-treaty_codex = load_codex("land_treaty_codex")
+treaty_codex = land_treaty_codex
 
 treaty = treaty_codex.create_treaty(
     host_state_name="Republic of Freedonia",
@@ -148,8 +134,6 @@ print("Total treaties: " + str(len(treaties)))
 
 # ── TEST 4: Zone Policy & License Assignment ─────────────────────────────
 print("=== TEST 4: ZONE POLICY & LICENSE ===")
-zones_codex = load_codex("zones_codex")
-
 policy_result = zones_codex.add_policy_to_zone(
     str(zone_central._id), "Tax Incentive Zone",
     "Reduced tax rate for businesses in the central district",

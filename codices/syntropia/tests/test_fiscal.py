@@ -1,28 +1,13 @@
 # Test: Fiscal System
 # Covers: fiscal periods, funds, budgets, ledger entries (double-entry),
 #         progressive tax calculation, tax collection
-import sys as _sys
 import json
+import tax_collection_codex
 from ggg import (
-    Proposal, User, Member, Transfer, Codex,
+    Proposal, User, Member, Transfer,
     FiscalPeriod, FiscalPeriodStatus, Fund, FundType,
     Budget, BudgetStatus, LedgerEntry, EntryType, Category,
 )
-
-def load_codex(name):
-    """Load a codex module by exec'ing its source from the Codex entity."""
-    mod = _sys.modules.get(name)
-    if mod is None:
-        mod = type(_sys)(name)
-        _sys.modules[name] = mod
-    if not getattr(mod, '_codex_loaded', False):
-        for c in Codex.instances():
-            if c.name == name and c.code:
-                exec(compile(c.code, name + '.py', 'exec'), mod.__dict__)
-                mod._codex_loaded = True
-                return mod
-        raise ImportError("Codex not found: " + name)
-    return mod
 
 ts = "f" + str(id(object()))[-6:]
 fy = 2026
@@ -141,7 +126,7 @@ print("Cash balance: " + str(LedgerEntry.get_balance(EntryType.ASSET, Category.C
 
 # ── TEST 5: Progressive Tax Calculation ──────────────────────────────────
 print("=== TEST 5: PROGRESSIVE TAX CALCULATION ===")
-tax_codex = load_codex("tax_collection_codex")
+tax_codex = tax_collection_codex
 
 # Give Alice income via transfers
 Transfer(id=ts + "_income_alice", principal_from="system", principal_to=user_alice.id,

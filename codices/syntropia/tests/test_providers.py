@@ -1,27 +1,10 @@
 # Test: Service Providers
 # Covers: license issuance, compliance check, bill submission & payment,
 #         license renewal & revocation
-import sys as _sys
-from ggg import License, LicenseType, Codex
-
-def load_codex(name):
-    """Load a codex module by exec'ing its source from the Codex entity."""
-    mod = _sys.modules.get(name)
-    if mod is None:
-        mod = type(_sys)(name)
-        _sys.modules[name] = mod
-    if not getattr(mod, '_codex_loaded', False):
-        for c in Codex.instances():
-            if c.name == name and c.code:
-                exec(compile(c.code, name + '.py', 'exec'), mod.__dict__)
-                mod._codex_loaded = True
-                return mod
-        raise ImportError("Codex not found: " + name)
-    return mod
+import licensing_codex
+from ggg import License, LicenseType
 
 ts = "p" + str(id(object()))[-6:]
-
-licensing_codex = load_codex("licensing_codex")
 
 # ── TEST 1: License Issuance ─────────────────────────────────────────────
 print("=== TEST 1: LICENSE ISSUANCE ===")

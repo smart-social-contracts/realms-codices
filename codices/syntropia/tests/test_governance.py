@@ -1,23 +1,8 @@
 # Test: Governance
 # Covers: legislative proposals, voting, vote processing, executive approval/veto,
 #         judicial review
-import sys as _sys
-from ggg import Proposal, User, Vote, Codex
-
-def load_codex(name):
-    """Load a codex module by exec'ing its source from the Codex entity."""
-    mod = _sys.modules.get(name)
-    if mod is None:
-        mod = type(_sys)(name)
-        _sys.modules[name] = mod
-    if not getattr(mod, '_codex_loaded', False):
-        for c in Codex.instances():
-            if c.name == name and c.code:
-                exec(compile(c.code, name + '.py', 'exec'), mod.__dict__)
-                mod._codex_loaded = True
-                return mod
-        raise ImportError("Codex not found: " + name)
-    return mod
+import governance_automation_codex
+from ggg import Proposal, User, Vote
 
 ts = "g" + str(id(object()))[-6:]
 today = "2026-03-09"
@@ -67,9 +52,7 @@ print("Proposal " + leg_prop.proposal_id + " passed parliament (" + str(votes_fo
 
 # ── TEST 4: Executive Approval & Veto ────────────────────────────────────
 print("=== TEST 4: EXECUTIVE APPROVAL & VETO ===")
-governance_codex = load_codex("governance_automation_codex")
-
-approve_result = governance_codex.executive_approve(leg_prop.proposal_id, approved=True)
+approve_result = governance_automation_codex.executive_approve(leg_prop.proposal_id, approved=True)
 assert approve_result.get("status") == "enacted", "Should be enacted: " + str(approve_result)
 print("Executive approved: " + str(approve_result))
 
@@ -82,13 +65,13 @@ veto_prop = Proposal(
     voting_deadline=deadline,
     metadata="branch:legislative",
 )
-veto_result = governance_codex.executive_approve(veto_prop.proposal_id, approved=False)
+veto_result = governance_automation_codex.executive_approve(veto_prop.proposal_id, approved=False)
 assert veto_result.get("status") == "vetoed", "Should be vetoed"
 print("Executive vetoed: " + str(veto_result))
 
 # ── TEST 5: Judicial Review ──────────────────────────────────────────────
 print("=== TEST 5: JUDICIAL REVIEW ===")
-jr_pass = governance_codex.judicial_review(leg_prop.proposal_id, constitutional=True)
+jr_pass = governance_automation_codex.judicial_review(leg_prop.proposal_id, constitutional=True)
 assert jr_pass.get("constitutional") == True
 print("Judicial review (constitutional): " + str(jr_pass))
 
@@ -100,7 +83,7 @@ strike_prop = Proposal(
     voting_deadline=deadline,
     metadata="branch:legislative",
 )
-jr_fail = governance_codex.judicial_review(strike_prop.proposal_id, constitutional=False)
+jr_fail = governance_automation_codex.judicial_review(strike_prop.proposal_id, constitutional=False)
 assert jr_fail.get("status") == "struck_down"
 print("Judicial review (struck down): " + str(jr_fail))
 
