@@ -59,7 +59,7 @@ def create_zone(name: str, description: str, category: str = "general",
     )
 
     return {
-        "zone_id": zone.id,
+        "zone_id": zone._id,
         "name": zone.name,
         "category": category,
         "h3_index": zone.h3_index,
@@ -193,7 +193,7 @@ def list_zones(category: str = None, status: str = "active") -> list:
         if status and meta.get("status") != status:
             continue
         results.append({
-            "zone_id": zone.id,
+            "zone_id": zone._id,
             "name": zone.name,
             "h3_index": zone.h3_index,
             "category": meta.get("category"),
@@ -210,7 +210,7 @@ def get_zone(zone_id: str) -> dict:
 
     meta = _get_zone_meta(zone)
     return {
-        "zone_id": zone.id,
+        "zone_id": zone._id,
         "name": zone.name,
         "description": zone.description,
         "h3_index": zone.h3_index,

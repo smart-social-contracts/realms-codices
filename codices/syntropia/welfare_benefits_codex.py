@@ -164,6 +164,7 @@ def distribute_social_security() -> dict:
             topic="social_security",
             title="Social Security Payment",
             message="You received " + str(per_member / 1e8) + " ckBTC as your social security benefit.",
+            user=member.user,
             read=False,
             icon="wallet",
             href="/extensions/member_dashboard#my_taxes",

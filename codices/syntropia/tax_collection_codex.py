@@ -1,12 +1,10 @@
 """
-Tax Collection Codex
-Progressive income tax with standard deductions and multiple brackets,
-typical of western democracies.
+Syntropia Tax Collection Codex
+Progressive income tax with standard deductions and multiple brackets.
 """
 
-from ggg import User, Transfer, Treasury, Instrument
+from ggg import User, Transfer
 from datetime import datetime
-import json
 
 # Standard personal deduction before tax applies
 STANDARD_DEDUCTION = 5000
@@ -26,16 +24,21 @@ def calculate_tax_for_user(user_id: str, tax_year: int = None) -> dict:
     if tax_year is None:
         tax_year = datetime.now().year
 
-    user = User.get(user_id)
+    user = User[user_id]
     if not user:
         return {"error": "User not found"}
 
     # Calculate gross income from transfers received during the tax year
-    income_transfers = [
-        t for t in user.transfers_to
-        if datetime.fromisoformat(t.created_at).year == tax_year
-    ]
-    gross_income = sum(t.amount for t in income_transfers)
+    gross_income = 0
+    for t in Transfer.instances():
+        if t.principal_to != user_id:
+            continue
+        try:
+            ts = t.timestamp or t.created_at or ""
+            if ts and datetime.fromisoformat(ts).year == tax_year:
+                gross_income += (t.amount or 0)
+        except (ValueError, TypeError):
+            pass
     taxable_income = max(0, gross_income - STANDARD_DEDUCTION)
 
     # Apply progressive brackets
@@ -65,29 +68,30 @@ def calculate_tax_for_user(user_id: str, tax_year: int = None) -> dict:
 def process_tax_collection():
     """Collect taxes from all citizens"""
     results = []
-    users = User.get_all()
 
-    for user in users:
+    for user in User.instances():
         if user.id == "system":
             continue
 
         tax_info = calculate_tax_for_user(user.id)
 
         if "error" not in tax_info and tax_info["tax_owed"] > 0:
-            tax_instrument = Instrument.get_by_name("Realm Token")
-            if tax_instrument:
-                transfer = Transfer(
-                    from_user=user,
-                    to_user=User.get("system"),
-                    instrument=tax_instrument,
-                    amount=tax_info["tax_owed"]
-                )
-                results.append({
-                    "user_id": user.id,
-                    "tax_collected": tax_info["tax_owed"],
-                    "effective_rate": tax_info["effective_rate"],
-                    "status": "collected"
-                })
+            transfer = Transfer(
+                id=f"tax_{user.id}_{datetime.now().year}",
+                principal_from=user.id,
+                principal_to="system",
+                instrument="Realm Token",
+                amount=tax_info["tax_owed"],
+                timestamp=datetime.now().isoformat(),
+                status="completed",
+                tags="tax_collection",
+            )
+            results.append({
+                "user_id": user.id,
+                "tax_collected": tax_info["tax_owed"],
+                "effective_rate": tax_info["effective_rate"],
+                "status": "collected"
+            })
 
     return results
 

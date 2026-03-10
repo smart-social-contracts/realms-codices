@@ -1,6 +1,6 @@
 """
-Governance Codex
-Implements separation of powers for a generic western-style democratic state.
+Syntropia Governance Codex
+Implements separation of powers for a representative democracy.
 
 Three branches:
   - Legislative: Parliament debates and votes on proposals (bills)
@@ -10,7 +10,7 @@ Three branches:
 
 from ggg import Proposal, Vote, User
 from datetime import datetime, timedelta
-import json
+import uuid
 
 
 # ---------------------------------------------------------------------------
@@ -19,46 +19,42 @@ import json
 
 def create_legislative_proposal(title: str, description: str, branch: str = "legislative") -> str:
     """Create a new legislative proposal (bill) for parliamentary debate"""
+    pid = "leg_" + uuid.uuid4().hex[:8]
+    deadline = (datetime.now() + timedelta(days=14)).isoformat()
+
     proposal = Proposal(
-        metadata=json.dumps({
-            "title": title,
-            "description": description,
-            "branch": branch,
-            "status": "debate",
-            "created_by": "parliament",
-            "voting_deadline": (datetime.now() + timedelta(days=14)).isoformat(),
-            "votes_for": 0,
-            "votes_against": 0,
-            "votes_abstain": 0,
-            "total_votes": 0,
-            "executive_approval": None,
-            "judicial_review": None
-        })
+        proposal_id=pid,
+        title=title,
+        description=description,
+        status="debate",
+        voting_deadline=deadline,
+        metadata=f"branch:{branch}",
     )
-    return proposal.id
+    return proposal.proposal_id
 
 
 # ---------------------------------------------------------------------------
 # Executive Branch
 # ---------------------------------------------------------------------------
 
+def _find_proposal(proposal_id: str):
+    """Find a Proposal by proposal_id."""
+    return Proposal[proposal_id]
+
+
 def executive_approve(proposal_id: str, approved: bool) -> dict:
     """Executive branch approves or vetoes a bill that passed parliament"""
-    proposal = Proposal.get(proposal_id)
+    proposal = _find_proposal(proposal_id)
     if not proposal:
         return {"error": "Proposal not found"}
 
-    metadata = json.loads(proposal.metadata)
-
-    if metadata.get("status") != "passed_parliament":
+    if proposal.status != "passed_parliament":
         return {"error": "Proposal must pass parliament before executive review"}
 
-    metadata["executive_approval"] = approved
-    metadata["status"] = "enacted" if approved else "vetoed"
-    metadata["executive_decision_at"] = datetime.now().isoformat()
-    proposal.metadata = json.dumps(metadata)
+    new_status = "enacted" if approved else "vetoed"
+    proposal.status = new_status
 
-    return {"proposal_id": proposal_id, "status": metadata["status"]}
+    return {"proposal_id": proposal_id, "status": new_status}
 
 
 # ---------------------------------------------------------------------------
@@ -67,25 +63,20 @@ def executive_approve(proposal_id: str, approved: bool) -> dict:
 
 def judicial_review(proposal_id: str, constitutional: bool) -> dict:
     """Judicial branch reviews an enacted law for constitutionality"""
-    proposal = Proposal.get(proposal_id)
+    proposal = _find_proposal(proposal_id)
     if not proposal:
         return {"error": "Proposal not found"}
 
-    metadata = json.loads(proposal.metadata)
-
-    if metadata.get("status") != "enacted":
+    if proposal.status != "enacted":
         return {"error": "Only enacted laws can be judicially reviewed"}
 
-    metadata["judicial_review"] = constitutional
     if not constitutional:
-        metadata["status"] = "struck_down"
-    metadata["judicial_review_at"] = datetime.now().isoformat()
-    proposal.metadata = json.dumps(metadata)
+        proposal.status = "struck_down"
 
     return {
         "proposal_id": proposal_id,
         "constitutional": constitutional,
-        "status": metadata["status"]
+        "status": proposal.status,
     }
 
 
@@ -96,20 +87,24 @@ def judicial_review(proposal_id: str, constitutional: bool) -> dict:
 def process_votes():
     """Tally votes on proposals whose deadline has passed and advance them"""
     results = []
-    proposals = Proposal.get_all()
 
-    for proposal in proposals:
-        metadata = json.loads(proposal.metadata)
-
-        if metadata.get("status") != "debate":
+    for proposal in Proposal.instances():
+        if proposal.status != "debate":
             continue
 
-        deadline = datetime.fromisoformat(metadata["voting_deadline"])
+        if not proposal.voting_deadline:
+            continue
+
+        try:
+            deadline = datetime.fromisoformat(proposal.voting_deadline)
+        except (ValueError, TypeError):
+            continue
+
         if datetime.now() <= deadline:
             continue
 
-        votes_for = metadata.get("votes_for", 0)
-        votes_against = metadata.get("votes_against", 0)
+        votes_for = int(proposal.votes_yes or 0)
+        votes_against = int(proposal.votes_no or 0)
         total_votes = votes_for + votes_against
 
         # Simple majority required
@@ -120,21 +115,14 @@ def process_votes():
         else:
             status = "rejected"
 
-        metadata["status"] = status
-        metadata["final_tally"] = {
-            "votes_for": votes_for,
-            "votes_against": votes_against,
-            "total_votes": total_votes,
-            "closed_at": datetime.now().isoformat()
-        }
-        proposal.metadata = json.dumps(metadata)
+        proposal.status = status
 
         results.append({
-            "proposal_id": proposal.id,
-            "title": metadata["title"],
+            "proposal_id": proposal.proposal_id,
+            "title": proposal.title,
             "status": status,
             "votes_for": votes_for,
-            "votes_against": votes_against
+            "votes_against": votes_against,
         })
 
     return results
@@ -145,11 +133,11 @@ def process_votes():
 # ---------------------------------------------------------------------------
 
 def create_sample_proposals():
-    """Create sample proposals typical of a western parliamentary democracy"""
+    """Create sample proposals typical of a representative democracy"""
     proposals = [
         {
             "title": "Annual Budget Appropriations Act",
-            "description": "Allocate public funds for healthcare, education, infrastructure, and defence for the fiscal year."
+            "description": "Allocate public funds for healthcare, education, infrastructure, and welfare for the fiscal year."
         },
         {
             "title": "Income Tax Rate Adjustment",
