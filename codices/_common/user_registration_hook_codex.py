@@ -4,7 +4,6 @@ Overrides user_register_posthook to add custom logic after user registration.
 Creates a 1 satoshi invoice expiring in 1 day for new users.
 """
 
-from kybra import ic
 from ggg import Invoice, Notification
 from datetime import datetime, timedelta
 
