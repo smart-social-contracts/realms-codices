@@ -54,16 +54,15 @@ def user_register_posthook(user):
         ic.print(f"Created registration invoice #{invoice.id} for user {user.id}: "
                  f"{MONTHLY_FEE_CKBTC} ckBTC (or {MONTHLY_FEE_AGO} AGO)")
 
-        # Welcome notification with next steps
+        # Welcome notification with next steps (markdown formatted)
         ggg.Notification(
             topic="welcome",
             title="Welcome to Agora!",
             message=(
-                f"Welcome to Agora! To become an active citizen you need to complete two steps: "
-                f"(1) Pay your registration invoice ({MONTHLY_FEE_CKBTC} ckBTC or {MONTHLY_FEE_AGO} AGO) "
-                f"from the Invoices section of your Member Dashboard, and "
-                f"(2) Verify your identity via ZK Passport using the Passport Verification extension. "
-                f"If you have any questions, feel free to ask the AI Assistant — "
+                f"Welcome to **Agora**! To become an active citizen you need to complete two steps:\n\n"
+                f"- **Pay your registration invoice** — `{MONTHLY_FEE_CKBTC} ckBTC` or `{MONTHLY_FEE_AGO} AGO` from the *Invoices* section below\n"
+                f"- **Verify your identity** via ZK Passport using the *Passport Verification* extension\n\n"
+                f"If you have any questions, feel free to ask the **AI Assistant** — "
                 f"it knows everything about this realm and can guide you through the process."
             ),
             user=user,
