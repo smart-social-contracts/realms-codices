@@ -52,6 +52,14 @@ if realm:
 else:
     ic.print("❌ No Realm found")
 
+# Initialize accounting entities (Fund, FiscalPeriod, Budget) for real-time metrics
+try:
+    import budget_codex
+    result = budget_codex.ensure_accounting_entities()
+    ic.print(f"📊 Accounting entities: {result.get('status', 'unknown')}")
+except Exception as e:
+    ic.print(f"⚠️  Accounting entity initialization: {e}")
+
 # Print entity counts
 ic.print("len(Realm.instances()) = %d" % len(Realm.instances()))
 ic.print("len(Treasury.instances()) = %d" % len(Treasury.instances()))
