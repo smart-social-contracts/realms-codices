@@ -70,7 +70,8 @@ def user_register_posthook(user):
             icon="shield_check",
             href="/extensions/member_dashboard",
             color="green",
-            metadata=f"invoice_id:{invoice.id}"
+            metadata=f"invoice_id:{invoice.id}",
+            timestamp_created=now.strftime("%Y-%m-%d %H:%M")
         )
 
     except Exception as e:
