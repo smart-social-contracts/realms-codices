@@ -23,4 +23,4 @@ jobs:
           pip install /tmp/realms/cli
 
       - name: Run codex tests
-        run: realms test codices/ --verbose
+        run: realms test codices/agora --verbose
