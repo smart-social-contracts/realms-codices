@@ -1,0 +1,49 @@
+name: Test Codices
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run codex tests
+        run: |
+          cd ${{ github.workspace }}
+          python -c "
+          import sys, os
+          sys.path.insert(0, 'codices')
+          from _testing.runner import run_tests
+
+          # Discover all realms with tests
+          codices_dir = 'codices'
+          total_passed = 0
+          total_failed = 0
+
+          for realm in sorted(os.listdir(codices_dir)):
+              realm_path = os.path.join(codices_dir, realm)
+              tests_dir = os.path.join(realm_path, 'tests')
+              if os.path.isdir(tests_dir) and not realm.startswith('_'):
+                  passed, failed, _ = run_tests(realm_path, verbose=True)
+                  total_passed += passed
+                  total_failed += failed
+
+          print(f'\n\u2550' * 60)
+          print(f'  Total: {total_passed} passed, {total_failed} failed')
+          print(f'\u2550' * 60)
+          sys.exit(1 if total_failed else 0)
+          "
