@@ -18,7 +18,9 @@ jobs:
           python-version: "3.10"
 
       - name: Install realms CLI
-        run: pip install "realms-gos @ git+https://github.com/smart-social-contracts/realms.git#subdirectory=cli"
+        run: |
+          git clone --depth 1 --no-recurse-submodules https://github.com/smart-social-contracts/realms.git /tmp/realms
+          pip install /tmp/realms/cli
 
       - name: Run codex tests
         run: realms test codices/ --verbose
