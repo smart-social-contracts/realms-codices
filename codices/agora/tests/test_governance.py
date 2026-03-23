@@ -4,8 +4,7 @@ Tests for governance_automation.py — proposal and voting system.
 Validates:
   - Proposal creation with correct metadata
   - Sample proposal batch creation
-  - BUG DETECTION: process_votes() uses Proposal.get_all() which doesn't exist
-    (should be Proposal.instances())
+  - Vote processing (tally and status updates)
 """
 
 from ggg import Proposal, Vote, User
@@ -25,8 +24,6 @@ proposal_id = governance_automation.create_sample_proposal(
 
 assert Proposal.count() == 1, f"Expected 1 proposal, got {Proposal.count()}"
 
-# The function returns proposal.id which is an internal field, not proposal_id
-# (Note: agora stores everything in metadata JSON, not in Proposal fields)
 p = Proposal.instances()[0]
 assert p.metadata is not None
 
@@ -68,17 +65,44 @@ assert "Digital Identity Verification System" in titles
 
 print("  create_sample_proposals: OK")
 
-# ── Test process_votes — BUG DETECTION ─────────────────────────────────────
+# ── Test process_votes ─────────────────────────────────────────────────────
 
-print("Testing process_votes (expected to fail — Proposal.get_all() is not a valid API)...")
+print("Testing process_votes...")
 
-try:
-    results = governance_automation.process_votes()
-    print("  UNEXPECTED: process_votes() did not raise an error")
-    print("  This means the bug may have been fixed")
-except AttributeError as e:
-    assert "get_all" in str(e), f"Expected get_all error, got: {e}"
-    print(f"  BUG CONFIRMED: {e}")
-    print("  FIX: Replace Proposal.get_all() with Proposal.instances()")
+# process_votes should run without errors and return results list
+# (no proposals have expired deadlines yet, so results should be empty)
+results = governance_automation.process_votes()
+assert isinstance(results, list), f"Expected list, got {type(results)}"
+assert len(results) == 0, "No proposals should be past deadline yet"
+
+# Now create a proposal with an already-expired deadline and test processing
+for p in Proposal.instances():
+    p.delete()
+
+expired_proposal = Proposal(
+    metadata=json.dumps({
+        "title": "Expired Proposal",
+        "description": "This proposal has an expired deadline",
+        "status": "active",
+        "created_by": "system",
+        "voting_deadline": (datetime.now() - timedelta(days=1)).isoformat(),
+        "votes_for": 5,
+        "votes_against": 2,
+        "total_votes": 7
+    })
+)
+
+results = governance_automation.process_votes()
+assert len(results) == 1, f"Expected 1 processed proposal, got {len(results)}"
+assert results[0]["status"] == "passed", f"Expected 'passed', got {results[0]['status']}"
+assert results[0]["votes_for"] == 5
+assert results[0]["votes_against"] == 2
+
+# Verify the proposal metadata was updated
+updated_meta = json.loads(expired_proposal.metadata)
+assert updated_meta["status"] == "passed"
+assert "final_tally" in updated_meta
+
+print("  process_votes: OK")
 
 print("\n✅ All governance_automation tests passed!")

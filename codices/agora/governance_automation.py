@@ -29,7 +29,7 @@ def process_votes():
     results = []
     
     # Get all proposals
-    proposals = Proposal.get_all()
+    proposals = Proposal.instances()
     
     for proposal in proposals:
         metadata = json.loads(proposal.metadata)

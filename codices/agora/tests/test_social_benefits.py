@@ -2,23 +2,20 @@
 Tests for social_benefits.py — benefit eligibility and distribution.
 
 Validates:
-  - BUG DETECTION: Member.get() is not a valid API (should be Member["id"])
-  - BUG DETECTION: Member.get_all() is not a valid API (should be Member.instances())
-  - BUG DETECTION: Instrument.get_by_name() is not a valid API (should be Instrument["name"])
-  - BUG DETECTION: User.get() is not a valid API (should be User["id"])
-  - Benefit eligibility logic (once bugs are fixed)
-  - Benefit amount calculation logic (once bugs are fixed)
+  - Benefit eligibility checks (eligible and ineligible members)
+  - Benefit amount calculation (base + adjustments)
+  - Full distribution flow (end-to-end with transfers)
 """
 
 from ggg import User, Member, Transfer, Treasury, Instrument
 
 import social_benefits
 
-# ── Test check_benefit_eligibility — BUG DETECTION ─────────────────────────
+# ── Test check_benefit_eligibility ─────────────────────────────────────────
 
-print("Testing check_benefit_eligibility (expected to fail — Member.get() is not a valid API)...")
+print("Testing check_benefit_eligibility...")
 
-# Create test data
+# Create test data — eligible member
 user_alice = User(id="alice")
 member_alice = Member(
     id="member_alice",
@@ -31,58 +28,10 @@ member_alice = Member(
     voting_eligibility="eligible",
 )
 
-try:
-    result = social_benefits.check_benefit_eligibility("member_alice")
-    print(f"  UNEXPECTED: check_benefit_eligibility() returned: {result}")
-    print("  This means the bug may have been fixed")
-except AttributeError as e:
-    assert "get" in str(e), f"Expected 'get' error, got: {e}"
-    print(f"  BUG CONFIRMED: {e}")
-    print("  FIX: Replace Member.get(member_id) with Member[member_id]")
-
-# ── Test calculate_benefit_amount — BUG DETECTION ──────────────────────────
-
-print("Testing calculate_benefit_amount (expected to fail — same Member.get() bug)...")
-
-try:
-    amount = social_benefits.calculate_benefit_amount("member_alice")
-    print(f"  UNEXPECTED: calculate_benefit_amount() returned: {amount}")
-except AttributeError as e:
-    assert "get" in str(e), f"Expected 'get' error, got: {e}"
-    print(f"  BUG CONFIRMED: {e}")
-
-# ── Test distribute_social_benefits — BUG DETECTION ────────────────────────
-
-print("Testing distribute_social_benefits (expected to fail — Member.get_all() is not a valid API)...")
-
-try:
-    results = social_benefits.distribute_social_benefits()
-    print(f"  UNEXPECTED: distribute_social_benefits() returned: {results}")
-except AttributeError as e:
-    assert "get_all" in str(e), f"Expected 'get_all' error, got: {e}"
-    print(f"  BUG CONFIRMED: {e}")
-    print("  FIX: Replace Member.get_all() with Member.instances()")
-    print("  FIX: Replace Instrument.get_by_name(name) with Instrument[name]")
-    print("  FIX: Replace User.get(id) with User[id]")
-
-# ── Test eligibility logic directly (bypassing broken API calls) ───────────
-
-print("Testing eligibility logic directly...")
-
-# Eligible member
-assert member_alice.residence_permit == "valid"
-assert member_alice.tax_compliance == "compliant"
-assert member_alice.identity_verification == "verified"
-assert member_alice.public_benefits_eligibility == "eligible"
-
-# Simulate the eligibility check logic inline
-criteria = {
-    "residence_permit": member_alice.residence_permit == "valid",
-    "tax_compliance": member_alice.tax_compliance in ["compliant", "under_review"],
-    "identity_verification": member_alice.identity_verification == "verified",
-    "benefits_eligibility": member_alice.public_benefits_eligibility == "eligible",
-}
-assert all(criteria.values()), "Alice should be eligible"
+result = social_benefits.check_benefit_eligibility("member_alice")
+assert result["eligible"] is True, f"Alice should be eligible, got: {result}"
+assert result["member_id"] == "member_alice"
+assert all(result["criteria_met"].values()), "All criteria should be met for Alice"
 
 # Ineligible member (unverified identity)
 user_bob = User(id="bob")
@@ -94,41 +43,61 @@ member_bob = Member(
     identity_verification="pending",
     public_benefits_eligibility="eligible",
 )
-criteria_bob = {
-    "residence_permit": member_bob.residence_permit == "valid",
-    "tax_compliance": member_bob.tax_compliance in ["compliant", "under_review"],
-    "identity_verification": member_bob.identity_verification == "verified",
-    "benefits_eligibility": member_bob.public_benefits_eligibility == "eligible",
-}
-assert not all(criteria_bob.values()), "Bob should NOT be eligible (identity pending)"
 
-print("  eligibility logic: OK")
+result_bob = social_benefits.check_benefit_eligibility("member_bob")
+assert result_bob["eligible"] is False, f"Bob should NOT be eligible, got: {result_bob}"
+assert result_bob["criteria_met"]["identity_verification"] is False
 
-# ── Test benefit amount calculation logic directly ─────────────────────────
+# Non-existent member
+result_none = social_benefits.check_benefit_eligibility("nonexistent")
+assert result_none["eligible"] is False
+assert result_none["reason"] == "Member not found"
 
-print("Testing benefit amount calculation logic directly...")
+print("  check_benefit_eligibility: OK")
+
+# ── Test calculate_benefit_amount ──────────────────────────────────────────
+
+print("Testing calculate_benefit_amount...")
 
 # Alice: clean record + voting eligible = 500 + 100 + 50 = 650
-base = 500
-if member_alice.criminal_record == "clean":
-    base += 100
-if member_alice.voting_eligibility == "eligible":
-    base += 50
-assert base == 650, f"Expected 650 for Alice, got {base}"
+amount_alice = social_benefits.calculate_benefit_amount("member_alice")
+assert amount_alice == 650, f"Expected 650 for Alice, got {amount_alice}"
 
-# Bob: no criminal_record set, no voting_eligibility set = 500
-base_bob = 500
-if getattr(member_bob, "criminal_record", None) == "clean":
-    base_bob += 100
-if getattr(member_bob, "voting_eligibility", None) == "eligible":
-    base_bob += 50
-assert base_bob == 500, f"Expected 500 for Bob, got {base_bob}"
+# Bob: no criminal_record, no voting_eligibility = 500
+amount_bob = social_benefits.calculate_benefit_amount("member_bob")
+assert amount_bob == 500, f"Expected 500 for Bob, got {amount_bob}"
 
-print("  benefit amount calculation: OK")
+# Non-existent member
+amount_none = social_benefits.calculate_benefit_amount("nonexistent")
+assert amount_none == 0, f"Expected 0 for non-existent member, got {amount_none}"
+
+print("  calculate_benefit_amount: OK")
+
+# ── Test distribute_social_benefits ────────────────────────────────────────
+
+print("Testing distribute_social_benefits...")
+
+# Set up required entities for distribution
+system_user = User(id="system")
+benefit_instrument = Instrument(name="Service Credit")
+
+results = social_benefits.distribute_social_benefits()
+assert isinstance(results, list), f"Expected list, got {type(results)}"
+
+# Only Alice is eligible (Bob has pending identity verification)
+assert len(results) == 1, f"Expected 1 distribution, got {len(results)}"
+assert results[0]["member_id"] == "member_alice"
+assert results[0]["benefit_amount"] == 650
+assert results[0]["status"] == "distributed"
+
+# Verify a transfer was created
+assert Transfer.count() == 1, f"Expected 1 transfer, got {Transfer.count()}"
+t = Transfer.instances()[0]
+assert t.from_user is system_user
+assert t.to_user is user_alice
+assert t.instrument is benefit_instrument
+assert t.amount == 650
+
+print("  distribute_social_benefits: OK")
 
 print("\n✅ All social_benefits tests passed!")
-print("\n⚠️  NOTE: social_benefits.py has 4 API bugs that need fixing:")
-print("  1. Member.get(id)          → Member[id]")
-print("  2. Member.get_all()        → Member.instances()")
-print("  3. Instrument.get_by_name() → Instrument[name]")
-print("  4. User.get(id)            → User[id]")

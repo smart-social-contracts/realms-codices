@@ -9,7 +9,7 @@ import json
 
 def check_benefit_eligibility(member_id: str) -> dict:
     """Check if a member is eligible for social benefits"""
-    member = Member.get(member_id)
+    member = Member[member_id]
     if not member:
         return {"eligible": False, "reason": "Member not found"}
     
@@ -32,7 +32,7 @@ def check_benefit_eligibility(member_id: str) -> dict:
 
 def calculate_benefit_amount(member_id: str) -> int:
     """Calculate benefit amount based on member status"""
-    member = Member.get(member_id)
+    member = Member[member_id]
     if not member:
         return 0
     
@@ -53,7 +53,7 @@ def distribute_social_benefits():
     results = []
     
     # Get all members
-    members = Member.get_all()
+    members = Member.instances()
     
     for member in members:
         eligibility = check_benefit_eligibility(member.id)
@@ -62,8 +62,8 @@ def distribute_social_benefits():
             benefit_amount = calculate_benefit_amount(member.id)
             
             # Create benefit transfer
-            benefit_instrument = Instrument.get_by_name("Service Credit")
-            system_user = User.get("system")
+            benefit_instrument = Instrument["Service Credit"]
+            system_user = User["system"]
             
             if benefit_instrument and system_user and member.user:
                 transfer = Transfer(
