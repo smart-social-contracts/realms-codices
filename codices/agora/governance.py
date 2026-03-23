@@ -35,7 +35,7 @@ def _ic_now():
     return datetime(1970, 1, 1) + timedelta(seconds=ns // 1_000_000_000)
 
 # Import sibling codex for accounting
-import budget_codex
+import budget
 
 try:
     from core.extensions import extension_async_call
@@ -371,11 +371,11 @@ def _execute_treasury_spend(proposal, details: dict):
 
     # Record in accounting
     if currency == "AGO":
-        btc_equivalent = amount / budget_codex.AGO_PER_BTC
+        btc_equivalent = amount / budget.AGO_PER_BTC
     else:
         btc_equivalent = amount
 
-    budget_codex.record_service_payment(
+    budget.record_service_payment(
         recipient=recipient,
         amount_btc=btc_equivalent,
         currency=currency,

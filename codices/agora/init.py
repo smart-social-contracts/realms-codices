@@ -54,8 +54,8 @@ else:
 
 # Initialize accounting entities (Fund, FiscalPeriod, Budget) for real-time metrics
 try:
-    import budget_codex
-    result = budget_codex.ensure_accounting_entities()
+    import budget
+    result = budget.ensure_accounting_entities()
     ic.print(f"📊 Accounting entities: {result.get('status', 'unknown')}")
 except Exception as e:
     ic.print(f"⚠️  Accounting entity initialization: {e}")

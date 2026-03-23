@@ -12,10 +12,10 @@ Lifecycle:
   2. Each billing cycle (scheduled task), new monthly invoices are created
      for active members whose previous invoice period has elapsed.
   3. Overdue invoices → warning notification after GRACE_PERIOD_DAYS.
-  4. Still unpaid after SUSPENSION_AFTER_DAYS → membership_codex.deactivate_member().
+  4. Still unpaid after SUSPENSION_AFTER_DAYS → membership.deactivate_member().
   5. When an invoice is paid, a double-entry LedgerEntry is recorded so the
      metrics extension shows accurate real-time finances.
-  6. If a suspended member pays all overdue invoices → membership_codex.reactivate_member().
+  6. If a suspended member pays all overdue invoices → membership.reactivate_member().
 
 Uses icw (ICP Wallet CLI) externally to move ckBTC / AGO tokens.
 """
@@ -35,9 +35,9 @@ from ggg import LedgerEntry, Fund, FiscalPeriod, Budget
 from ggg import EntryType, Category
 
 # Import sibling codex for membership operations
-import membership_codex
-# Import budget codex for recording transactions
-import budget_codex
+import membership
+# Import budget module for recording transactions
+import budget
 
 
 # ---------------------------------------------------------------------------
@@ -162,7 +162,7 @@ def record_invoice_payment(invoice_id: str) -> dict:
         btc_equivalent = amount
 
     # Record double-entry: debit Cash (asset), credit Revenue
-    budget_codex.record_bill_payment(
+    budget.record_bill_payment(
         user_id=user.id if user else "unknown",
         amount_btc=btc_equivalent,
         currency=currency,
@@ -185,7 +185,7 @@ def record_invoice_payment(invoice_id: str) -> dict:
 
     # Check if a suspended member can be reactivated
     if user:
-        member = membership_codex._find_member_for_user(user.id)
+        member = membership._find_member_for_user(user.id)
         if member and member.identity_verification == "suspended":
             # Check if ALL overdue invoices are now paid/cancelled
             has_overdue = False
@@ -200,7 +200,7 @@ def record_invoice_payment(invoice_id: str) -> dict:
                     except (ValueError, TypeError):
                         pass
             if not has_overdue:
-                membership_codex.reactivate_member(user.id)
+                membership.reactivate_member(user.id)
 
     return {"recorded": True, "invoice_id": invoice_id, "currency": currency, "amount": amount}
 
@@ -260,7 +260,7 @@ def run_billing_cycle():
             if days_overdue >= SUSPENSION_AFTER_DAYS:
                 # Suspend the member
                 inv.status = "Defaulted"
-                membership_codex.deactivate_member(user_id, "Non-payment of monthly dues")
+                membership.deactivate_member(user_id, "Non-payment of monthly dues")
                 members_suspended += 1
                 ic.print(f"SUSPENDED user {user_id} — invoice #{inv.id} {days_overdue}d overdue")
                 break  # no need to process further once suspended

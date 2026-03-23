@@ -18,9 +18,9 @@ def _ic_now():
     return datetime(1970, 1, 1) + timedelta(seconds=ns // 1_000_000_000)
 
 
-# Monthly fee matching monthly_billing_codex config
-MONTHLY_FEE_CKBTC = 0.00001000         # 1000 satoshis
-AGO_PER_BTC = 2.0                      # 1 AGO = 0.5 BTC
+# Monthly fee matching monthly_billing config
+MONTHLY_FEE_CKBTC = 0.00002000         # 1000 satoshis
+AGO_PER_BTC = 4.0                      # 1 AGO = 0.5 BTC
 MONTHLY_FEE_AGO = MONTHLY_FEE_CKBTC * AGO_PER_BTC   # 0.00002 AGO
 INVOICE_VALIDITY_DAYS = 30
 

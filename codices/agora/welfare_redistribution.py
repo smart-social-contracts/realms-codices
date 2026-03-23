@@ -28,8 +28,8 @@ def _ic_now():
     ns = ic.time()
     return datetime(1970, 1, 1) + timedelta(seconds=ns // 1_000_000_000)
 
-import budget_codex
-import governance_codex
+import budget
+import governance
 
 try:
     from core.extensions import extension_async_call
@@ -106,13 +106,13 @@ def distribute_welfare() -> dict:
     Records each distribution as a LedgerEntry for accurate metrics.
     """
     # Get current welfare policy from governance config
-    welfare_percent = governance_codex.WELFARE_PERCENT_OF_BUDGET
+    welfare_percent = governance.WELFARE_PERCENT_OF_BUDGET
 
     # Calculate available pool
-    income = budget_codex.calculate_total_income()
+    income = budget.calculate_total_income()
     total_income_sat = income["total_income_satoshis"]
 
-    expenses = budget_codex.calculate_total_expenses()
+    expenses = budget.calculate_total_expenses()
     total_welfare_spent = expenses.get("welfare_satoshis", 0)
 
     # Welfare budget = % of total income
@@ -140,7 +140,7 @@ def distribute_welfare() -> dict:
     if per_member_sat <= 0:
         return {"distributed": False, "reason": "Per-member share too small."}
 
-    per_member_btc = per_member_sat / budget_codex.SATOSHIS_PER_BTC
+    per_member_btc = per_member_sat / budget.SATOSHIS_PER_BTC
 
     ic.print(f"=== Welfare distribution: {available_sat} sat / {len(eligible)} members "
              f"= {per_member_sat} sat each ===")
@@ -148,7 +148,7 @@ def distribute_welfare() -> dict:
     distributed_count = 0
     for member, user in eligible:
         # Record in accounting
-        budget_codex.record_welfare_distribution(
+        budget.record_welfare_distribution(
             user_id=user.id,
             amount_btc=per_member_btc,
             currency="ckBTC",
@@ -213,10 +213,10 @@ def async_task():
 
 def get_welfare_status() -> dict:
     """Return current welfare status for display."""
-    welfare_percent = governance_codex.WELFARE_PERCENT_OF_BUDGET
+    welfare_percent = governance.WELFARE_PERCENT_OF_BUDGET
 
-    income = budget_codex.calculate_total_income()
-    expenses = budget_codex.calculate_total_expenses()
+    income = budget.calculate_total_income()
+    expenses = budget.calculate_total_expenses()
 
     total_income_sat = income["total_income_satoshis"]
     welfare_budget_sat = int(total_income_sat * welfare_percent / 100)

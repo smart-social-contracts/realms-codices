@@ -12,7 +12,7 @@ Both conditions must be met before the account is activated. Once active,
 the user can vote, submit proposals, and receive welfare benefits.
 
 This codex also provides:
-  - deactivate_member(): used by monthly_billing_codex to suspend non-payers
+  - deactivate_member(): used by monthly_billing to suspend non-payers
   - reactivate_member(): restore membership after paying overdue bills
   - Sybil-resistance: the same ZK identity hash cannot register twice
 """
@@ -221,7 +221,7 @@ def check_membership_status(user_id: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Membership Suspension / Reactivation (used by monthly_billing_codex)
+# Membership Suspension / Reactivation (used by monthly_billing)
 # ---------------------------------------------------------------------------
 
 def deactivate_member(user_id: str, reason: str = "Non-payment of dues") -> dict:
