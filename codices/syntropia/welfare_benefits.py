@@ -3,7 +3,7 @@ Welfare Benefits / Social Security Codex
 Redistributes the social_security portion of the annual budget equally
 to all active verified members in ckBTC.
 
-The social security pool is set by the annual budget vote (budget_plan_codex).
+The social security pool is set by the annual budget vote (budget_plan).
 Each distribution cycle:
   1. Look up the approved budget and its social_security remaining balance
   2. Divide equally among all active members
@@ -11,7 +11,7 @@ Each distribution cycle:
   4. Record the expenditure against the budget
 
 Designed to run as a scheduled task via:
-    realms run --file welfare_benefits_codex.py --every 300 --after 10
+    realms run --file welfare_benefits.py --every 300 --after 10
 """
 
 from ggg import User, Member, Transfer, Treasury, Instrument, Notification
@@ -37,7 +37,7 @@ def _get_active_members() -> list:
 def _get_approved_budget():
     """Return (proposal_id, budget_dict) for the current approved budget."""
     try:
-        from codices.syntropia.budget_plan_codex import (
+        from codices.syntropia.budget_plan import (
             get_approved_budget_proposal_id, get_budget_summary,
         )
         pid = get_approved_budget_proposal_id()
@@ -152,7 +152,7 @@ def distribute_social_security() -> dict:
 
     # Record total expenditure against the budget
     try:
-        from codices.syntropia.budget_plan_codex import record_distribution
+        from codices.syntropia.budget_plan import record_distribution
         record_distribution(budget_pid, total_distributed,
                             description=f"Social security: {len(results)} members")
     except ImportError:

@@ -2,7 +2,7 @@
 # Covers: fiscal periods, funds, budgets, ledger entries (double-entry),
 #         progressive tax calculation, tax collection
 import json
-import tax_collection_codex
+import tax_collection
 from ggg import (
     Proposal, User, Member, Transfer,
     FiscalPeriod, FiscalPeriodStatus, Fund, FundType,
@@ -126,14 +126,14 @@ print("Cash balance: " + str(LedgerEntry.get_balance(EntryType.ASSET, Category.C
 
 # ── TEST 5: Progressive Tax Calculation ──────────────────────────────────
 print("=== TEST 5: PROGRESSIVE TAX CALCULATION ===")
-tax_codex = tax_collection_codex
+tax_mod = tax_collection
 
 # Give Alice income via transfers
 Transfer(id=ts + "_income_alice", principal_from="system", principal_to=user_alice.id,
          instrument="Realm Token", amount=50000, status="completed",
          tags="income", timestamp=str(fy) + "-06-15T00:00:00")
 
-tax_info = tax_codex.calculate_tax_for_user(user_alice.id, tax_year=fy)
+tax_info = tax_mod.calculate_tax_for_user(user_alice.id, tax_year=fy)
 print("Alice tax: gross=" + str(tax_info.get("gross_income", 0))
       + " deduction=" + str(tax_info.get("standard_deduction", 0))
       + " taxable=" + str(tax_info.get("taxable_income", 0))
@@ -141,11 +141,11 @@ print("Alice tax: gross=" + str(tax_info.get("gross_income", 0))
       + " rate=" + str(tax_info.get("effective_rate", 0)))
 assert tax_info.get("gross_income", 0) >= 50000, "Alice should have income >= 50000"
 assert tax_info.get("tax_owed", 0) > 0, "Alice should owe tax"
-print("Tax brackets: " + str(len(tax_codex.TAX_BRACKETS)) + " brackets, deduction=" + str(tax_codex.STANDARD_DEDUCTION))
+print("Tax brackets: " + str(len(tax_mod.TAX_BRACKETS)) + " brackets, deduction=" + str(tax_mod.STANDARD_DEDUCTION))
 
 # ── TEST 6: Tax Collection ───────────────────────────────────────────────
 print("=== TEST 6: TAX COLLECTION ===")
-tax_results = tax_codex.process_tax_collection()
+tax_results = tax_mod.process_tax_collection()
 print("Tax collection: " + str(len(tax_results)) + " payments processed")
 for tr in tax_results[:3]:
     print("  user=" + str(tr.get("user_id", "")) + " tax=" + str(tr.get("tax_collected", 0)))

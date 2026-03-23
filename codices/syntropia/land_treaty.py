@@ -193,8 +193,8 @@ def activate_treaty(treaty_id: str) -> dict:
 
     # Mark land as acquired in realm lifecycle
     try:
-        from . import realm_lifecycle_codex
-        realm_lifecycle_codex.mark_land_acquired(
+        from . import realm_lifecycle
+        realm_lifecycle.mark_land_acquired(
             details=f"Treaty {treaty_id} with {treaty.get('hs', 'unknown')} — "
                     f"{treaty.get('km2', 0)} km²"
         )

@@ -2,7 +2,7 @@
 Quarter Assignment Codex
 Defines how users are assigned to quarters when joining a federated realm.
 
-The realm's federation_codex must expose an ``assign_quarter`` function with
+The realm's federation codex must expose an ``assign_quarter`` function with
 the signature::
 
     assign_quarter(principal: str, quarters: list[Quarter], preferred: str) -> str

@@ -9,7 +9,7 @@ Lifecycle per member each billing cycle:
   4. Paid invoices are left as-is
 
 Designed to run as a scheduled task via:
-    realms run --file monthly_billing_codex.py --every 300 --after 5
+    realms run --file monthly_billing.py --every 300 --after 5
 """
 
 from ggg import User, Member, Invoice, Notification, Transfer
@@ -128,10 +128,10 @@ def warn_user(user_id: str, invoice_id: str) -> dict:
 def kick_user(user_id: str, invoice_id: str) -> dict:
     """Revoke membership due to persistent non-payment.
 
-    Delegates to membership_codex.revoke_membership.
+    Delegates to membership.revoke_membership.
     """
     try:
-        from codices.syntropia.membership_codex import revoke_membership
+        from codices.syntropia.membership import revoke_membership
     except ImportError:
         # Fallback: inline minimal revocation
         user = User[user_id]

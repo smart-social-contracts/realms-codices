@@ -2,8 +2,8 @@
 # Covers: realm lifecycle stages, land & zones, land lease treaty lifecycle,
 #         zone policy & license assignment
 import json
-import land_treaty_codex
-import zones_codex
+import land_treaty
+import zones
 from ggg import (
     Realm, RealmStatus,
     Land, LandStatus, LandType, Zone,
@@ -86,9 +86,9 @@ print("Zones: " + str(Zone.count()))
 
 # ── TEST 3: Land Lease Treaty Lifecycle ──────────────────────────────────
 print("=== TEST 3: LAND LEASE TREATY ===")
-treaty_codex = land_treaty_codex
+treaty_mod = land_treaty
 
-treaty = treaty_codex.create_treaty(
+treaty = treaty_mod.create_treaty(
     host_state_name="Republic of Freedonia",
     territory_description="50 km2 coastal zone in the southern province",
     term_years=50, annual_fee=500000, fee_currency="USD",
@@ -98,43 +98,43 @@ assert treaty.get("status") == "draft"
 treaty_id = treaty["treaty_id"]
 print("Treaty created: " + treaty_id + " status=draft")
 
-sign_result = treaty_codex.sign_treaty(treaty_id, "Minister of Foreign Affairs", "Realm Chancellor")
+sign_result = treaty_mod.sign_treaty(treaty_id, "Minister of Foreign Affairs", "Realm Chancellor")
 assert sign_result.get("status") == "signed", "Should be signed: " + str(sign_result)
 print("Treaty signed")
 
-ratify_result = treaty_codex.ratify_treaty(treaty_id, ratified_by="parliament")
+ratify_result = treaty_mod.ratify_treaty(treaty_id, ratified_by="parliament")
 assert ratify_result.get("status") == "ratified"
 print("Treaty ratified")
 
-activate_result = treaty_codex.activate_treaty(treaty_id)
+activate_result = treaty_mod.activate_treaty(treaty_id)
 assert activate_result.get("status") == "active"
 print("Treaty activated")
 
-pay_result = treaty_codex.record_payment(treaty_id, amount=500000, currency="USD", period="Year 1")
+pay_result = treaty_mod.record_payment(treaty_id, amount=500000, currency="USD", period="Year 1")
 assert "payment_index" in pay_result
 print("Payment recorded: " + str(pay_result.get("amount")))
 
-pay_summary = treaty_codex.get_payment_summary(treaty_id)
+pay_summary = treaty_mod.get_payment_summary(treaty_id)
 print("Payment summary: total_paid=" + str(pay_summary.get("total_paid")))
 
-suspend_result = treaty_codex.suspend_treaty(treaty_id, reason="Diplomatic review")
+suspend_result = treaty_mod.suspend_treaty(treaty_id, reason="Diplomatic review")
 assert suspend_result.get("status") == "suspended"
 print("Treaty suspended")
 
-reactivate_result = treaty_codex.reactivate_treaty(treaty_id)
+reactivate_result = treaty_mod.reactivate_treaty(treaty_id)
 assert reactivate_result.get("status") == "active"
 print("Treaty reactivated")
 
-terminate_result = treaty_codex.terminate_treaty(treaty_id, reason="Term ended")
+terminate_result = treaty_mod.terminate_treaty(treaty_id, reason="Term ended")
 assert terminate_result.get("status") == "terminated"
 print("Treaty terminated")
 
-treaties = treaty_codex.list_treaties()
+treaties = treaty_mod.list_treaties()
 print("Total treaties: " + str(len(treaties)))
 
 # ── TEST 4: Zone Policy & License Assignment ─────────────────────────────
 print("=== TEST 4: ZONE POLICY & LICENSE ===")
-policy_result = zones_codex.add_policy_to_zone(
+policy_result = zones.add_policy_to_zone(
     str(zone_central._id), "Tax Incentive Zone",
     "Reduced tax rate for businesses in the central district",
 )
@@ -150,15 +150,15 @@ test_lic = license_issue(
 )
 print("License issued: " + str(test_lic._id) + " type=" + test_lic.license_type)
 
-assign_result = zones_codex.assign_license_to_zone(str(zone_central._id), str(test_lic._id))
+assign_result = zones.assign_license_to_zone(str(zone_central._id), str(test_lic._id))
 assert assign_result.get("status") == "assigned", "License should be assigned: " + str(assign_result)
 print("License assigned to zone")
 
-zone_info = zones_codex.get_zone(str(zone_central._id))
+zone_info = zones.get_zone(str(zone_central._id))
 assert str(test_lic._id) in zone_info.get("assigned_licenses", [])
 print("Zone has " + str(len(zone_info.get("assigned_licenses", []))) + " licenses, " + str(len(zone_info.get("policies", []))) + " policies")
 
-remove_result = zones_codex.remove_license_from_zone(str(zone_central._id), str(test_lic._id))
+remove_result = zones.remove_license_from_zone(str(zone_central._id), str(test_lic._id))
 assert remove_result.get("status") == "removed"
 print("License removed from zone")
 

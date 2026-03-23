@@ -13,7 +13,7 @@ Workflow:
   5. get_savings_status() — inspect current savings balance
 
 Note: The savings pool can only be drawn from via this codex. The
-budget_plan_codex.record_expenditure() will reject direct draws from
+budget_plan.record_expenditure() will reject direct draws from
 treasury_savings unless called through here.
 """
 
@@ -66,11 +66,11 @@ def _save_withdrawal(proposal, data: dict):
 def get_savings_status() -> dict:
     """Return the current treasury savings balance from the approved budget."""
     try:
-        from codices.syntropia.budget_plan_codex import (
+        from codices.syntropia.budget_plan import (
             get_approved_budget_proposal_id, get_budget_summary,
         )
     except ImportError:
-        return {"error": "budget_plan_codex not available"}
+        return {"error": "budget_plan not available"}
 
     pid = get_approved_budget_proposal_id()
     if not pid:
@@ -233,7 +233,7 @@ def execute_withdrawal(proposal_id: str) -> "Async[str]":
 
     # Record expenditure against the budget savings pool
     try:
-        from codices.syntropia.budget_plan_codex import record_expenditure
+        from codices.syntropia.budget_plan import record_expenditure
         budget_pid = get_savings_status().get("budget_proposal_id", "")
         if budget_pid:
             budget_result = record_expenditure(

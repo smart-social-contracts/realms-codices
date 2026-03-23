@@ -4,13 +4,13 @@ Manages procurement projects funded from the budget's procurement pool.
 
 Workflow:
   1. propose_project()   — any member can propose a project (creates Proposal)
-  2. Members vote via governance_automation_codex / voting extension
+  2. Members vote via governance_automation / voting extension
   3. approve_project()   — after vote passes, marks project as approved
   4. disburse_project()  — transfers ckBTC to the receiver principal
   5. get_project_status() — inspect a single project
   6. list_projects()     — list all procurement proposals
 
-The procurement pool is managed by budget_plan_codex.record_expenditure().
+The procurement pool is managed by budget_plan.record_expenditure().
 """
 
 from ggg import Proposal, Transfer, User, Member, Notification, Treasury
@@ -128,7 +128,7 @@ def disburse_project(proposal_id: str, budget_proposal_id: str) -> "Async[str]":
 
     Steps:
       1. Verify project is approved
-      2. Draw from the budget procurement pool via budget_plan_codex
+      2. Draw from the budget procurement pool via budget_plan
       3. Transfer ckBTC to the receiver principal via vault extension
 
     Args:
@@ -152,7 +152,7 @@ def disburse_project(proposal_id: str, budget_proposal_id: str) -> "Async[str]":
 
     # Record expenditure against the budget procurement pool
     try:
-        from codices.syntropia.budget_plan_codex import record_expenditure
+        from codices.syntropia.budget_plan import record_expenditure
         budget_result = record_expenditure(
             budget_proposal_id, "procurement", amount,
             description="Procurement: " + project.get("name", "")

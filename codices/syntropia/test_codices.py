@@ -45,7 +45,7 @@ zk_hash_bob = "zk_" + ts + "_bob"
 zk_hash_carol = "zk_" + ts + "_carol"
 print("ZK proofs simulated for 3 users")
 
-# ── TEST 3: Membership Finalization (inline membership_codex logic) ─────
+# ── TEST 3: Membership Finalization (inline membership logic) ─────
 print("=== TEST 3: MEMBERSHIP FINALIZATION ===")
 member_alice = Member(
     user=user_alice, identity_verification="verified",
@@ -92,7 +92,7 @@ Notification(
     metadata="uid:" + user_alice.id + "|mid:" + str(member_alice.id),
 )
 
-# ── TEST 4: Membership Revocation (inline membership_codex logic) ──────
+# ── TEST 4: Membership Revocation (inline membership logic) ──────
 print("=== TEST 4: MEMBERSHIP REVOCATION ===")
 member_carol.identity_verification = "revoked"
 member_carol.voting_eligibility = "ineligible"
@@ -291,14 +291,14 @@ print("Balances: cash=" + str(LedgerEntry.get_balance(EntryType.ASSET, Category.
 
 # ── TEST 14: Progressive Tax Calculation ─────────────────────────────────
 print("=== TEST 14: PROGRESSIVE TAX CALCULATION ===")
-import tax_collection_codex
+import tax_collection
 
 # Give Alice some income via transfers
 Transfer(id=ts + "_income_alice", principal_from="system", principal_to=user_alice.id,
          instrument="Realm Token", amount=50000, status="completed",
          tags="income", timestamp=now.isoformat())
 
-tax_info = tax_collection_codex.calculate_tax_for_user(user_alice.id, tax_year=fy)
+tax_info = tax_collection.calculate_tax_for_user(user_alice.id, tax_year=fy)
 print("Alice tax: gross=" + str(tax_info.get("gross_income", 0))
       + " deduction=" + str(tax_info.get("standard_deduction", 0))
       + " taxable=" + str(tax_info.get("taxable_income", 0))
@@ -306,11 +306,11 @@ print("Alice tax: gross=" + str(tax_info.get("gross_income", 0))
       + " rate=" + str(tax_info.get("effective_rate", 0)))
 assert tax_info.get("gross_income", 0) >= 50000, "Alice should have income >= 50000"
 assert tax_info.get("tax_owed", 0) > 0, "Alice should owe tax"
-print("Tax brackets: " + str(len(tax_collection_codex.TAX_BRACKETS)) + " brackets, deduction=" + str(tax_collection_codex.STANDARD_DEDUCTION))
+print("Tax brackets: " + str(len(tax_collection.TAX_BRACKETS)) + " brackets, deduction=" + str(tax_collection.STANDARD_DEDUCTION))
 
 # ── TEST 15: Tax Collection ──────────────────────────────────────────────
 print("=== TEST 15: TAX COLLECTION ===")
-tax_results = tax_collection_codex.process_tax_collection()
+tax_results = tax_collection.process_tax_collection()
 print("Tax collection: " + str(len(tax_results)) + " payments processed")
 for tr in tax_results[:3]:
     print("  user=" + str(tr.get("user_id", "")) + " tax=" + str(tr.get("tax_collected", 0)) + " rate=" + str(tr.get("effective_rate", 0)))
@@ -321,26 +321,26 @@ for tr in tax_results[:3]:
 
 # ── TEST 16: Monthly Invoice ─────────────────────────────────────────────
 print("=== TEST 16: MONTHLY INVOICE ===")
-import monthly_billing_codex
+import monthly_billing
 
-inv_result = monthly_billing_codex.create_monthly_invoice(user_alice.id)
+inv_result = monthly_billing.create_monthly_invoice(user_alice.id)
 assert "error" not in inv_result, "Invoice creation should succeed: " + str(inv_result)
 print("Invoice created: id=" + str(inv_result.get("invoice_id")) + " amount=" + str(inv_result.get("amount_ckbtc")))
 
-inv_result_bob = monthly_billing_codex.create_monthly_invoice(user_bob.id)
+inv_result_bob = monthly_billing.create_monthly_invoice(user_bob.id)
 assert "error" not in inv_result_bob
 print("Invoice for Bob: id=" + str(inv_result_bob.get("invoice_id")))
 
 # ── TEST 17: Overdue Invoice Warning ─────────────────────────────────────
 print("=== TEST 17: OVERDUE WARNING ===")
-warn_result = monthly_billing_codex.warn_user(user_bob.id, str(inv_result_bob.get("invoice_id", "")))
+warn_result = monthly_billing.warn_user(user_bob.id, str(inv_result_bob.get("invoice_id", "")))
 assert warn_result.get("warned"), "Warning should succeed"
 print("Warning sent to Bob: " + str(warn_result))
 
 # ── TEST 18: Membership Revocation for Non-Payment ──────────────────────
 print("=== TEST 18: BILLING REVOCATION ===")
 # Carol was already revoked in TEST 4 — verify kick_user also works
-kick_result = monthly_billing_codex.kick_user(user_carol.id, "test_invoice")
+kick_result = monthly_billing.kick_user(user_carol.id, "test_invoice")
 print("Kick result for Carol: " + str(kick_result))
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -383,9 +383,9 @@ print("Welfare notification sent")
 
 # ── TEST 20: Procurement Project Proposal, Vote, Approval ────────────────
 print("=== TEST 20: PROCUREMENT WORKFLOW ===")
-import procurement_codex
+import procurement
 
-proj = procurement_codex.propose_project(
+proj = procurement.propose_project(
     name="Solar Farm",
     desc="Build a 10MW solar farm for the realm",
     amount_satoshis=200000,
@@ -396,22 +396,22 @@ assert "proposal_id" in proj, "Project should have proposal_id"
 print("Procurement proposed: " + str(proj.get("proposal_id")) + " amount=" + str(proj.get("amt")))
 
 # Approve the project
-approval = procurement_codex.approve_project(proj["proposal_id"])
+approval = procurement.approve_project(proj["proposal_id"])
 assert approval.get("status") == "approved", "Should be approved: " + str(approval)
 print("Project approved: " + str(approval))
 
 # Check project status
-ps = procurement_codex.get_project_status(proj["proposal_id"])
+ps = procurement.get_project_status(proj["proposal_id"])
 assert ps.get("status") == "approved"
 print("Project status: " + str(ps.get("status")) + " amount=" + str(ps.get("amount_satoshis")))
 
 # List all projects
-projects = procurement_codex.list_projects()
+projects = procurement.list_projects()
 print("Total procurement projects: " + str(len(projects)))
 
 # ── TEST 21: Treasury Savings & Supermajority Withdrawal ─────────────────
 print("=== TEST 21: TREASURY SAVINGS ===")
-import treasury_savings_codex
+import treasury_savings
 
 # Create a withdrawal proposal directly
 tsw_prop = Proposal(
@@ -427,18 +427,18 @@ print("Treasury withdrawal proposed: " + tsw_prop.proposal_id)
 # Simulate voting — 3 yes, 1 no (passes supermajority 75% > 66.7%)
 tsw_prop.votes_yes = 3
 tsw_prop.votes_no = 1
-sm = treasury_savings_codex.check_supermajority(tsw_prop.proposal_id)
+sm = treasury_savings.check_supermajority(tsw_prop.proposal_id)
 assert sm.get("passed"), "Supermajority should pass with 3/4=75%: " + str(sm)
 print("Supermajority check: passed=" + str(sm.get("passed")) + " ratio=" + str(sm.get("approval_ratio")))
 
 # Simulate voting — 2 yes, 2 no (fails supermajority 50% < 66.7%)
 tsw_prop.votes_yes = 2
 tsw_prop.votes_no = 2
-sm_fail = treasury_savings_codex.check_supermajority(tsw_prop.proposal_id)
+sm_fail = treasury_savings.check_supermajority(tsw_prop.proposal_id)
 assert not sm_fail.get("passed"), "Supermajority should fail with 2/4=50%"
 print("Supermajority check (fail): passed=" + str(sm_fail.get("passed")) + " ratio=" + str(sm_fail.get("approval_ratio")))
 
-withdrawals = treasury_savings_codex.list_withdrawals()
+withdrawals = treasury_savings.list_withdrawals()
 print("Treasury withdrawal proposals: " + str(len(withdrawals)))
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -520,9 +520,9 @@ print("Zones: " + str(Zone.count()))
 
 # ── TEST 24: Land Lease Treaty Lifecycle ─────────────────────────────────
 print("=== TEST 24: LAND LEASE TREATY ===")
-import land_treaty_codex
+import land_treaty
 
-treaty = land_treaty_codex.create_treaty(
+treaty = land_treaty.create_treaty(
     host_state_name="Republic of Freedonia",
     territory_description="50 km2 coastal zone in the southern province",
     term_years=50, annual_fee=500000, fee_currency="USD",
@@ -533,51 +533,51 @@ treaty_id = treaty["treaty_id"]
 print("Treaty created: " + treaty_id + " status=draft")
 
 # Sign
-sign_result = land_treaty_codex.sign_treaty(treaty_id, "Minister of Foreign Affairs", "Realm Chancellor")
+sign_result = land_treaty.sign_treaty(treaty_id, "Minister of Foreign Affairs", "Realm Chancellor")
 assert sign_result.get("status") == "signed", "Should be signed: " + str(sign_result)
 print("Treaty signed: " + str(sign_result.get("status")))
 
 # Ratify
-ratify_result = land_treaty_codex.ratify_treaty(treaty_id, ratified_by="parliament")
+ratify_result = land_treaty.ratify_treaty(treaty_id, ratified_by="parliament")
 assert ratify_result.get("status") == "ratified"
 print("Treaty ratified: " + str(ratify_result.get("status")))
 
 # Activate
-activate_result = land_treaty_codex.activate_treaty(treaty_id)
+activate_result = land_treaty.activate_treaty(treaty_id)
 assert activate_result.get("status") == "active"
 print("Treaty activated: " + str(activate_result.get("status")))
 
 # Record payment
-pay_result = land_treaty_codex.record_payment(treaty_id, amount=500000, currency="USD", period="Year 1")
+pay_result = land_treaty.record_payment(treaty_id, amount=500000, currency="USD", period="Year 1")
 assert "payment_index" in pay_result
 print("Payment recorded: " + str(pay_result.get("amount")))
 
-pay_summary = land_treaty_codex.get_payment_summary(treaty_id)
+pay_summary = land_treaty.get_payment_summary(treaty_id)
 print("Payment summary: total_paid=" + str(pay_summary.get("total_paid")))
 
 # Suspend and reactivate
-suspend_result = land_treaty_codex.suspend_treaty(treaty_id, reason="Diplomatic review")
+suspend_result = land_treaty.suspend_treaty(treaty_id, reason="Diplomatic review")
 assert suspend_result.get("status") == "suspended"
 print("Treaty suspended")
 
-reactivate_result = land_treaty_codex.reactivate_treaty(treaty_id)
+reactivate_result = land_treaty.reactivate_treaty(treaty_id)
 assert reactivate_result.get("status") == "active"
 print("Treaty reactivated")
 
 # Terminate
-terminate_result = land_treaty_codex.terminate_treaty(treaty_id, reason="Term ended")
+terminate_result = land_treaty.terminate_treaty(treaty_id, reason="Term ended")
 assert terminate_result.get("status") == "terminated"
 print("Treaty terminated")
 
-treaties = land_treaty_codex.list_treaties()
+treaties = land_treaty.list_treaties()
 print("Total treaties: " + str(len(treaties)))
 
 # ── TEST 25: Zone Policy & License Assignment ────────────────────────────
 print("=== TEST 25: ZONE POLICY & LICENSE ===")
-import zones_codex
+import zones
 
 # Add policy to zone
-policy_result = zones_codex.add_policy_to_zone(
+policy_result = zones.add_policy_to_zone(
     str(zone_central.id), "Tax Incentive Zone",
     "Reduced tax rate for businesses in the central district",
 )
@@ -595,17 +595,17 @@ test_lic = license_issue(
 print("License issued: " + str(test_lic.id) + " type=" + test_lic.license_type)
 
 # Assign license to zone
-assign_result = zones_codex.assign_license_to_zone(str(zone_central.id), str(test_lic.id))
+assign_result = zones.assign_license_to_zone(str(zone_central.id), str(test_lic.id))
 assert assign_result.get("status") == "assigned", "License should be assigned: " + str(assign_result)
 print("License assigned to zone: " + str(assign_result))
 
 # Verify zone details
-zone_info = zones_codex.get_zone(str(zone_central.id))
+zone_info = zones.get_zone(str(zone_central.id))
 assert str(test_lic.id) in zone_info.get("assigned_licenses", [])
 print("Zone has " + str(len(zone_info.get("assigned_licenses", []))) + " licenses, " + str(len(zone_info.get("policies", []))) + " policies")
 
 # Remove license from zone
-remove_result = zones_codex.remove_license_from_zone(str(zone_central.id), str(test_lic.id))
+remove_result = zones.remove_license_from_zone(str(zone_central.id), str(test_lic.id))
 assert remove_result.get("status") == "removed"
 print("License removed from zone")
 
@@ -615,9 +615,9 @@ print("License removed from zone")
 
 # ── TEST 26: License Issuance ────────────────────────────────────────────
 print("=== TEST 26: LICENSE ISSUANCE ===")
-import licensing_codex
+import licensing
 
-hospital_lic = licensing_codex.issue_provider_license(
+hospital_lic = licensing.issue_provider_license(
     ts + "_City Hospital", LicenseType.HEALTH,
     description="Primary healthcare provider for the central district",
     issuing_authority="Health Ministry",
@@ -625,14 +625,14 @@ hospital_lic = licensing_codex.issue_provider_license(
 assert "error" not in hospital_lic, "License should be issued: " + str(hospital_lic)
 print("Hospital license: id=" + str(hospital_lic.get("license_id")) + " status=" + str(hospital_lic.get("status")))
 
-school_lic = licensing_codex.issue_provider_license(
+school_lic = licensing.issue_provider_license(
     ts + "_Academy", LicenseType.EDUCATION,
     description="K-12 education provider",
 )
 assert "error" not in school_lic
 print("School license: id=" + str(school_lic.get("license_id")))
 
-security_lic = licensing_codex.issue_provider_license(
+security_lic = licensing.issue_provider_license(
     ts + "_SecureGuard", LicenseType.POLICE,
     description="Community security and policing",
 )
@@ -641,31 +641,31 @@ print("Security license: id=" + str(security_lic.get("license_id")))
 
 # ── TEST 27: Compliance Check ────────────────────────────────────────────
 print("=== TEST 27: COMPLIANCE CHECK ===")
-comp_result = licensing_codex.check_compliance(str(hospital_lic["license_id"]))
+comp_result = licensing.check_compliance(str(hospital_lic["license_id"]))
 assert comp_result.get("compliant"), "Hospital should be compliant: " + str(comp_result)
 print("Hospital compliance: " + str(comp_result.get("compliant")) + " status=" + str(comp_result.get("status")))
 
 # ── TEST 28: Service Bill Submission & Payment ───────────────────────────
 print("=== TEST 28: SERVICE BILLING ===")
-bill_result = licensing_codex.submit_bill(str(hospital_lic["license_id"]), amount=5000, description="Q1 healthcare services")
+bill_result = licensing.submit_bill(str(hospital_lic["license_id"]), amount=5000, description="Q1 healthcare services")
 assert "error" not in bill_result, "Bill should be submitted: " + str(bill_result)
 print("Bill submitted: index=" + str(bill_result.get("bill_index")) + " amount=" + str(bill_result.get("amount")))
 
-pay_result = licensing_codex.pay_bill(str(hospital_lic["license_id"]), bill_index=0)
+pay_result = licensing.pay_bill(str(hospital_lic["license_id"]), bill_index=0)
 assert pay_result.get("status") == "paid", "Bill should be paid: " + str(pay_result)
 print("Bill paid: " + str(pay_result.get("amount")))
 
 # ── TEST 29: License Renewal & Revocation ────────────────────────────────
 print("=== TEST 29: LICENSE RENEWAL & REVOCATION ===")
-renew_result = licensing_codex.renew_provider_license(str(school_lic["license_id"]))
+renew_result = licensing.renew_provider_license(str(school_lic["license_id"]))
 assert renew_result.get("status") == "active", "License should be renewed: " + str(renew_result)
 print("School license renewed: " + str(renew_result.get("status")))
 
-revoke_result = licensing_codex.revoke_provider_license(str(security_lic["license_id"]), reason="Compliance failure")
+revoke_result = licensing.revoke_provider_license(str(security_lic["license_id"]), reason="Compliance failure")
 assert revoke_result.get("status") == "revoked"
 print("Security license revoked: " + str(revoke_result.get("status")))
 
-licenses = licensing_codex.list_licenses()
+licenses = licensing.list_licenses()
 print("Active licenses: " + str(len(licenses)))
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -800,7 +800,7 @@ print("Penalty executed: " + fine.id)
 
 # ── TEST 31: Federation / Quarter Assignment ─────────────────────────────
 print("=== TEST 31: FEDERATION & QUARTERS ===")
-import quarter_assignment_codex
+import quarter_assignment
 
 q1 = Quarter(name=ts + "_Quarter_Alpha", canister_id="aaaaa-aa", federation=realm, population=50, status=QuarterStatus.ACTIVE)
 q2 = Quarter(name=ts + "_Quarter_Beta", canister_id="bbbbb-bb", federation=realm, population=30, status=QuarterStatus.ACTIVE)
@@ -810,25 +810,25 @@ print("Quarters created: " + q1.name + ", " + q2.name + ", " + q3.name)
 quarters = [q1, q2, q3]
 
 # Test random strategy
-assigned_random = quarter_assignment_codex.assign_quarter("principal_test_123", quarters, "")
+assigned_random = quarter_assignment.assign_quarter("principal_test_123", quarters, "")
 assert assigned_random in ["aaaaa-aa", "bbbbb-bb", "ccccc-cc"], "Should assign to a valid quarter"
 print("Random assignment: " + assigned_random)
 
 # Test least_populated strategy
-orig_strategy = quarter_assignment_codex.ASSIGNMENT_STRATEGY
-quarter_assignment_codex.ASSIGNMENT_STRATEGY = "least_populated"
-assigned_lp = quarter_assignment_codex.assign_quarter("principal_test_456", quarters, "")
+orig_strategy = quarter_assignment.ASSIGNMENT_STRATEGY
+quarter_assignment.ASSIGNMENT_STRATEGY = "least_populated"
+assigned_lp = quarter_assignment.assign_quarter("principal_test_456", quarters, "")
 assert assigned_lp == "bbbbb-bb", "Should assign to least populated (Beta=30): got " + assigned_lp
 print("Least populated assignment: " + assigned_lp + " (Quarter Beta, pop=30)")
 
 # Test user_choice strategy
-quarter_assignment_codex.ASSIGNMENT_STRATEGY = "user_choice"
-assigned_uc = quarter_assignment_codex.assign_quarter("principal_test_789", quarters, "ccccc-cc")
+quarter_assignment.ASSIGNMENT_STRATEGY = "user_choice"
+assigned_uc = quarter_assignment.assign_quarter("principal_test_789", quarters, "ccccc-cc")
 assert assigned_uc == "ccccc-cc", "Should honour user choice"
 print("User choice assignment: " + assigned_uc)
 
 # Restore original strategy
-quarter_assignment_codex.ASSIGNMENT_STRATEGY = orig_strategy
+quarter_assignment.ASSIGNMENT_STRATEGY = orig_strategy
 print("Quarter assignment strategies verified")
 
 # ═══════════════════════════════════════════════════════════════════════════

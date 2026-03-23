@@ -8,7 +8,7 @@ Dominion implements a taxation-oriented governance model with progressive tax ra
 
 ## Codices
 
-### `tax_collection_codex.py`
+### `tax_collection.py`
 Automated tax calculation and collection system.
 
 **Features:**
@@ -23,7 +23,7 @@ Automated tax calculation and collection system.
 | ≤ 50,000 | 20% |
 | > 50,000 | 30% |
 
-### `governance_automation_codex.py`
+### `governance_automation.py`
 Democratic proposal and voting system.
 
 **Features:**
@@ -31,7 +31,7 @@ Democratic proposal and voting system.
 - Automatic vote tallying when deadlines pass
 - Proposal status tracking (active, passed, rejected)
 
-### `satoshi_transfer_codex.py`
+### `satoshi_transfer.py`
 Scheduled micro-transfer demonstration.
 
 **Features:**
@@ -39,7 +39,7 @@ Scheduled micro-transfer demonstration.
 - Demonstrates scheduled task execution
 - Integrates with vault extension for ckBTC transfers
 
-### `adjustments.py`
+### `init.py`
 Realm configuration and manifest loading.
 
 **Features:**

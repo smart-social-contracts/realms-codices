@@ -2,8 +2,8 @@
 # Covers: welfare benefit distribution, procurement project workflow,
 #         treasury savings with supermajority withdrawal
 import json
-import procurement_codex
-import treasury_savings_codex
+import procurement
+import treasury_savings
 from ggg import (
     Proposal, User, Member, Transfer, Notification,
     LedgerEntry, EntryType, Category,
@@ -58,7 +58,7 @@ print("Welfare notification sent")
 
 # ── TEST 2: Procurement Project Workflow ─────────────────────────────────
 print("=== TEST 2: PROCUREMENT WORKFLOW ===")
-proj = procurement_codex.propose_project(
+proj = procurement.propose_project(
     name="Solar Farm",
     desc="Build a 10MW solar farm for the realm",
     amount_satoshis=200000,
@@ -68,20 +68,20 @@ proj = procurement_codex.propose_project(
 assert "proposal_id" in proj, "Project should have proposal_id"
 print("Procurement proposed: " + str(proj.get("proposal_id")) + " amount=" + str(proj.get("amt")))
 
-approval = procurement_codex.approve_project(proj["proposal_id"])
+approval = procurement.approve_project(proj["proposal_id"])
 assert approval.get("status") == "approved", "Should be approved: " + str(approval)
 print("Project approved: " + str(approval))
 
-ps = procurement_codex.get_project_status(proj["proposal_id"])
+ps = procurement.get_project_status(proj["proposal_id"])
 assert ps.get("status") == "approved"
 print("Project status: " + str(ps.get("status")) + " amount=" + str(ps.get("amount_satoshis")))
 
-projects = procurement_codex.list_projects()
+projects = procurement.list_projects()
 print("Total procurement projects: " + str(len(projects)))
 
 # ── TEST 3: Treasury Savings & Supermajority Withdrawal ──────────────────
 print("=== TEST 3: TREASURY SAVINGS ===")
-treasury_codex = treasury_savings_codex
+treasury_mod = treasury_savings
 
 tsw_prop = Proposal(
     proposal_id=ts + "_tsw_001",
@@ -96,18 +96,18 @@ print("Treasury withdrawal proposed: " + tsw_prop.proposal_id)
 # 3 yes, 1 no → passes supermajority (75% > 66.7%)
 tsw_prop.votes_yes = 3.0
 tsw_prop.votes_no = 1.0
-sm = treasury_codex.check_supermajority(tsw_prop.proposal_id)
+sm = treasury_mod.check_supermajority(tsw_prop.proposal_id)
 assert sm.get("passed"), "Supermajority should pass with 3/4=75%: " + str(sm)
 print("Supermajority check: passed=" + str(sm.get("passed")) + " ratio=" + str(sm.get("approval_ratio")))
 
 # 2 yes, 2 no → fails supermajority (50% < 66.7%)
 tsw_prop.votes_yes = 2.0
 tsw_prop.votes_no = 2.0
-sm_fail = treasury_codex.check_supermajority(tsw_prop.proposal_id)
+sm_fail = treasury_mod.check_supermajority(tsw_prop.proposal_id)
 assert not sm_fail.get("passed"), "Supermajority should fail with 2/4=50%"
 print("Supermajority check (fail): passed=" + str(sm_fail.get("passed")) + " ratio=" + str(sm_fail.get("approval_ratio")))
 
-withdrawals = treasury_codex.list_withdrawals()
+withdrawals = treasury_mod.list_withdrawals()
 print("Treasury withdrawal proposals: " + str(len(withdrawals)))
 
 # Summary

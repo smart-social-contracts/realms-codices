@@ -10,7 +10,7 @@ To become a citizen a user must:
      user_registration_hook).
 
 This codex also provides:
-  - revoke_membership(): used by monthly_billing_codex to kick non-payers
+  - revoke_membership(): used by monthly_billing to kick non-payers
   - Sybil-resistance: the same ZK identity hash cannot register twice
 """
 
@@ -179,7 +179,7 @@ def check_membership_status(user_id: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Membership Revocation (used by monthly_billing_codex)
+# Membership Revocation (used by monthly_billing)
 # ---------------------------------------------------------------------------
 
 def revoke_membership(user_id: str, reason: str = "Non-payment of dues") -> dict:

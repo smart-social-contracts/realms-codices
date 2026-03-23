@@ -1,7 +1,7 @@
 # Test: Governance
 # Covers: legislative proposals, voting, vote processing, executive approval/veto,
 #         judicial review
-import governance_automation_codex
+import governance_automation
 from ggg import Proposal, User, Vote
 
 ts = "g" + str(id(object()))[-6:]
@@ -52,7 +52,7 @@ print("Proposal " + leg_prop.proposal_id + " passed parliament (" + str(votes_fo
 
 # ── TEST 4: Executive Approval & Veto ────────────────────────────────────
 print("=== TEST 4: EXECUTIVE APPROVAL & VETO ===")
-approve_result = governance_automation_codex.executive_approve(leg_prop.proposal_id, approved=True)
+approve_result = governance_automation.executive_approve(leg_prop.proposal_id, approved=True)
 assert approve_result.get("status") == "enacted", "Should be enacted: " + str(approve_result)
 print("Executive approved: " + str(approve_result))
 
@@ -65,13 +65,13 @@ veto_prop = Proposal(
     voting_deadline=deadline,
     metadata="branch:legislative",
 )
-veto_result = governance_automation_codex.executive_approve(veto_prop.proposal_id, approved=False)
+veto_result = governance_automation.executive_approve(veto_prop.proposal_id, approved=False)
 assert veto_result.get("status") == "vetoed", "Should be vetoed"
 print("Executive vetoed: " + str(veto_result))
 
 # ── TEST 5: Judicial Review ──────────────────────────────────────────────
 print("=== TEST 5: JUDICIAL REVIEW ===")
-jr_pass = governance_automation_codex.judicial_review(leg_prop.proposal_id, constitutional=True)
+jr_pass = governance_automation.judicial_review(leg_prop.proposal_id, constitutional=True)
 assert jr_pass.get("constitutional") == True
 print("Judicial review (constitutional): " + str(jr_pass))
 
@@ -83,7 +83,7 @@ strike_prop = Proposal(
     voting_deadline=deadline,
     metadata="branch:legislative",
 )
-jr_fail = governance_automation_codex.judicial_review(strike_prop.proposal_id, constitutional=False)
+jr_fail = governance_automation.judicial_review(strike_prop.proposal_id, constitutional=False)
 assert jr_fail.get("status") == "struck_down"
 print("Judicial review (struck down): " + str(jr_fail))
 

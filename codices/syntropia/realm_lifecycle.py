@@ -36,7 +36,7 @@ import json
 
 # NOTE: Registration requires ZK proof of unique personhood via Rarimo passport
 # extension. The ZK proof hash is stored in Member.criminal_record field for
-# deduplication (see membership_codex.py).
+# deduplication (see membership.py).
 
 # ---------------------------------------------------------------------------
 # Constants

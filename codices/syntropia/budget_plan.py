@@ -2,7 +2,7 @@
 Budget Plan Codex
 Manages the annual budget allocation voted on by realm members.
 
-All revenue comes from monthly ckBTC dues collected by monthly_billing_codex.
+All revenue comes from monthly ckBTC dues collected by monthly_billing.
 The budget splits collected revenue into three pools:
 
   - treasury_savings  — locked reserve (no spend without supermajority)
@@ -11,10 +11,10 @@ The budget splits collected revenue into three pools:
 
 Workflow:
   1. create_budget_proposal() — propose allocation percentages for voting
-  2. Members vote via the governance_automation_codex / voting extension
+  2. Members vote via the governance_automation / voting extension
   3. approve_budget()         — enacted after vote passes
-  4. record_expenditure()     — procurement_codex draws from procurement pool
-  5. record_distribution()    — social_security_codex draws from social pool
+  4. record_expenditure()     — procurement draws from procurement pool
+  5. record_distribution()    — social_security draws from social pool
   6. get_budget_summary()     — inspect remaining balances
 """
 
@@ -168,8 +168,8 @@ def record_expenditure(proposal_id: str, category: str, amount: int,
                        description: str = "") -> dict:
     """Record spending against an approved budget category.
 
-    Used by procurement_codex (category='procurement') and
-    social_security_codex (category='social_security').
+    Used by procurement (category='procurement') and
+    social_security (category='social_security').
     """
     proposal = _find_proposal(proposal_id)
     if not proposal:
