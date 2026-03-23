@@ -11,7 +11,7 @@ Validates:
 from ggg import Fund, FiscalPeriod, Budget
 from ggg import FundType, FiscalPeriodStatus, BudgetStatus
 from datetime import datetime
-from codices._testing import reset_registry
+from realms.testing import reset_registry
 import sys
 
 current_year = datetime.now().year
