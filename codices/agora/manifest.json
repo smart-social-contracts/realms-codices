@@ -1,4 +1,47 @@
 {
+  "accounting_currency": "ckUSDC",
+  "other_currencies_supported": ["ckBTC", "ICP"],
+
+  "tokens": [
+    {
+      "symbol": "AGO",
+      "name": "Agora Token",
+      "type": "fungible",
+      "decimals": 8,
+      "initial_supply": 1000000
+    }
+  ],
+
+  "fees": {
+    "registration": 10.00,
+    "monthly_membership": 5.00,
+    "proposal_submission": 1.00
+  },
+
+  "governance": {
+    "voting_window_days": 7,
+    "quorum_percent": 20,
+    "approval_threshold": 0.5,
+    "proposal_types": ["codex_change", "treasury_spend", "welfare_policy"]
+  },
+
+  "welfare": {
+    "percent_of_budget": 30,
+    "eligibility_months": 1,
+    "distribution_interval_days": 30
+  },
+
+  "billing": {
+    "cycle_days": 30,
+    "grace_period_days": 7,
+    "suspension_after_days": 30
+  },
+
+  "membership": {
+    "activation_requires": ["passport_verified", "invoice_paid"],
+    "invoice_validity_days": 30
+  },
+
   "entity_method_overrides": [
     {
       "entity": "User",
