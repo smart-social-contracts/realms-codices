@@ -12,9 +12,9 @@ if realm:
         with open(manifest_path, 'r') as f:
             manifest = json.load(f)
         
-        # Only keep entity_method_overrides for realm.manifest_data
+        # Keep entity_method_overrides for realm.manifest_data
         realm_manifest = {
-            "entity_method_overrides": manifest.get("entity_method_overrides", [])
+            "entity_method_overrides": manifest.get("entity_method_overrides", []),
         }
         
         realm.manifest_data = json.dumps(realm_manifest)
