@@ -56,6 +56,8 @@ def user_register_posthook(user):
             + f"Deposit {invoice_ckbtc.amount} ckBTC to: {vault_principal} (subaccount: {subaccount_hex_ckbtc[:16]}...)."
             + f"Deposit {invoice_realms.amount} REALMS to: {vault_principal} (subaccount: {subaccount_hex_realms[:16]}...)."
             + "Expires in 1 day.",
+            sender="Administration",
+            recipient=user.id,
             user=user,
             read=False,
             icon="wallet",

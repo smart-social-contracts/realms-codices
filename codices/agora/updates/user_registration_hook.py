@@ -65,6 +65,8 @@ def user_register_posthook(user):
                 f"If you have any questions, feel free to ask the **AI Assistant** — "
                 f"it knows everything about this realm and can guide you through the process."
             ),
+            sender="Administration",
+            recipient=user.id,
             user=user,
             read=False,
             icon="shield_check",

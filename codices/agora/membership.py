@@ -185,6 +185,8 @@ def finalize_membership(user_id: str, verification_result: str) -> dict:
         title="Citizenship Granted",
         message="Your identity has been verified and your registration invoice is paid. "
                 "Welcome to Agora! You can now vote, submit proposals, and receive benefits.",
+        sender="Administration",
+        recipient=user.id,
         user=user,
         read=False,
         icon="shield_check",
@@ -248,6 +250,8 @@ def deactivate_member(user_id: str, reason: str = "Non-payment of dues") -> dict
         title="Citizenship Suspended",
         message="Your citizenship has been suspended. Reason: " + reason
                 + ". Pay your outstanding invoices to reactivate.",
+        sender="Administration",
+        recipient=user.id,
         user=user,
         read=False,
         icon="shield_off",
@@ -286,6 +290,8 @@ def reactivate_member(user_id: str) -> dict:
         topic="membership",
         title="Citizenship Reactivated",
         message="Your outstanding invoices have been settled. Your citizenship is active again. Welcome back!",
+        sender="Administration",
+        recipient=user.id,
         user=user,
         read=False,
         icon="shield_check",
