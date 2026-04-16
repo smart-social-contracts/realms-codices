@@ -148,6 +148,12 @@ jobs:
               dfx canister call --network "$NETWORK" "$REGISTRY_CANISTER" store_file "$CANDID_ARG" || echo "::warning::Failed to upload ${FILENAME}"
             done
 
+            # Mark namespace as published (atomically makes it visible to queries)
+            PUB_PAYLOAD=$(python -c "import json; print(json.dumps({'namespace': '${NAMESPACE}'}))")
+            PUB_ARG="(\"$(echo "$PUB_PAYLOAD" | sed 's/\\/\\\\/g; s/"/\\"/g')\")"
+            echo "  Publishing namespace ${NAMESPACE}..."
+            dfx canister call --network "$NETWORK" "$REGISTRY_CANISTER" publish_namespace "$PUB_ARG" || { echo "::error::Failed to publish namespace for ${codex_id}"; FAILED=$((FAILED+1)); continue; }
+
             echo "  ✅ Published ${codex_id} v${VERSION}"
             PUBLISHED=$((PUBLISHED+1))
 
