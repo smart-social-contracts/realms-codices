@@ -1,7 +1,7 @@
-# Publish Codex Packages to Mundus File Registry
+# Publish Codex Packages to File Registry
 #
 # Uploads codex package files (.py, manifest.json, init.py) to the on-chain
-# mundus file registry canister under versioned namespaces: codex/{codex_id}/{version}/
+# file registry canister under versioned namespaces: codex/{codex_id}/{version}/
 #
 # Triggered manually. Requires:
 #   - FILE_REGISTRY_CANISTER_ID (repository variable)
