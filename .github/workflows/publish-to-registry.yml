@@ -1,0 +1,180 @@
+# Publish Codex Packages to Mundus File Registry
+#
+# Uploads codex package files (.py, manifest.json, init.py) to the on-chain
+# mundus file registry canister under versioned namespaces: codex/{codex_id}/{version}/
+#
+# Triggered manually. Requires:
+#   - FILE_REGISTRY_CANISTER_ID (repository variable)
+#   - DFX_IDENTITY_PEM (repository secret — controller/publisher PEM key)
+#
+# Each codex directory must contain a manifest.json with a "version" field.
+#
+# Refs: https://github.com/smart-social-contracts/realms/issues/168
+
+name: Publish to Registry
+
+on:
+  workflow_dispatch:
+    inputs:
+      codex:
+        description: "Codex to publish (directory name under codices/, or 'all')"
+        required: true
+        type: string
+        default: "all"
+      network:
+        description: "IC network"
+        required: true
+        type: choice
+        options:
+          - ic
+          - staging
+        default: ic
+
+env:
+  PYTHON_VERSION: "3.11"
+  DFX_VERSION: "0.31.0"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dfx
+        uses: dfinity/setup-dfx@main
+        with:
+          dfx-version: ${{ env.DFX_VERSION }}
+
+      - name: Configure dfx identity
+        run: |
+          mkdir -p ~/.config/dfx/identity/ci
+          echo "${{ secrets.DFX_IDENTITY_PEM }}" > ~/.config/dfx/identity/ci/identity.pem
+          chmod 600 ~/.config/dfx/identity/ci/identity.pem
+          dfx identity use ci
+
+      - name: Discover codices
+        id: discover
+        run: |
+          if [ "${{ inputs.codex }}" = "all" ]; then
+            # Find directories with manifest.json (skip _common)
+            CODICES=$(find ./codices -maxdepth 2 -name "manifest.json" -type f \
+              | sed 's|./codices/||' | sed 's|/manifest.json||' \
+              | grep -v "^_" | sort)
+          else
+            CODICES="${{ inputs.codex }}"
+          fi
+
+          echo "Codices to publish:"
+          echo "$CODICES"
+          echo "codices<<EOF" >> $GITHUB_OUTPUT
+          echo "$CODICES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Publish codices to registry
+        env:
+          REGISTRY_CANISTER: ${{ vars.FILE_REGISTRY_CANISTER_ID }}
+          NETWORK: ${{ inputs.network }}
+        run: |
+          if [ -z "$REGISTRY_CANISTER" ]; then
+            echo "::error::FILE_REGISTRY_CANISTER_ID variable not set"
+            exit 1
+          fi
+
+          PUBLISHED=0
+          FAILED=0
+
+          while IFS= read -r codex_id; do
+            [ -z "$codex_id" ] && continue
+            CODEX_DIR="codices/${codex_id}"
+
+            if [ ! -f "${CODEX_DIR}/manifest.json" ]; then
+              echo "::warning::Skipping ${codex_id}: no manifest.json found"
+              FAILED=$((FAILED+1))
+              continue
+            fi
+
+            VERSION=$(python -c "import json; print(json.load(open('${CODEX_DIR}/manifest.json'))['version'])")
+            NAMESPACE="codex/${codex_id}/${VERSION}"
+
+            echo "========================================="
+            echo "Publishing codex ${codex_id} v${VERSION}"
+            echo "  Namespace: ${NAMESPACE}"
+            echo "========================================="
+
+            # Upload manifest.json
+            CONTENT_B64=$(base64 -w0 "${CODEX_DIR}/manifest.json")
+            PAYLOAD=$(python -c "
+          import json
+          print(json.dumps({
+              'namespace': '${NAMESPACE}',
+              'path': 'manifest.json',
+              'content_b64': '${CONTENT_B64}',
+              'content_type': 'application/json'
+          }))
+          ")
+            CANDID_ARG="(\"$(echo "$PAYLOAD" | sed 's/\\/\\\\/g; s/"/\\"/g')\")"
+            echo "  Uploading manifest.json..."
+            dfx canister call --network "$NETWORK" "$REGISTRY_CANISTER" store_file "$CANDID_ARG" || { echo "::error::Failed to upload manifest.json for ${codex_id}"; FAILED=$((FAILED+1)); continue; }
+
+            # Upload all .py files
+            find "${CODEX_DIR}" -maxdepth 1 -name "*.py" -type f | while read -r py_file; do
+              FILENAME=$(basename "$py_file")
+
+              # Skip test files
+              if [[ "$FILENAME" == test_* ]] || [[ "$FILENAME" == *_test.py ]]; then
+                echo "  Skipping test file: ${FILENAME}"
+                continue
+              fi
+
+              CONTENT_B64=$(base64 -w0 "$py_file")
+              PAYLOAD=$(python -c "
+          import json
+          print(json.dumps({
+              'namespace': '${NAMESPACE}',
+              'path': '${FILENAME}',
+              'content_b64': '${CONTENT_B64}',
+              'content_type': 'text/plain'
+          }))
+          ")
+              CANDID_ARG="(\"$(echo "$PAYLOAD" | sed 's/\\/\\\\/g; s/"/\\"/g')\")"
+              echo "  Uploading ${FILENAME}..."
+              dfx canister call --network "$NETWORK" "$REGISTRY_CANISTER" store_file "$CANDID_ARG" || echo "::warning::Failed to upload ${FILENAME}"
+            done
+
+            echo "  ✅ Published ${codex_id} v${VERSION}"
+            PUBLISHED=$((PUBLISHED+1))
+
+          done <<< "${{ steps.discover.outputs.codices }}"
+
+          echo ""
+          echo "========================================="
+          echo "Results: ${PUBLISHED} published, ${FAILED} failed"
+          echo "========================================="
+
+          if [ "$FAILED" -gt 0 ]; then
+            exit 1
+          fi
+
+      - name: Summary
+        run: |
+          echo "## 📜 Codices Published to Registry" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Registry:** \`${{ vars.FILE_REGISTRY_CANISTER_ID }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Network:** \`${{ inputs.network }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          while IFS= read -r codex_id; do
+            [ -z "$codex_id" ] && continue
+            CODEX_DIR="codices/${codex_id}"
+            if [ -f "${CODEX_DIR}/manifest.json" ]; then
+              VERSION=$(python -c "import json; print(json.load(open('${CODEX_DIR}/manifest.json'))['version'])")
+              echo "- **${codex_id}** v${VERSION}" >> $GITHUB_STEP_SUMMARY
+            fi
+          done <<< "${{ steps.discover.outputs.codices }}"
