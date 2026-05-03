@@ -4,7 +4,7 @@ Handles recurring monthly invoices for all active members of the Agora realm.
 
 Accepted currencies:
   - ckBTC (Bitcoin on IC)
-  - AGO (Agora realm token, kybra-simple-token) at fixed rate 1 AGO = 0.5 BTC
+  - AGO (Agora realm token, ic-tokens) at fixed rate 1 AGO = 0.5 BTC
 
 Lifecycle:
   1. New user registers → user_registration_hook creates the FIRST invoice.
