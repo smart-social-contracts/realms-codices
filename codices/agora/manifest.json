@@ -1,21 +1,17 @@
 {
-  "accounting_currency": "ckUSDC",
-  "other_currencies_supported": ["ckBTC", "ICP"],
+  "version": "0.2.0",
 
-  "tokens": [
-    {
-      "symbol": "AGO",
-      "name": "Agora Token",
-      "type": "fungible",
-      "decimals": 8,
-      "initial_supply": 1000000
-    }
-  ],
+  "currency": {
+    "symbol": "AGO",
+    "name": "Agora Token",
+    "decimals": 8,
+    "initial_supply": 1000000
+  },
 
   "fees": {
-    "registration": 10.00,
-    "monthly_membership": 5.00,
-    "proposal_submission": 1.00
+    "registration": 1.00,
+    "monthly_membership": 0.50,
+    "proposal_submission": 0.10
   },
 
   "governance": {
