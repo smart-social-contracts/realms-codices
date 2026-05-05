@@ -2,28 +2,22 @@
   "version": "0.2.0",
 
   "currency": {
-    "symbol": "ckUSDC",
-    "name": "ckUSDC",
-    "decimals": 6
+    "symbol": "ckBTC",
+    "name": "ckBTC",
+    "decimals": 8
   },
 
   "fees": {
-    "registration": 1.00,
-    "monthly_membership": 0.50,
-    "proposal_submission": 0.10
+    "registration": 0.00001,
+    "monthly_membership": 0.000005,
+    "proposal_submission": 0.000001
   },
 
   "governance": {
     "voting_window_days": 7,
     "quorum_percent": 20,
     "approval_threshold": 0.5,
-    "proposal_types": ["codex_change", "treasury_spend", "welfare_policy"]
-  },
-
-  "welfare": {
-    "percent_of_budget": 30,
-    "eligibility_months": 1,
-    "distribution_interval_days": 30
+    "proposal_types": ["codex_change", "treasury_spend"]
   },
 
   "billing": {
@@ -44,13 +38,6 @@
       "type": "staticmethod",
       "implementation": "Codex.user_registration_hook.user_register_posthook",
       "description": "Custom post-registration hook — creates initial invoices for new users"
-    },
-    {
-      "entity": "Treasury",
-      "method": "send",
-      "type": "staticmethod",
-      "implementation": "Codex.treasury_send_hook.send_hook",
-      "description": "Custom send hook for treasuries using vault extension"
     }
   ]
 }

@@ -1,15 +1,15 @@
 """
-User Registration Hook — Agora
+User Registration Hook — Dominion
 
-Creates a registration invoice in ckUSDC upon user signup.
+Creates a registration invoice in DOM upon user signup.
 """
 
 from datetime import datetime, timedelta
 
-CURRENCY = "ckUSDC"
+CURRENCY = "DOM"
 REGISTRATION_FEE = 1.0
 INVOICE_VALIDITY_DAYS = 30
-REALM_NAME = "Agora"
+REALM_NAME = "Dominion"
 
 
 def _ic_now():

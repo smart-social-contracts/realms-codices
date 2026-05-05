@@ -1,15 +1,15 @@
 """
-User Registration Hook — Agora
+User Registration Hook — Syntropia
 
-Creates a registration invoice in ckUSDC upon user signup.
+Creates a registration invoice in ckBTC upon user signup.
 """
 
 from datetime import datetime, timedelta
 
-CURRENCY = "ckUSDC"
-REGISTRATION_FEE = 1.0
+CURRENCY = "ckBTC"
+REGISTRATION_FEE = 0.00001
 INVOICE_VALIDITY_DAYS = 30
-REALM_NAME = "Agora"
+REALM_NAME = "Syntropia"
 
 
 def _ic_now():
