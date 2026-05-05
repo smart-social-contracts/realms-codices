@@ -7,7 +7,7 @@ Creates a registration invoice in ckBTC upon user signup.
 from datetime import datetime, timedelta
 
 CURRENCY = "ckBTC"
-REGISTRATION_FEE = 0.00001
+REGISTRATION_FEE = 0.000001
 INVOICE_VALIDITY_DAYS = 30
 REALM_NAME = "Syntropia"
 

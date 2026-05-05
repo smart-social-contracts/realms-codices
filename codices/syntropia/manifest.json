@@ -8,9 +8,9 @@
   },
 
   "fees": {
-    "registration": 0.00001,
-    "monthly_membership": 0.000005,
-    "proposal_submission": 0.000001
+    "registration": 0.000001,
+    "monthly_membership": 0.0000005,
+    "proposal_submission": 0.0000001
   },
 
   "governance": {
