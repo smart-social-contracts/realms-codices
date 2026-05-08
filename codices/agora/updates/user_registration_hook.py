@@ -9,13 +9,8 @@ via the passport_verification extension to become an active citizen.
 This replaces the _common version which uses REALMS tokens.
 """
 
-from datetime import datetime, timedelta
-
-
-def _ic_now():
-    """Get current datetime from ic.time() (nanoseconds since epoch)."""
-    ns = ic.time()
-    return datetime(1970, 1, 1) + timedelta(seconds=ns // 1_000_000_000)
+from _cdk import ic
+from ic_basilisk_toolkit.date_utils import ic_time_to_epoch, epoch_to_datetime_str
 
 
 # Monthly fee matching monthly_billing config
@@ -34,8 +29,8 @@ def user_register_posthook(user):
     verification).
     """
     try:
-        now = _ic_now()
-        due_date = (now + timedelta(days=INVOICE_VALIDITY_DAYS)).isoformat()
+        now_epoch = ic_time_to_epoch(ic.time())
+        due_date = epoch_to_datetime_str(now_epoch + INVOICE_VALIDITY_DAYS * 86400).replace(" ", "T")
 
         # Create a single registration invoice (payable in ckBTC or AGO)
         invoice = ggg.Invoice(
@@ -73,7 +68,7 @@ def user_register_posthook(user):
             href="/extensions/member_dashboard",
             color="green",
             metadata=f"invoice_id:{invoice.id}",
-            timestamp_created=now.strftime("%Y-%m-%d %H:%M")
+            timestamp_created=epoch_to_datetime_str(now_epoch)[:16]
         )
 
     except Exception as e:

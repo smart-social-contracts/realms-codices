@@ -4,7 +4,8 @@ User Registration Hook — Dominion
 Creates a registration invoice in DOM upon user signup.
 """
 
-from datetime import datetime, timedelta
+from _cdk import ic
+from ic_basilisk_toolkit.date_utils import ic_time_to_epoch, epoch_to_datetime_str
 
 CURRENCY = "DOM"
 REGISTRATION_FEE = 1.0
@@ -12,15 +13,10 @@ INVOICE_VALIDITY_DAYS = 30
 REALM_NAME = "Dominion"
 
 
-def _ic_now():
-    ns = ic.time()
-    return datetime(1970, 1, 1) + timedelta(seconds=ns // 1_000_000_000)
-
-
 def user_register_posthook(user):
     try:
-        now = _ic_now()
-        due_date = (now + timedelta(days=INVOICE_VALIDITY_DAYS)).isoformat()
+        now_epoch = ic_time_to_epoch(ic.time())
+        due_date = epoch_to_datetime_str(now_epoch + INVOICE_VALIDITY_DAYS * 86400).replace(" ", "T")
 
         invoice = ggg.Invoice(
             amount=REGISTRATION_FEE,
@@ -54,7 +50,7 @@ def user_register_posthook(user):
             href="/extensions/member_dashboard",
             color="green",
             metadata=f"invoice_id:{invoice.id}",
-            timestamp_created=now.strftime("%Y-%m-%d %H:%M"),
+            timestamp_created=epoch_to_datetime_str(now_epoch)[:16],
         )
 
     except Exception as e:

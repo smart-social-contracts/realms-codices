@@ -3,8 +3,9 @@ Social Benefits Distribution Codex
 Automatically distributes social benefits to eligible members
 """
 
+from _cdk import ic
 from ggg import User, Member, Transfer, Treasury, Instrument
-from datetime import datetime
+from ic_basilisk_toolkit.date_utils import ic_time_to_epoch, epoch_to_datetime_str
 import json
 
 def check_benefit_eligibility(member_id: str) -> dict:
@@ -27,7 +28,7 @@ def check_benefit_eligibility(member_id: str) -> dict:
         "member_id": member_id,
         "eligible": eligible,
         "criteria_met": criteria,
-        "checked_at": datetime.now().isoformat()
+        "checked_at": epoch_to_datetime_str(ic_time_to_epoch(ic.time())).replace(" ", "T")
     }
 
 def calculate_benefit_amount(member_id: str) -> int:

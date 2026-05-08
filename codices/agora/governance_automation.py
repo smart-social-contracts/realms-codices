@@ -3,8 +3,9 @@ Governance Automation Codex
 Processes proposals and votes for democratic governance
 """
 
+from _cdk import ic
 from ggg import Proposal, Vote, User
-from datetime import datetime, timedelta
+from ic_basilisk_toolkit.date_utils import ic_time_to_epoch, epoch_to_datetime_str
 import json
 
 def create_sample_proposal(title: str, description: str) -> str:
@@ -15,7 +16,7 @@ def create_sample_proposal(title: str, description: str) -> str:
             "description": description,
             "status": "active",
             "created_by": "system",
-            "voting_deadline": (datetime.now() + timedelta(days=7)).isoformat(),
+            "voting_deadline": epoch_to_datetime_str(ic_time_to_epoch(ic.time()) + 7 * 86400).replace(" ", "T"),
             "votes_for": 0,
             "votes_against": 0,
             "total_votes": 0
@@ -36,9 +37,10 @@ def process_votes():
         
         if metadata.get("status") == "active":
             # Check if voting deadline has passed
-            deadline = datetime.fromisoformat(metadata["voting_deadline"])
+            deadline_str = metadata["voting_deadline"]
+            now_str = epoch_to_datetime_str(ic_time_to_epoch(ic.time())).replace(" ", "T")
             
-            if datetime.now() > deadline:
+            if now_str > deadline_str:
                 # Tally votes and close proposal
                 votes_for = metadata.get("votes_for", 0)
                 votes_against = metadata.get("votes_against", 0)
@@ -59,7 +61,7 @@ def process_votes():
                     "votes_for": votes_for,
                     "votes_against": votes_against,
                     "total_votes": total_votes,
-                    "closed_at": datetime.now().isoformat()
+                    "closed_at": now_str
                 }
                 
                 proposal.metadata = json.dumps(metadata)

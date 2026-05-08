@@ -24,15 +24,15 @@ Voting rules:
   - Each member gets exactly one vote per proposal.
 """
 
+from _cdk import ic
 from ggg import Proposal, Vote, User, Member, Transfer, Notification
-from datetime import datetime, timedelta
+from ic_basilisk_toolkit.date_utils import ic_time_to_epoch, epoch_to_datetime_str
 import json
 
 
-def _ic_now():
-    """Get current datetime from ic.time() (nanoseconds since epoch)."""
-    ns = ic.time()
-    return datetime(1970, 1, 1) + timedelta(seconds=ns // 1_000_000_000)
+def _now_iso():
+    """Current time as ISO 8601 string (from ic.time())."""
+    return epoch_to_datetime_str(ic_time_to_epoch(ic.time())).replace(" ", "T")
 
 # Import sibling codex for accounting
 import budget
@@ -106,14 +106,15 @@ def submit_proposal(user_id: str, title: str, description: str,
         return {"submitted": False, "reason": f"Invalid proposal type: {proposal_type}"}
 
     details = details or {}
-    deadline = (_ic_now() + timedelta(days=VOTING_WINDOW_DAYS)).isoformat()
+    now_epoch = ic_time_to_epoch(ic.time())
+    deadline = epoch_to_datetime_str(now_epoch + VOTING_WINDOW_DAYS * 86400).replace(" ", "T")
 
     # Build metadata JSON
     metadata = json.dumps({
         "type": proposal_type,
         "details": details,
         "proposer": user_id,
-        "submitted_at": _ic_now().isoformat(),
+        "submitted_at": epoch_to_datetime_str(now_epoch).replace(" ", "T"),
     })
 
     user = User[user_id]
@@ -181,10 +182,9 @@ def cast_vote(user_id: str, proposal_id: str, vote_choice: str) -> dict:
     if proposal.status != "voting":
         return {"voted": False, "reason": f"Proposal is not open for voting (status: {proposal.status})."}
 
-    # Check deadline
+    # Check deadline (ISO string comparison works for chronological order)
     try:
-        deadline = datetime.fromisoformat(proposal.deadline)
-        if _ic_now() > deadline:
+        if proposal.deadline and _now_iso() > proposal.deadline:
             return {"voted": False, "reason": "Voting period has ended."}
     except (ValueError, TypeError):
         pass
@@ -200,7 +200,7 @@ def cast_vote(user_id: str, proposal_id: str, vote_choice: str) -> dict:
         proposal=proposal,
         user=user,
         vote=vote_choice,
-        metadata=json.dumps({"voted_at": _ic_now().isoformat()})
+        metadata=json.dumps({"voted_at": _now_iso()})
     )
 
     ic.print(f"Vote cast on proposal #{proposal_id} by {user_id}: {vote_choice}")
@@ -222,7 +222,7 @@ def process_votes() -> dict:
 
     Designed to run as a scheduled task.
     """
-    now = _ic_now()
+    now_str = _now_iso()
     processed = 0
     approved = 0
     rejected = 0
@@ -234,8 +234,7 @@ def process_votes() -> dict:
             continue
 
         try:
-            deadline = datetime.fromisoformat(proposal.deadline)
-            if deadline > now:
+            if proposal.deadline and proposal.deadline > now_str:
                 continue  # still open
         except (ValueError, TypeError):
             continue
@@ -323,7 +322,7 @@ def _execute_codex_change(proposal, details: dict):
     exec_meta["execution"] = {
         "code_url": code_url,
         "code_checksum": code_checksum,
-        "approved_at": _ic_now().isoformat(),
+        "approved_at": _now_iso(),
     }
     proposal.metadata = json.dumps(exec_meta)
 
@@ -365,7 +364,7 @@ def _execute_treasury_spend(proposal, details: dict):
         metadata=json.dumps({
             "proposal_id": proposal.id,
             "reason": reason,
-            "approved_at": _ic_now().isoformat(),
+            "approved_at": _now_iso(),
         })
     )
 

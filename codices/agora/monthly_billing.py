@@ -20,15 +20,13 @@ Lifecycle:
 Uses icw (ICP Wallet CLI) externally to move ckBTC / AGO tokens.
 """
 
+from _cdk import ic
 from ggg import User, Member, Invoice, Notification, Transfer
-from datetime import datetime, timedelta
+from ic_basilisk_toolkit.date_utils import (
+    ic_time_to_epoch, epoch_to_datetime_str, epoch_to_date_str,
+    date_str_to_epoch,
+)
 import json
-
-
-def _ic_now():
-    """Get current datetime from ic.time() (nanoseconds since epoch)."""
-    ns = ic.time()
-    return datetime(1970, 1, 1) + timedelta(seconds=ns // 1_000_000_000)
 
 # Accounting entities for accurate metrics
 from ggg import LedgerEntry, Fund, FiscalPeriod, Budget
@@ -71,8 +69,9 @@ def create_monthly_invoice(user_id: str) -> dict:
     if not user:
         return {"created": False, "reason": "User not found"}
 
-    due_date = (_ic_now() + timedelta(days=INVOICE_VALIDITY_DAYS)).isoformat()
-    period = _ic_now().strftime("%Y-%m")
+    now_epoch = ic_time_to_epoch(ic.time())
+    due_date = epoch_to_datetime_str(now_epoch + INVOICE_VALIDITY_DAYS * 86400).replace(" ", "T")
+    period = epoch_to_date_str(now_epoch)[:7]
 
     # Create ckBTC invoice
     inv_ckbtc = Invoice(
@@ -189,12 +188,12 @@ def record_invoice_payment(invoice_id: str) -> dict:
         if member and member.identity_verification == "suspended":
             # Check if ALL overdue invoices are now paid/cancelled
             has_overdue = False
+            now_str = epoch_to_datetime_str(ic_time_to_epoch(ic.time())).replace(" ", "T")
             for check_inv in Invoice.instances():
                 if (check_inv.user and check_inv.user.id == user.id
                         and check_inv.status == "Pending"):
                     try:
-                        due = datetime.fromisoformat(check_inv.due_date)
-                        if due < _ic_now():
+                        if check_inv.due_date and check_inv.due_date < now_str:
                             has_overdue = True
                             break
                     except (ValueError, TypeError):
@@ -214,8 +213,9 @@ def run_billing_cycle():
 
     Designed to run as a scheduled task (e.g. daily or weekly).
     """
-    now = _ic_now()
-    ic.print(f"=== Billing cycle started at {now.isoformat()} ===")
+    now_epoch = ic_time_to_epoch(ic.time())
+    now_str = epoch_to_datetime_str(now_epoch).replace(" ", "T")
+    ic.print(f"=== Billing cycle started at {now_str} ===")
 
     members_billed = 0
     members_warned = 0
@@ -241,10 +241,9 @@ def run_billing_cycle():
                 continue
             if inv.status == "Pending":
                 try:
-                    due = datetime.fromisoformat(inv.due_date)
-                    if due >= now:
+                    if inv.due_date and inv.due_date >= now_str:
                         has_current_invoice = True
-                    else:
+                    elif inv.due_date:
                         overdue_invoices.append(inv)
                 except (ValueError, TypeError):
                     pass
@@ -252,9 +251,9 @@ def run_billing_cycle():
         # Process overdue invoices
         for inv in overdue_invoices:
             try:
-                due = datetime.fromisoformat(inv.due_date)
-                days_overdue = (now - due).days
-            except (ValueError, TypeError):
+                due_epoch = date_str_to_epoch(inv.due_date[:10])
+                days_overdue = (now_epoch - due_epoch) // 86400
+            except (ValueError, TypeError, IndexError):
                 days_overdue = 0
 
             if days_overdue >= SUSPENSION_AFTER_DAYS:
@@ -301,7 +300,7 @@ def run_billing_cycle():
         "members_billed": members_billed,
         "members_warned": members_warned,
         "members_suspended": members_suspended,
-        "cycle_time": now.isoformat(),
+        "cycle_time": now_str,
     }
 
 

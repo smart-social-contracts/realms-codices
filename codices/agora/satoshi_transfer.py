@@ -7,6 +7,7 @@ Note: Use 'logger' (provided in execution namespace) for logs to be captured
 in TaskExecution records, not ic.print() which only goes to canister stdout.
 """
 
+from _cdk import ic
 from ggg import Transfer
 import json
 

@@ -18,11 +18,12 @@ License categories (from ggg.LicenseType):
   - other          — catch-all for unlisted provider types
 """
 
+from _cdk import ic
 from ggg import (
     License, LicenseType, license_issue, license_revoke,
     Organization, User, Transfer, Instrument, Invoice,
 )
-from datetime import datetime
+from ic_basilisk_toolkit.date_utils import ic_time_to_epoch, epoch_to_datetime_str
 import json
 
 # Default license validity in seconds (1 year)
@@ -89,7 +90,7 @@ def check_compliance(license_id: str) -> dict:
 
     check = {
         "compliant": valid,
-        "checked_at": datetime.now().isoformat(),
+        "checked_at": epoch_to_datetime_str(ic_time_to_epoch(ic.time())).replace(" ", "T"),
     }
     meta.setdefault("compliance_checks", []).append(check)
     lic.metadata = json.dumps(meta)
@@ -123,8 +124,7 @@ def renew_provider_license(license_id: str,
     if lic.status == "revoked":
         return {"error": "Cannot renew a revoked license. Apply for a new one."}
 
-    from _cdk import ic
-    now = int(ic.time() / 1_000_000_000)
+    now = ic_time_to_epoch(ic.time())
     lic.status = "active"
     lic.issued_at = now
     lic.expires_at = now + validity_seconds
@@ -149,7 +149,7 @@ def submit_bill(license_id: str, amount: int, description: str) -> dict:
     bill = {
         "amount": amount,
         "description": description,
-        "submitted_at": datetime.now().isoformat(),
+        "submitted_at": epoch_to_datetime_str(ic_time_to_epoch(ic.time())).replace(" ", "T"),
         "status": "pending",
     }
     meta.setdefault("bills", []).append(bill)
@@ -187,19 +187,20 @@ def pay_bill(license_id: str, bill_index: int) -> dict:
     if lic.organization and hasattr(lic.organization, "user") and lic.organization.user:
         to_principal = lic.organization.user.id
 
+    date_tag = epoch_to_datetime_str(ic_time_to_epoch(ic.time()))[:10].replace("-", "")
     Transfer(
-        id=f"bill_{license_id}_{bill_index}_{datetime.now().strftime('%Y%m%d')}",
+        id=f"bill_{license_id}_{bill_index}_{date_tag}",
         principal_from="system",
         principal_to=to_principal,
         instrument="Realm Token",
         amount=bill["amount"],
-        timestamp=datetime.now().isoformat(),
+        timestamp=epoch_to_datetime_str(ic_time_to_epoch(ic.time())).replace(" ", "T"),
         status="completed",
         tags="license_bill_payment",
     )
 
     bill["status"] = "paid"
-    bill["paid_at"] = datetime.now().isoformat()
+    bill["paid_at"] = epoch_to_datetime_str(ic_time_to_epoch(ic.time())).replace(" ", "T")
     lic.metadata = json.dumps(meta)
 
     return {

@@ -4,15 +4,15 @@ Overrides user_register_posthook to add custom logic after user registration.
 Creates a 1 satoshi invoice expiring in 1 day for new users.
 """
 
+from _cdk import ic
 from ggg import Invoice, Notification
-from datetime import datetime, timedelta
+from ic_basilisk_toolkit.date_utils import ic_time_to_epoch, epoch_to_datetime_str
 
 def user_register_posthook(user):
     """Custom user registration hook - creates welcome invoice."""
     try:
-        # Calculate expiry time (1 day from now)
-        expiry_time = datetime.now() + timedelta(days=1)
-        due_date = expiry_time.isoformat()
+        now_epoch = ic_time_to_epoch(ic.time())
+        due_date = epoch_to_datetime_str(now_epoch + 86400).replace(" ", "T")
         
         # Create 1 satoshi invoice and 1 REALMS invoice for the new user
 

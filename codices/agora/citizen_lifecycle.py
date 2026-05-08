@@ -11,12 +11,13 @@ Relies on platform ggg methods (Member.activate, Proposal.resolve, etc.)
 and basilisk OS for token operations.
 """
 
+from _cdk import ic
 from ggg import (
     User, Member, Invoice, Proposal, Vote, Transfer,
     LedgerEntry, Notification, Fund, FiscalPeriod, Budget,
     EntryType, Category,
 )
-from datetime import datetime, timedelta
+from ic_basilisk_toolkit.date_utils import ic_time_to_epoch, epoch_to_datetime_str
 import json
 import os
 
@@ -35,16 +36,6 @@ def _load_manifest() -> dict:
 def get_params() -> dict:
     """Return the full manifest as a dict."""
     return _load_manifest()
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def _ic_now():
-    """Get current datetime from ic.time() (nanoseconds since epoch)."""
-    ns = ic.time()
-    return datetime(1970, 1, 1) + timedelta(seconds=ns // 1_000_000_000)
 
 
 # ---------------------------------------------------------------------------
@@ -82,14 +73,14 @@ def register_citizen(principal_id: str) -> dict:
     ic.print(f"Created member {member.id}")
 
     # Create registration invoice
-    now = _ic_now()
-    due = now + timedelta(days=validity_days)
+    now_epoch = ic_time_to_epoch(ic.time())
+    due_str = epoch_to_datetime_str(now_epoch + validity_days * 86400).replace(" ", "T")
     invoice = Invoice(
         amount=fee,
         currency=currency,
         status="Pending",
         user=user,
-        due_date=due.isoformat(),
+        due_date=due_str,
         metadata=json.dumps({"type": "registration", "principal": principal_id}),
     )
     ic.print(f"Created registration invoice #{invoice._id} for {fee} {currency}")
@@ -100,7 +91,7 @@ def register_citizen(principal_id: str) -> dict:
         "invoice_id": invoice._id,
         "fee": fee,
         "currency": currency,
-        "due_date": due.isoformat(),
+        "due_date": due_str,
     }
 
 
@@ -162,7 +153,7 @@ def pay_registration_invoice(principal_id: str, invoice_id: str) -> dict:
 
     # Mark paid
     invoice.status = "Paid"
-    invoice.paid_at = _ic_now().isoformat()
+    invoice.paid_at = epoch_to_datetime_str(ic_time_to_epoch(ic.time())).replace(" ", "T")
     ic.print(f"Invoice #{invoice_id} paid by {principal_id}")
 
     # Record accounting: debit Cash, credit Revenue
@@ -205,7 +196,7 @@ def _can_activate(member, activation_requires: list) -> bool:
 def _record_payment_ledger(invoice, params: dict):
     """Create double-entry ledger entries for an invoice payment."""
     currency = params["accounting_currency"]
-    now = _ic_now().isoformat()
+    now = epoch_to_datetime_str(ic_time_to_epoch(ic.time())).replace(" ", "T")
     amount_raw = int(invoice.amount * 1_000_000)  # normalize to smallest unit
 
     LedgerEntry(
@@ -253,8 +244,8 @@ def submit_proposal(principal_id: str, title: str, description: str,
         return {"error": "invalid_proposal_type", "allowed": gov["proposal_types"]}
 
     user = User[principal_id]
-    now = _ic_now()
-    deadline = now + timedelta(days=gov["voting_window_days"])
+    now_epoch = ic_time_to_epoch(ic.time())
+    deadline_str = epoch_to_datetime_str(now_epoch + gov["voting_window_days"] * 86400).replace(" ", "T")
     proposal_id = f"prop_{Proposal.count() + 1}"
 
     proposal = Proposal(
@@ -263,7 +254,7 @@ def submit_proposal(principal_id: str, title: str, description: str,
         description=description,
         proposer=user,
         status="voting",
-        voting_deadline=deadline.isoformat(),
+        voting_deadline=deadline_str,
         votes_yes=0.0,
         votes_no=0.0,
         votes_abstain=0.0,
@@ -277,7 +268,7 @@ def submit_proposal(principal_id: str, title: str, description: str,
         "proposal_id": proposal_id,
         "title": title,
         "status": "voting",
-        "voting_deadline": deadline.isoformat(),
+        "voting_deadline": deadline_str,
     }
 
 
@@ -397,7 +388,7 @@ def distribute_periodic_payments() -> dict:
     ic.print(f"Distributing {welfare_budget} ({percent}% of revenue) to "
              f"{len(eligible)} members = {per_member} each")
 
-    now = _ic_now().isoformat()
+    now = epoch_to_datetime_str(ic_time_to_epoch(ic.time())).replace(" ", "T")
     distributions = []
 
     for member in eligible:

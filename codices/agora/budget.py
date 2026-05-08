@@ -19,9 +19,12 @@ Accepted currencies and conversion:
   All LedgerEntry amounts are stored in satoshis (1 BTC = 100_000_000 sat).
 """
 
+from _cdk import ic
 from ggg import LedgerEntry, Fund, FiscalPeriod, Budget
 from ggg import EntryType, Category, FundType, FiscalPeriodStatus, BudgetStatus
-from datetime import datetime
+from ic_basilisk_toolkit.date_utils import (
+    ic_time_to_epoch, epoch_to_date_str, _date_from_epoch_days,
+)
 import json
 import uuid as _uuid
 
@@ -34,11 +37,19 @@ SATOSHIS_PER_BTC = 100_000_000
 AGO_PER_BTC = 2.0  # 1 AGO = 0.5 BTC → 2 AGO per BTC
 
 
-def _ic_now():
-    """Get current datetime from ic.time() (nanoseconds since epoch).
-    Python's datetime.now() returns 1970 on IC canisters."""
-    ns = ic.time()
-    return datetime(1970, 1, 1) + __import__('datetime').timedelta(seconds=ns // 1_000_000_000)
+def _current_epoch():
+    """Current time as epoch seconds (from ic.time() nanoseconds)."""
+    return ic_time_to_epoch(ic.time())
+
+
+def _current_year():
+    """Current calendar year on the IC."""
+    return _date_from_epoch_days(_current_epoch() // 86400)[0]
+
+
+def _today_str():
+    """Current date as 'YYYY-MM-DD' string."""
+    return epoch_to_date_str(_current_epoch())
 
 
 # ---------------------------------------------------------------------------
@@ -55,7 +66,7 @@ def ensure_accounting_entities():
     if existing_funds:
         return {"status": "already_initialized"}
 
-    current_year = _ic_now().year
+    current_year = _current_year()
 
     # --- Funds ---
     general_fund = Fund(
@@ -153,7 +164,7 @@ def _get_fund(code: str):
 
 def _get_budget(budget_id_prefix: str):
     """Lookup a Budget whose id starts with the given prefix (for current year)."""
-    current_year = _ic_now().year
+    current_year = _current_year()
     target_id = f"{budget_id_prefix}-{current_year}"
     for b in Budget.instances():
         if b.id == target_id:
@@ -187,7 +198,7 @@ def record_bill_payment(user_id: str, amount_btc: float, currency: str,
         return {"recorded": False, "reason": "Accounting not initialized"}
 
     sat_amount = _btc_to_satoshis(amount_btc)
-    today = _ic_now().strftime("%Y-%m-%d")
+    today = _today_str()
     tx_id = str(_uuid.uuid4())[:8]
 
     # Debit Cash (asset increases)
@@ -243,7 +254,7 @@ def record_welfare_distribution(user_id: str, amount_btc: float, currency: str,
         return {"recorded": False, "reason": "Accounting not initialized"}
 
     sat_amount = _btc_to_satoshis(amount_btc)
-    today = _ic_now().strftime("%Y-%m-%d")
+    today = _today_str()
     tx_id = str(_uuid.uuid4())[:8]
 
     # Debit Expense
@@ -298,7 +309,7 @@ def record_service_payment(recipient: str, amount_btc: float, currency: str,
         return {"recorded": False, "reason": "Accounting not initialized"}
 
     sat_amount = _btc_to_satoshis(amount_btc)
-    today = _ic_now().strftime("%Y-%m-%d")
+    today = _today_str()
     tx_id = str(_uuid.uuid4())[:8]
 
     # Debit Expense

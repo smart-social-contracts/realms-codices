@@ -19,13 +19,14 @@ Three areas of quarter-specific behavior:
      and are voted on by all federation members.
 """
 
+from _cdk import ic
 from ggg import (
     Realm, Quarter, QuarterConfig, User, Member,
     Proposal, Vote, Notification,
     LedgerEntry, Fund, FiscalPeriod, Budget,
     EntryType, Category,
 )
-from datetime import datetime, timedelta
+from ic_basilisk_toolkit.date_utils import ic_time_to_epoch, epoch_to_datetime_str
 import json
 import os
 
@@ -47,10 +48,9 @@ DEFAULT_WELFARE_PERCENT = 30
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _ic_now():
-    """Get current datetime from ic.time() (nanoseconds since epoch)."""
-    ns = ic.time()
-    return datetime(1970, 1, 1) + timedelta(seconds=ns // 1_000_000_000)
+def _now_iso():
+    """Current time as ISO 8601 string (from ic.time())."""
+    return epoch_to_datetime_str(ic_time_to_epoch(ic.time())).replace(" ", "T")
 
 
 def _load_manifest() -> dict:
@@ -235,7 +235,8 @@ def submit_proposal(user_id: str, title: str, description: str,
         return {"submitted": False, "reason": f"Invalid proposal type: {proposal_type}"}
 
     voting_days = ctx["voting_window_days"]
-    deadline = (_ic_now() + timedelta(days=voting_days)).isoformat()
+    now_epoch = ic_time_to_epoch(ic.time())
+    deadline = epoch_to_datetime_str(now_epoch + voting_days * 86400).replace(" ", "T")
 
     metadata = json.dumps({
         "type": proposal_type,
@@ -243,7 +244,7 @@ def submit_proposal(user_id: str, title: str, description: str,
         "quarter": ctx["canister_id"],
         "details": details or {},
         "proposer": user_id,
-        "submitted_at": _ic_now().isoformat(),
+        "submitted_at": epoch_to_datetime_str(now_epoch).replace(" ", "T"),
     })
 
     user = User[user_id]
@@ -327,7 +328,7 @@ def cast_vote(user_id: str, proposal_id: str, vote_choice: str) -> dict:
         proposal=proposal,
         user=user,
         vote=vote_choice,
-        metadata=json.dumps({"voted_at": _ic_now().isoformat()}),
+        metadata=json.dumps({"voted_at": _now_iso()}),
     )
 
     ic.print(f"Vote cast on proposal #{proposal_id} by {user_id}: {vote_choice}")

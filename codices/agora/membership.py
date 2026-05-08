@@ -17,15 +17,15 @@ This codex also provides:
   - Sybil-resistance: the same ZK identity hash cannot register twice
 """
 
+from _cdk import ic
 from ggg import User, Member, Invoice, Notification
-from datetime import datetime, timedelta
+from ic_basilisk_toolkit.date_utils import ic_time_to_epoch, epoch_to_datetime_str
 import json
 
 
-def _ic_now():
-    """Get current datetime from ic.time() (nanoseconds since epoch)."""
-    ns = ic.time()
-    return datetime(1970, 1, 1) + timedelta(seconds=ns // 1_000_000_000)
+def _now_iso():
+    """Current time as ISO 8601 string (from ic.time())."""
+    return epoch_to_datetime_str(ic_time_to_epoch(ic.time())).replace(" ", "T")
 
 try:
     from core.extensions import extension_async_call
@@ -199,7 +199,7 @@ def finalize_membership(user_id: str, verification_result: str) -> dict:
         "accepted": True,
         "member_id": member.id,
         "user_id": user_id,
-        "granted_at": _ic_now().isoformat(),
+        "granted_at": _now_iso(),
     }
 
 
@@ -265,7 +265,7 @@ def deactivate_member(user_id: str, reason: str = "Non-payment of dues") -> dict
         "member_id": member.id,
         "user_id": user_id,
         "reason": reason,
-        "deactivated_at": _ic_now().isoformat(),
+        "deactivated_at": _now_iso(),
     }
 
 
@@ -304,7 +304,7 @@ def reactivate_member(user_id: str) -> dict:
         "reactivated": True,
         "member_id": member.id,
         "user_id": user_id,
-        "reactivated_at": _ic_now().isoformat(),
+        "reactivated_at": _now_iso(),
     }
 
 

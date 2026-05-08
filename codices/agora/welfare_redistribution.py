@@ -18,15 +18,10 @@ The WELFARE_PERCENT and WELFARE_ELIGIBILITY_MONTHS can be changed by
 governance proposals (welfare_policy type).
 """
 
+from _cdk import ic
 from ggg import User, Member, Transfer, Notification, Invoice
-from datetime import datetime, timedelta
+from ic_basilisk_toolkit.date_utils import ic_time_to_epoch, epoch_to_datetime_str
 import json
-
-
-def _ic_now():
-    """Get current datetime from ic.time() (nanoseconds since epoch)."""
-    ns = ic.time()
-    return datetime(1970, 1, 1) + timedelta(seconds=ns // 1_000_000_000)
 
 import budget
 import governance
@@ -164,7 +159,7 @@ def distribute_welfare() -> dict:
                 "type": "welfare",
                 "user_id": user.id,
                 "member_id": member.id,
-                "distributed_at": _ic_now().isoformat(),
+                "distributed_at": epoch_to_datetime_str(ic_time_to_epoch(ic.time())).replace(" ", "T"),
             })
         )
 

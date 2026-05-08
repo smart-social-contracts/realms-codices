@@ -5,9 +5,10 @@ and Budget allocations. Ledger entries are created organically when real
 transactions occur (via Transfer.record_accounting).
 """
 
+from _cdk import ic
 from ggg import Fund, FiscalPeriod, Budget
 from ggg import FundType, FiscalPeriodStatus, BudgetStatus
-from datetime import datetime
+from ic_basilisk_toolkit.date_utils import ic_time_to_epoch, _date_from_epoch_days
 
 
 def seed_funds():
@@ -38,7 +39,7 @@ def seed_funds():
 
 def seed_fiscal_period():
     """Create the current fiscal period."""
-    current_year = datetime.now().year
+    current_year = _date_from_epoch_days(ic_time_to_epoch(ic.time()) // 86400)[0]
     return FiscalPeriod(
         id=f"FY{current_year}",
         name=f"Fiscal Year {current_year}",
@@ -50,7 +51,7 @@ def seed_fiscal_period():
 
 def seed_budgets(general_fund, infra_fund, fiscal_period):
     """Create budget allocations for the fiscal period."""
-    current_year = datetime.now().year
+    current_year = _date_from_epoch_days(ic_time_to_epoch(ic.time()) // 86400)[0]
 
     Budget(
         id=f"BUD-TAX-{current_year}",
