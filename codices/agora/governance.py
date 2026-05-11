@@ -102,7 +102,12 @@ def submit_proposal(user_id: str, title: str, description: str,
     if not _is_active_member(user_id):
         return {"submitted": False, "reason": "Only active members can submit proposals."}
 
-    if proposal_type not in ("codex_change", "treasury_spend", "welfare_policy"):
+    valid_types = (
+        "codex_change", "treasury_spend", "welfare_policy",
+        "procurement", "elect_enforcer", "remove_enforcer",
+        "defense_mission", "defense_policy",
+    )
+    if proposal_type not in valid_types:
         return {"submitted": False, "reason": f"Invalid proposal type: {proposal_type}"}
 
     details = details or {}
@@ -297,6 +302,14 @@ def _execute_approved_proposal(proposal):
         _execute_treasury_spend(proposal, details)
     elif proposal_type == "welfare_policy":
         _execute_welfare_policy(proposal, details)
+    elif proposal_type == "elect_enforcer":
+        _execute_elect_enforcer(proposal, details)
+    elif proposal_type == "remove_enforcer":
+        _execute_remove_enforcer(proposal, details)
+    elif proposal_type == "defense_policy":
+        _execute_defense_policy(proposal, details)
+    elif proposal_type in ("procurement", "defense_mission"):
+        pass  # handled by their own codex modules
     else:
         ic.print(f"Unknown proposal type '{proposal_type}' for #{proposal.id}")
 
@@ -429,6 +442,99 @@ def _execute_welfare_policy(proposal, details: dict):
             color="green",
             metadata=f"proposal_id:{proposal.id}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Enforcer Election / Removal
+# ---------------------------------------------------------------------------
+
+def _execute_elect_enforcer(proposal, details: dict):
+    """Record that a member has been elected as enforcer."""
+    enforcer_id = details.get("enforcer_id", "")
+    if not enforcer_id:
+        proposal.status = "failed"
+        return
+
+    meta = json.loads(proposal.metadata) if proposal.metadata else {}
+    meta["enforcer_id"] = enforcer_id
+    proposal.metadata = json.dumps(meta)
+    proposal.status = "approved"
+
+    ic.print(f"Enforcer elected: {enforcer_id} (proposal #{proposal.id})")
+
+    enforcer_user = User[enforcer_id]
+    if enforcer_user:
+        Notification(
+            topic="enforcement",
+            title="You Have Been Elected as Enforcer",
+            message="The community has voted to elect you as an enforcer. "
+                    "You can now investigate violation reports and propose sanctions.",
+            user=enforcer_user,
+            read=False,
+            icon="shield",
+            href="/extensions/voting",
+            color="green",
+            metadata=f"proposal_id:{proposal.id}"
+        )
+
+
+def _execute_remove_enforcer(proposal, details: dict):
+    """Record that an enforcer has been removed by community vote."""
+    enforcer_id = details.get("enforcer_id", "")
+    if not enforcer_id:
+        proposal.status = "failed"
+        return
+
+    meta = json.loads(proposal.metadata) if proposal.metadata else {}
+    meta["enforcer_id"] = enforcer_id
+    proposal.metadata = json.dumps(meta)
+    proposal.status = "approved"
+
+    ic.print(f"Enforcer removed: {enforcer_id} (proposal #{proposal.id})")
+
+    enforcer_user = User[enforcer_id]
+    if enforcer_user:
+        Notification(
+            topic="enforcement",
+            title="Enforcer Role Removed",
+            message="The community has voted to remove your enforcer role.",
+            user=enforcer_user,
+            read=False,
+            icon="shield",
+            href="/extensions/voting",
+            color="orange",
+            metadata=f"proposal_id:{proposal.id}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Defense Policy
+# ---------------------------------------------------------------------------
+
+def _execute_defense_policy(proposal, details: dict):
+    """Update defense fund allocation percentage via governance vote."""
+    import defense
+
+    new_percent = details.get("defense_percent")
+    if new_percent is not None and 0 <= new_percent <= 100:
+        defense.DEFENSE_PERCENT_OF_BUDGET = int(new_percent)
+        proposal.status = "executed"
+        ic.print(f"Defense policy updated: {new_percent}% (proposal #{proposal.id})")
+
+        if proposal.proposer:
+            Notification(
+                topic="defense",
+                title=f"Defense Policy Updated",
+                message=f"Defense fund allocation changed to {new_percent}% of budget.",
+                user=proposal.proposer,
+                read=False,
+                icon="shield",
+                href="/extensions/voting",
+                color="green",
+                metadata=f"proposal_id:{proposal.id}"
+            )
+    else:
+        proposal.status = "failed"
 
 
 # ---------------------------------------------------------------------------

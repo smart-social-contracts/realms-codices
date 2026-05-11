@@ -17,7 +17,11 @@
     "voting_window_days": 7,
     "quorum_percent": 20,
     "approval_threshold": 0.5,
-    "proposal_types": ["codex_change", "treasury_spend", "welfare_policy"]
+    "proposal_types": [
+      "codex_change", "treasury_spend", "welfare_policy",
+      "procurement", "elect_enforcer", "remove_enforcer",
+      "defense_mission", "defense_policy"
+    ]
   },
 
   "welfare": {

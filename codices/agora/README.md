@@ -1,6 +1,6 @@
 # Agora Codex
 
-A direct democracy funded by **monthly membership dues**, with **ZK passport identity verification**, **community governance**, and **real-time financial accounting**.
+A direct democracy funded by **monthly membership dues**, with **ZK passport identity verification**, **community governance**, **justice**, **enforcement**, **procurement**, **defense**, and **real-time financial accounting**.
 
 ## Overview
 
@@ -70,6 +70,46 @@ Social welfare distribution from the common budget.
 - Eligibility: verified, paid-up, no overdue invoices
 - Welfare parameters changeable via governance proposals
 - All distributions recorded as LedgerEntry for transparent metrics
+
+### `justice.py`
+Dispute resolution with jury trials.
+
+**Features:**
+- Any member can file a case against another member
+- A jury of random active members is automatically selected
+- Jurors vote "guilty" or "not_guilty" with a deadline
+- Guilty verdicts result in fines recorded in the budget
+- Not-guilty verdicts dismiss the case
+
+### `procurement.py`
+Transparent bidding process for community purchases.
+
+**Features:**
+- Members open tenders describing what the community needs
+- Other members submit competitive bids within a budget cap
+- After bidding closes, the community votes on the best bid
+- Winning bids become contracts with payments tracked in the budget
+- Replaces ad-hoc spending with structured procurement
+
+### `enforcement.py`
+Community policing through elected enforcers.
+
+**Features:**
+- Enforcers are elected (and removed) by community vote
+- Any member can report rule violations
+- Enforcers investigate reports and propose sanctions
+- Warnings are applied immediately; fines and suspensions require a vote
+- All actions are logged for community accountability
+
+### `defense.py`
+Defense fund for security and infrastructure protection.
+
+**Features:**
+- Configurable % of income allocated to defense (default 10%)
+- Members can voluntarily enlist as defenders
+- Defense missions (security audits, bug bounties, etc.) proposed via governance
+- Approved missions funded from the defense fund
+- Defense policy changeable via governance proposals
 
 ### `adjustments.py`
 Realm configuration and manifest loading.
