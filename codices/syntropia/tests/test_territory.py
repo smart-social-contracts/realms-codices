@@ -16,7 +16,7 @@ ts = "r" + str(id(object()))[-6:]
 print("=== TEST 1: REALM LIFECYCLE ===")
 realm = Realm(
     name="Syntropia Lifecycle Test " + ts,
-    description="A digital realm for smart social contracts",
+    manifesto="A digital realm for smart social contracts",
     status=RealmStatus.ALPHA,
 )
 print("Realm: " + realm.name + " status=" + realm.status)

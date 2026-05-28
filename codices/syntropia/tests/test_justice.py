@@ -17,7 +17,7 @@ deadline = today + "T23:59:59"
 # Setup
 user_alice = User(id=ts + "_alice", name="Alice")
 user_bob = User(id=ts + "_bob", name="Bob")
-realm = Realm(name="Justice Test Realm " + ts, description="Test", status=RealmStatus.PRODUCTION)
+realm = Realm(name="Justice Test Realm " + ts, manifesto="Test", status=RealmStatus.PRODUCTION)
 
 # ── TEST 1: Justice System, Courts, Judges ───────────────────────────────
 print("=== TEST 1: JUSTICE SYSTEM ===")

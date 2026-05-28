@@ -25,10 +25,10 @@ if realm:
             realm.name = manifest["name"]
             ic.print(f"✅ Realm name set to: {manifest['name']}")
         
-        # Update realm description if present in manifest
-        if "description" in manifest:
-            realm.description = manifest["description"]
-            ic.print(f"✅ Realm description set to: {manifest['description'][:50]}...")
+        # Update realm manifesto if present in manifest
+        if "manifesto" in manifest:
+            realm.manifesto = manifest["manifesto"]
+            ic.print(f"✅ Realm manifesto set to: {manifest['manifesto'][:50]}...")
         
         # Update realm logo if present in manifest
         if "logo" in manifest:

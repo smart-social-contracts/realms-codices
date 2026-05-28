@@ -5,7 +5,7 @@ from ggg import Realm, RealmStatus, Quarter, QuarterStatus
 
 ts = "q" + str(id(object()))[-6:]
 
-realm = Realm(name="Federation Test " + ts, description="Test", status=RealmStatus.PRODUCTION)
+realm = Realm(name="Federation Test " + ts, manifesto="Test", status=RealmStatus.PRODUCTION)
 
 quarter_mod = quarter_assignment
 

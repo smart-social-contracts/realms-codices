@@ -449,7 +449,7 @@ print("Treasury withdrawal proposals: " + str(len(withdrawals)))
 print("=== TEST 22: REALM LIFECYCLE ===")
 realm = Realm(
     name="Syntropia Lifecycle Test",
-    description="A digital realm for smart social contracts",
+    manifesto="A digital realm for smart social contracts",
     status=RealmStatus.ALPHA,
 )
 print("Realm: " + realm.name + " status=" + realm.status)
