@@ -87,6 +87,48 @@ jr_fail = governance_automation.judicial_review(strike_prop.proposal_id, constit
 assert jr_fail.get("status") == "struck_down"
 print("Judicial review (struck down): " + str(jr_fail))
 
+# ── TEST 6: Lifecycle gate — no member voting before production ───────────
+print("=== TEST 6: MEMBER VOTING LIFECYCLE GATE ===")
+from ggg import Realm
+
+# No realm yet → stage defaults to alpha → members may NOT propose/vote.
+blocked = False
+try:
+    governance_automation.create_legislative_proposal(
+        "Member Bill", "A member-initiated bill", actor_is_admin=False
+    )
+except governance_automation.MemberVotingNotAllowed:
+    blocked = True
+assert blocked, "Members must NOT be able to create proposals before production"
+print("Member proposal blocked before production: OK")
+
+# Admins (founders) CAN make fundamental changes before production.
+admin_pid = governance_automation.create_legislative_proposal(
+    "Founding Charter", "Admin-initiated foundational change", actor_is_admin=True
+)
+assert admin_pid, "Admin should be able to create a proposal before production"
+print("Admin proposal allowed before production: OK pid=" + str(admin_pid))
+
+# Member voting is also blocked before production.
+vote_blocked = False
+try:
+    governance_automation.cast_member_vote(admin_pid, "yes", actor_is_admin=False)
+except governance_automation.MemberVotingNotAllowed:
+    vote_blocked = True
+assert vote_blocked, "Member voting must be blocked before production"
+print("Member voting blocked before production: OK")
+
+# Advance the realm to production → member voting becomes executable.
+realm = Realm(name="Syntropia", status="production")
+assert governance_automation.member_voting_enabled(), "Voting should be enabled in production"
+member_pid = governance_automation.create_legislative_proposal(
+    "Citizen Bill", "Now members can propose", actor_is_admin=False
+)
+assert member_pid, "Members can propose once in production"
+vote_result = governance_automation.cast_member_vote(member_pid, "yes", actor_is_admin=False)
+assert vote_result.get("votes_yes") == 1, "Member vote should be recorded in production"
+print("Member proposing + voting allowed in production: OK")
+
 # Summary
 print("=== GOVERNANCE TESTS PASSED ===")
 print("Proposals: " + str(Proposal.count()) + " Votes: " + str(Vote.count()))

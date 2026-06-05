@@ -1,10 +1,35 @@
 # Syntropia Codex
 
-A demo codex package for realms focused on **sustainable governance** and **balanced taxation**.
+The **greenfield** codex: a brand-new sovereign smart city built from scratch, onboarding citizens who did not previously exist as a population.
 
 ## Overview
 
-Syntropia implements a balanced governance model combining taxation with sustainable development principles. It emphasizes harmony between fiscal responsibility and community growth.
+Because legitimacy is **earned** (not inherited from an existing administration), Syntropia onboards new citizens with strong identity and commitment:
+
+1. **ZK passport** — identity verified via the `passport_verification` extension (one person = one citizenship).
+2. **Deposit** — each citizen pays a deposit (*a house in a zone*) to secure their place.
+3. **Know-Your-Citizen (KYC)** — real citizen data submitted before the city goes live.
+
+The public dashboard shows a **go-live countdown**, a **live citizen counter**, and progress toward **critical mass**. **Before the production phase, member voting is not executable — only admins (the founders) can make fundamental changes.** Once live, Syntropia runs a representative democracy with separation of powers, progressive taxation, universal welfare, land treaties, licensed providers, and zones of action.
+
+### Territory mode
+
+`greenfield` — see `manifest.json → onboarding.territory_mode` and `docs/reference/ONBOARDING_SCENARIOS.md`.
+
+### Dependencies (extensions)
+
+- `llm_chat` — AI assistant that guides citizens through onboarding.
+- `passport_verification` — Rarimo ZK passport onboarding.
+
+### Reference data (JSON)
+
+- `departments.json` — initial departments, profiles, and permission assignments.
+- `justice_license.json` — the license authorizing the constitutional court.
+- `zones.json` — founding land zones.
+
+### Quarters (TODO: dynamic creation)
+
+Syntropia uses **predefined quarters/zones** for now. The product vision is for quarters to be **created dynamically as the population grows**, with zones shared among quarters. That requires a backend mechanism to provision a new quarter canister when a codex policy (e.g. `should_create_new_quarter`) decides one is needed — see `src/realm_backend/main.py` (federation/`_assign_quarter`) and the installer. This is **out of scope** for the current codex and tracked as a future capability.
 
 ## Codices
 

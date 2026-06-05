@@ -1,0 +1,35 @@
+{
+  "description": "Initial departments, profiles, and permission assignments for the Syntropia greenfield smart city. Founders bootstrap these before opening citizenship.",
+  "departments": [
+    {
+      "name": "Citizenship & Identity",
+      "description": "ZK passport onboarding, Know-Your-Citizen review, and deposit verification.",
+      "profiles": ["registrar", "kyc_officer"],
+      "permissions": ["member.read", "member.update", "kyc.review", "passport.verify"]
+    },
+    {
+      "name": "Treasury",
+      "description": "Deposits (a house in a zone), budgets, and realm finances.",
+      "profiles": ["treasurer"],
+      "permissions": ["treasury.read", "treasury.send", "invoice.create", "deposit.manage"]
+    },
+    {
+      "name": "Justice",
+      "description": "Constitutional court and dispute resolution.",
+      "profiles": ["judge", "court_clerk"],
+      "permissions": ["case.read", "case.assign", "verdict.issue", "license.read"]
+    },
+    {
+      "name": "Land & Planning",
+      "description": "Zones, housing allocation, and quarter planning as the city grows.",
+      "profiles": ["land_officer", "planner"],
+      "permissions": ["zone.read", "zone.update", "land.allocate"]
+    },
+    {
+      "name": "Administration",
+      "description": "Founders and admins — the only actors who can make fundamental changes before go-live.",
+      "profiles": ["admin"],
+      "permissions": ["role.assign", "role.revoke", "realm.lifecycle", "extension.manage"]
+    }
+  ]
+}

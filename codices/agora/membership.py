@@ -1,20 +1,21 @@
-"""
-Membership Codex
-Defines join criteria for the Agora realm.
+"""Membership Codex — Agora (incumbent migration).
 
-To become an active citizen a user must:
-  1. Be verified as a unique human via the Rarimo ZK Passport verification
-     (passport_verification extension) — proving age >= 18, uniqueness, and
-     valid passport — all without revealing personal data.
-  2. Pay the initial registration invoice (created by user_registration_hook).
+Agora migrates the population of an *existing* public administration. The PA
+already has a census, so there is **no ZK passport step**: citizens are
+onboarded by registration code, manual entry, or programmatic/bulk import and
+become active members immediately upon registration.
 
-Both conditions must be met before the account is activated. Once active,
-the user can vote, submit proposals, and receive welfare benefits.
+Activation model:
+  - A Member record is created on registration with
+    ``identity_verification = "verified"`` (the realm-wide "active member"
+    signal used by governance, justice, welfare, etc.).
+  - During the migration phases (alpha/beta) members owe nothing; a registration
+    invoice is only issued once the realm is live (see user_registration_hook).
 
 This codex also provides:
-  - deactivate_member(): used by monthly_billing to suspend non-payers
+  - activate_member(): create/activate a member on registration (idempotent)
+  - deactivate_member(): suspend a member (used by monthly_billing)
   - reactivate_member(): restore membership after paying overdue bills
-  - Sybil-resistance: the same ZK identity hash cannot register twice
 """
 
 from _cdk import ic
@@ -24,91 +25,37 @@ import json
 
 
 def _now_iso():
-    """Current time as ISO 8601 string (from ic.time())."""
     return epoch_to_datetime_str(ic_time_to_epoch(ic.time())).replace(" ", "T")
-
-try:
-    from core.extensions import extension_async_call
-except Exception:
-    extension_async_call = None
 
 
 # ---------------------------------------------------------------------------
-# Verification Requirements
+# Join requirements (incumbent — no passport)
 # ---------------------------------------------------------------------------
 
 JOIN_REQUIREMENTS = {
-    "passport_zk_verified": {
-        "description": "Identity verified via Rarimo ZK Passport (rarime app)",
-        "required": True,
-    },
-    "minimum_age": {
-        "description": "Must be at least 18 years old (proven via ZK proof)",
-        "value": 18,
-        "required": True,
-    },
-    "uniqueness": {
-        "description": "One person = one membership (Sybil resistance)",
-        "required": True,
-    },
-    "first_invoice_paid": {
-        "description": "Initial registration invoice must be paid",
+    "registration_code": {
+        "description": "Valid registration code issued to the existing population (or bulk/programmatic import)",
         "required": True,
     },
 }
 
 
 def get_join_requirements() -> dict:
-    """Return the current join requirements for display to prospective members."""
+    """Return the join requirements for prospective members."""
     return {
         "requirements": JOIN_REQUIREMENTS,
-        "verification_method": "Rarimo ZK Passport (rarime mobile app)",
+        "verification_method": "Registration code / census import (no ZK passport)",
         "steps": [
-            "Install the RariMe mobile app",
-            "Scan your passport via NFC",
-            "Generate zero-knowledge proof on your device",
-            "Submit proof to the realm for verification",
-            "Pay the initial registration invoice",
+            "Receive your registration code from the administration",
+            "Register with your code (or be imported by your department)",
+            "Your citizenship is active immediately — nothing to pay during migration",
         ],
     }
 
 
 # ---------------------------------------------------------------------------
-# Verification Flow
+# Member helpers
 # ---------------------------------------------------------------------------
-
-def request_verification(user_id: str) -> "Async[str]":
-    """Start the passport verification flow for a prospective member.
-
-    Calls the passport_verification extension to generate a verification
-    link / QR code that the user scans with the RariMe app.
-    """
-    args = json.dumps({"user_id": user_id})
-    result = yield extension_async_call(
-        "passport_verification", "get_verification_link", args
-    )
-    return result
-
-
-def check_verification(user_id: str) -> "Async[str]":
-    """Poll verification status from the passport_verification extension."""
-    args = json.dumps({"user_id": user_id})
-    result = yield extension_async_call(
-        "passport_verification", "check_verification_status", args
-    )
-    return result
-
-
-def _is_first_invoice_paid(user_id: str) -> bool:
-    """Check whether the user's initial registration invoice has been paid."""
-    for inv in Invoice.instances():
-        meta = inv.metadata or ""
-        if inv.user and inv.user.id == user_id:
-            if "Welcome fee" in meta or "registration" in meta.lower():
-                if inv.status == "Paid":
-                    return True
-    return False
-
 
 def _find_member_for_user(user_id: str):
     """Find an existing Member record for this user."""
@@ -118,57 +65,40 @@ def _find_member_for_user(user_id: str):
     return None
 
 
-def finalize_membership(user_id: str, verification_result: str) -> dict:
-    """Grant membership after successful passport verification AND first invoice payment.
+def _is_first_invoice_paid(user_id: str) -> bool:
+    """Check whether the user's registration invoice has been paid (if any)."""
+    for inv in Invoice.instances():
+        meta = inv.metadata or ""
+        if inv.user and inv.user.id == user_id:
+            if "registration" in meta.lower() or "welcome fee" in meta.lower():
+                if inv.status == "Paid":
+                    return True
+    return False
 
-    Args:
-        user_id: The user requesting membership.
-        verification_result: JSON string returned by check_verification
-                             when status is verified.
 
-    Returns:
-        Membership decision dict.
+def is_registered_member(user_id: str) -> bool:
+    """True if the user is a registered, active member of the realm."""
+    member = _find_member_for_user(user_id)
+    return bool(member and member.identity_verification == "verified")
+
+
+def activate_member(user_id: str) -> dict:
+    """Create (or reactivate) an active member for a registered/imported user.
+
+    Idempotent: safe to call from the registration hook on every join.
     """
     user = User[user_id]
     if not user:
         return {"accepted": False, "reason": "User not found"}
 
-    try:
-        vdata = json.loads(verification_result) if isinstance(verification_result, str) else verification_result
-    except (json.JSONDecodeError, TypeError):
-        vdata = {}
+    member = _find_member_for_user(user_id)
+    if member:
+        if member.identity_verification != "verified":
+            member.identity_verification = "verified"
+            member.voting_eligibility = "eligible"
+            member.public_benefits_eligibility = "eligible"
+        return {"accepted": True, "member_id": member.id, "user_id": user_id, "already_member": True}
 
-    # Check proof was successful
-    attrs = vdata.get("data", {}).get("attributes", {})
-    verified = attrs.get("status") == "verified"
-    if not verified:
-        return {
-            "accepted": False,
-            "reason": "Passport verification not completed or failed. "
-                      "Please use the RariMe app to verify your identity.",
-        }
-
-    # Check first invoice is paid
-    if not _is_first_invoice_paid(user_id):
-        return {
-            "accepted": False,
-            "reason": "Your initial registration invoice has not been paid yet. "
-                      "Please pay it to complete your membership activation.",
-        }
-
-    # Sybil resistance: extract the ZK identity hash and reject duplicates
-    zk_identity_hash = attrs.get("identity_hash", "")
-    if zk_identity_hash:
-        existing_members = Member.instances()
-        for m in existing_members:
-            if m.criminal_record and zk_identity_hash in m.criminal_record:
-                return {
-                    "accepted": False,
-                    "reason": "This identity has already been used to register. "
-                              "One person = one membership.",
-                }
-
-    # Create membership record (store zk hash in criminal_record field for dedup)
     member = Member(
         user=user,
         identity_verification="verified",
@@ -176,23 +106,7 @@ def finalize_membership(user_id: str, verification_result: str) -> dict:
         tax_compliance="compliant",
         public_benefits_eligibility="eligible",
         voting_eligibility="eligible",
-        criminal_record="clean|zk:" + zk_identity_hash,
-    )
-
-    # Notify user
-    Notification(
-        topic="membership",
-        title="Citizenship Granted",
-        message="Your identity has been verified and your registration invoice is paid. "
-                "Welcome to Agora! You can now vote, submit proposals, and receive benefits.",
-        sender="Administration",
-        recipient=user.id,
-        user=user,
-        read=False,
-        icon="shield_check",
-        href="/",
-        color="green",
-        metadata="uid:" + user_id + "|mid:" + str(member.id)
+        criminal_record="clean",
     )
 
     return {
@@ -204,7 +118,7 @@ def finalize_membership(user_id: str, verification_result: str) -> dict:
 
 
 def check_membership_status(user_id: str) -> dict:
-    """Check whether a user is already a verified member."""
+    """Check whether a user is a registered, active member."""
     user = User[user_id]
     if not user:
         return {"is_member": False, "reason": "User not found"}
@@ -219,19 +133,15 @@ def check_membership_status(user_id: str) -> dict:
             "voting_eligibility": member.voting_eligibility,
         }
 
-    return {"is_member": False, "reason": "No membership record found. Please verify your passport and pay your registration invoice."}
+    return {"is_member": False, "reason": "No membership record found. Register with your code to activate citizenship."}
 
 
 # ---------------------------------------------------------------------------
-# Membership Suspension / Reactivation (used by monthly_billing)
+# Suspension / reactivation (used by monthly_billing once live)
 # ---------------------------------------------------------------------------
 
 def deactivate_member(user_id: str, reason: str = "Non-payment of dues") -> dict:
-    """Suspend a member's citizenship due to non-payment.
-
-    Unlike full revocation, a suspended member can reactivate by paying
-    their overdue bills.
-    """
+    """Suspend a member's citizenship due to non-payment."""
     user = User[user_id]
     if not user:
         return {"deactivated": False, "reason": "User not found"}
@@ -240,7 +150,6 @@ def deactivate_member(user_id: str, reason: str = "Non-payment of dues") -> dict
     if not member:
         return {"deactivated": False, "reason": "No membership found for user"}
 
-    # Mark membership as suspended
     member.identity_verification = "suspended"
     member.voting_eligibility = "ineligible"
     member.public_benefits_eligibility = "ineligible"
@@ -310,5 +219,4 @@ def reactivate_member(user_id: str) -> dict:
 
 # Main execution
 if __name__ == "__main__":
-    reqs = get_join_requirements()
-    print(json.dumps(reqs, indent=2))
+    print(json.dumps(get_join_requirements(), indent=2))

@@ -1,0 +1,11 @@
+{
+  "description": "License for justice — authorizes Syntropia to operate a constitutional court and resolve disputes once the city is live.",
+  "license": {
+    "name": "Syntropia Justice License",
+    "license_type": "justice_provider",
+    "issuing_authority": "Syntropia Founding Assembly",
+    "scope": ["constitutional_review", "dispute_resolution", "enforcement_sanctions"],
+    "status": "active",
+    "terms": "The judiciary may review enacted laws for constitutionality and resolve disputes between citizens. Until the realm reaches production, fundamental changes are reserved to admins; member voting is not executable."
+  }
+}

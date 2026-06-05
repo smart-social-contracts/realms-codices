@@ -38,20 +38,38 @@ def get_params() -> dict:
     return _load_manifest()
 
 
+def _currency(params: dict) -> str:
+    """Realm currency symbol (manifest currency.symbol)."""
+    return params.get("currency", {}).get("symbol", "ckUSDC")
+
+
+def _realm_stage() -> str:
+    """Current realm lifecycle stage (default alpha when no Realm exists)."""
+    try:
+        from ggg import Realm
+        instances = list(Realm.instances())
+        return (getattr(instances[0], "status", None) or "alpha") if instances else "alpha"
+    except Exception:
+        return "alpha"
+
+
 # ---------------------------------------------------------------------------
-# 1. Registration
+# 1. Registration (incumbent migration — no ZK passport)
 # ---------------------------------------------------------------------------
 
 def register_citizen(principal_id: str) -> dict:
-    """Register a new citizen: create User + Member + registration Invoice.
+    """Register/import a citizen: create User + an immediately-active Member.
 
-    Reads fees.registration and membership.invoice_validity_days from manifest.
-    Returns dict with user_id, member_id, invoice_id.
+    Agora is an incumbent migration: citizens come from an existing census, so
+    there is no passport step and they are active on registration. A
+    registration invoice is only issued once the realm is live (production) and
+    a fee is configured — during the migration phases members pay nothing.
     """
     params = get_params()
     fee = params["fees"]["registration"]
-    currency = params["accounting_currency"]
+    currency = _currency(params)
     validity_days = params["membership"]["invoice_validity_days"]
+    stage = _realm_stage()
 
     # Check if already registered
     existing = User[principal_id]
@@ -62,83 +80,55 @@ def register_citizen(principal_id: str) -> dict:
     user = User(id=principal_id)
     ic.print(f"Created user {principal_id}")
 
-    # Create member record (pending activation)
+    # Create member record and activate immediately (incumbent: census import).
     member = Member(
         id=f"member_{principal_id}",
         user=user,
-        identity_verification="pending",
-        voting_eligibility="ineligible",
-        public_benefits_eligibility="ineligible",
+        identity_verification="verified",
+        residence_permit="valid",
+        tax_compliance="compliant",
+        voting_eligibility="eligible",
+        public_benefits_eligibility="eligible",
+        criminal_record="clean",
     )
-    ic.print(f"Created member {member.id}")
+    ic.print(f"Created active member {member.id}")
 
-    # Create registration invoice
-    now_epoch = ic_time_to_epoch(ic.time())
-    due_str = epoch_to_datetime_str(now_epoch + validity_days * 86400).replace(" ", "T")
-    invoice = Invoice(
-        amount=fee,
-        currency=currency,
-        status="Pending",
-        user=user,
-        due_date=due_str,
-        metadata=json.dumps({"type": "registration", "principal": principal_id}),
-    )
-    ic.print(f"Created registration invoice #{invoice._id} for {fee} {currency}")
-
-    return {
+    result = {
         "user_id": user.id,
         "member_id": member.id,
-        "invoice_id": invoice._id,
-        "fee": fee,
-        "currency": currency,
-        "due_date": due_str,
+        "invoice_id": None,
+        "active": True,
+        "stage": stage,
     }
 
-
-def verify_passport(principal_id: str, passport_hash: str) -> dict:
-    """Verify a citizen's passport (ZK proof).
-
-    Checks for sybil duplicates. If invoice is already paid, activates the member.
-    """
-    params = get_params()
-    activation_requires = params["membership"]["activation_requires"]
-
-    user = User[principal_id]
-    if not user:
-        return {"error": "user_not_found"}
-
-    member = Member.for_user(principal_id)
-    if not member:
-        return {"error": "member_not_found"}
-
-    if member.is_active():
-        return {"error": "already_active", "member_id": member.id}
-
-    # Sybil check: no other member with same passport hash
-    for m in Member.instances():
-        if m.id != member.id and m.residence_permit == passport_hash:
-            return {"error": "sybil_detected", "message": "Passport hash already used"}
-
-    member.residence_permit = passport_hash
-    ic.print(f"Passport verified for {principal_id}")
-
-    # Check if we can activate (all conditions met?)
-    result = {"verified": True, "member_id": member.id, "activated": False}
-    if _can_activate(member, activation_requires):
-        member.activate()
-        result["activated"] = True
-        ic.print(f"Member {member.id} auto-activated (all conditions met)")
+    # Only charge once the realm is live and a fee is configured.
+    if stage == "production" and fee and fee > 0:
+        now_epoch = ic_time_to_epoch(ic.time())
+        due_str = epoch_to_datetime_str(now_epoch + validity_days * 86400).replace(" ", "T")
+        invoice = Invoice(
+            amount=fee,
+            currency=currency,
+            status="Pending",
+            user=user,
+            due_date=due_str,
+            metadata=json.dumps({"type": "registration", "principal": principal_id}),
+        )
+        ic.print(f"Created registration invoice #{invoice._id} for {fee} {currency}")
+        result["invoice_id"] = invoice._id
+        result["fee"] = fee
+        result["currency"] = currency
+        result["due_date"] = due_str
 
     return result
 
 
 def pay_registration_invoice(principal_id: str, invoice_id: str) -> dict:
-    """Record payment of a registration invoice.
+    """Record payment of a registration invoice (live realms with a fee).
 
-    Creates ledger entries for the payment. If passport already verified, activates.
+    Creates double-entry ledger entries for the payment. Membership is already
+    active in the incumbent model, so payment does not gate activation.
     """
     params = get_params()
-    activation_requires = params["membership"]["activation_requires"]
 
     user = User[principal_id]
     if not user:
@@ -159,43 +149,12 @@ def pay_registration_invoice(principal_id: str, invoice_id: str) -> dict:
     # Record accounting: debit Cash, credit Revenue
     _record_payment_ledger(invoice, params)
 
-    # Check activation
-    member = Member.for_user(principal_id)
-    result = {"paid": True, "invoice_id": invoice_id, "activated": False}
-    if member and _can_activate(member, activation_requires):
-        member.activate()
-        result["activated"] = True
-        ic.print(f"Member {member.id} auto-activated (all conditions met)")
-
-    return result
-
-
-def _can_activate(member, activation_requires: list) -> bool:
-    """Check if all activation conditions are met for a member."""
-    for req in activation_requires:
-        if req == "passport_verified":
-            if not member.residence_permit:
-                return False
-        elif req == "invoice_paid":
-            if not member.user:
-                return False
-            # Check if any registration invoice is paid
-            paid = False
-            for inv in Invoice.instances():
-                if (inv.user and inv.user.id == member.user.id
-                        and inv.status == "Paid"):
-                    meta = inv.metadata or ""
-                    if "registration" in meta:
-                        paid = True
-                        break
-            if not paid:
-                return False
-    return True
+    return {"paid": True, "invoice_id": invoice_id}
 
 
 def _record_payment_ledger(invoice, params: dict):
     """Create double-entry ledger entries for an invoice payment."""
-    currency = params["accounting_currency"]
+    currency = _currency(params)
     now = epoch_to_datetime_str(ic_time_to_epoch(ic.time())).replace(" ", "T")
     amount_raw = int(invoice.amount * 1_000_000)  # normalize to smallest unit
 
@@ -357,7 +316,7 @@ def distribute_periodic_payments() -> dict:
     """
     params = get_params()
     welfare = params["welfare"]
-    currency = params["accounting_currency"]
+    currency = _currency(params)
     percent = welfare["percent_of_budget"]
     eligibility_months = welfare["eligibility_months"]
 

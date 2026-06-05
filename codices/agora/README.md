@@ -1,23 +1,30 @@
 # Agora Codex
 
-A direct democracy funded by **monthly membership dues**, with **ZK passport identity verification**, **community governance**, **justice**, **enforcement**, **procurement**, **defense**, and **real-time financial accounting**.
+The **incumbent migration** codex: an existing public administration replaces its entire IT infrastructure with Realms GOS in a **1-to-1 migration**. Includes **community governance**, **justice**, **enforcement**, **procurement**, **defense**, and **real-time financial accounting**.
 
 ## Overview
 
-Agora is a self-sustaining digital community where citizens pay monthly dues to fund a common treasury. Identity is verified via zero-knowledge passport proofs (Rarimo ZK Passport) to ensure one-person-one-vote. Active members govern collectively through proposals that can change the codex code, fund third-party services, or redistribute wealth as social welfare. Every financial transaction is recorded as double-entry bookkeeping entries, making the realm's finances fully transparent through the metrics dashboard.
+Agora is for a public administration that **already has a population (census)**. Onboarding is therefore by **registration code, manual entry, or programmatic/bulk import** — there is **no ZK passport** step (legitimacy is inherited from the existing administration). Imported citizens become active members immediately.
 
-### Accepted Currencies
+The realm follows the standard lifecycle (`alpha → beta → production → …`). During the **migration phases (alpha/beta)** members **pay nothing**: the member dashboard shows their declaration and any *potential future* tax deadlines so they can prepare, and the public dashboard tracks the **percentage of population migrated** and the **departments** coming online. Quarters are **well-defined in advance**, each mapped to specific zones. Once live, members govern collectively, fund services, and every financial transaction is recorded as double-entry bookkeeping visible through the metrics dashboard.
 
-- **ckBTC** — Bitcoin on the Internet Computer
-- **AGO** — Agora realm token (ic-tokens), fixed rate: **1 AGO = 0.5 BTC**
+### Territory mode
 
-Use `icw` (ICP Wallet CLI) to transfer and mint tokens.
+`incumbent` — see `manifest.json → onboarding.territory_mode` and `docs/reference/ONBOARDING_SCENARIOS.md`.
 
-### Activation Requirements
+### Dependencies (extensions)
 
-A new user must complete **both** steps to become an active citizen:
-1. Verify identity via ZK passport (Rarimo rarime app)
-2. Pay the initial registration invoice
+- `llm_chat` — AI assistant that can guide citizens through migration.
+
+### Reference data (JSON)
+
+- `departments.json` — initial departments, profiles, and permission assignments.
+- `justice_license.json` — the license authorizing the realm's courts.
+- `zones.json` — initial land zones (predefined quarters).
+
+### Activation
+
+Citizenship is active upon registration/import. No payment is required during the migration phases; a registration invoice is only issued once the realm is live and a fee is configured.
 
 ## Codices
 

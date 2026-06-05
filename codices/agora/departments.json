@@ -1,0 +1,35 @@
+{
+  "description": "Initial departments, profiles, and permission assignments for the Agora incumbent migration. Mirrors a typical public administration org chart so an existing PA can map its staff 1-to-1.",
+  "departments": [
+    {
+      "name": "Civil Registry",
+      "description": "Population register, identity records, and migration of existing citizens into the realm.",
+      "profiles": ["registrar", "clerk"],
+      "permissions": ["member.import", "member.read", "member.update", "registration_code.issue"]
+    },
+    {
+      "name": "Treasury & Tax Office",
+      "description": "Public finances, budgets, and (future) tax declarations and collection.",
+      "profiles": ["treasurer", "tax_officer"],
+      "permissions": ["treasury.read", "treasury.send", "invoice.create", "budget.read"]
+    },
+    {
+      "name": "Justice",
+      "description": "Courts, dispute resolution, and enforcement oversight.",
+      "profiles": ["judge", "court_clerk"],
+      "permissions": ["case.read", "case.assign", "verdict.issue", "license.read"]
+    },
+    {
+      "name": "Public Works & Land",
+      "description": "Land zones, infrastructure, and the geographic organization of quarters.",
+      "profiles": ["land_officer", "operator"],
+      "permissions": ["zone.read", "zone.update", "land.read"]
+    },
+    {
+      "name": "Administration",
+      "description": "Realm operations, role management, and lifecycle administration.",
+      "profiles": ["admin"],
+      "permissions": ["role.assign", "role.revoke", "realm.lifecycle", "extension.manage"]
+    }
+  ]
+}

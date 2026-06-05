@@ -1,0 +1,8 @@
+{
+  "description": "Initial land zones for Syntropia. The greenfield city starts with founding zones; quarters are added as the population grows and zones can be shared among quarters (dynamic quarter creation is a future capability — see README).",
+  "zones": [
+    { "name": "Founders' Quarter", "description": "First residential and civic zone where founding citizens settle.", "h3_index": "", "latitude": 0.3476, "longitude": 32.5825 },
+    { "name": "Harbor Zone", "description": "Trade, logistics, and waterfront housing.", "h3_index": "", "latitude": 0.3576, "longitude": 32.5925 },
+    { "name": "Green Belt", "description": "Shared agricultural and ecological zone (may span multiple quarters).", "h3_index": "", "latitude": 0.3376, "longitude": 32.5725 }
+  ]
+}

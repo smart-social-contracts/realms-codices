@@ -42,6 +42,14 @@ JOIN_REQUIREMENTS = {
         "description": "One person = one membership (Sybil resistance)",
         "required": True,
     },
+    "deposit_paid": {
+        "description": "Pay the deposit — a house in a zone — to secure citizenship",
+        "required": True,
+    },
+    "kyc_submitted": {
+        "description": "Submit Know-Your-Citizen data before the city goes live",
+        "required": True,
+    },
 }
 
 
@@ -49,14 +57,44 @@ def get_join_requirements() -> dict:
     """Return the current join requirements for display to prospective members."""
     return {
         "requirements": JOIN_REQUIREMENTS,
-        "verification_method": "Rarimo ZK Passport (rarime mobile app)",
+        "verification_method": "Rarimo ZK Passport (rarime mobile app) + deposit + KYC",
         "steps": [
             "Install the RariMe mobile app",
             "Scan your passport via NFC",
             "Generate zero-knowledge proof on your device",
             "Submit proof to the realm for verification",
+            "Pay your deposit (a house in a zone)",
+            "Submit your Know-Your-Citizen data",
         ],
     }
+
+
+def is_registered_member(user_id: str) -> bool:
+    """True if the user is a verified, active citizen."""
+    for member in Member.instances():
+        if member.user and member.user.id == user_id:
+            return member.identity_verification == "verified"
+    return False
+
+
+def submit_kyc(user_id: str, kyc_reference: str) -> dict:
+    """Record that a citizen has submitted their Know-Your-Citizen data.
+
+    Stored on the Member's tax_compliance/criminal_record metadata; the actual
+    document handling is performed off-chain / by the file registry.
+    """
+    user = User[user_id]
+    if not user:
+        return {"submitted": False, "reason": "User not found"}
+
+    for member in Member.instances():
+        if member.user and member.user.id == user_id:
+            existing = member.criminal_record or "clean"
+            if "kyc:" not in existing:
+                member.criminal_record = f"{existing}|kyc:{kyc_reference}"
+            return {"submitted": True, "member_id": member.id, "user_id": user_id}
+
+    return {"submitted": False, "reason": "No membership record found. Verify your passport first."}
 
 
 # ---------------------------------------------------------------------------
