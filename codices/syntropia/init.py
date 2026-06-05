@@ -12,7 +12,7 @@ the alpha stage.
 """
 
 from _cdk import ic
-from ggg import Realm, Treasury, UserProfile, User, Codex, Instrument, Transfer
+from ggg import Realm, Treasury, UserProfile
 import json
 import os
 
@@ -40,7 +40,7 @@ if realm:
     # Lifecycle: start at alpha and seed the metrics the public dashboard reads
     # (countdown, citizen counter, critical-mass threshold).
     lifecycle = dict(manifest.get("lifecycle", {}))
-    lifecycle.setdefault("registered_users", User.count())
+    # registered_users is provided live by get_realm_stage; no need to store it
     lifecycle.setdefault("total_deposits", 0)
     lifecycle.setdefault("deposits_locked", False)
     lifecycle.setdefault("land_acquired", False)
@@ -118,15 +118,3 @@ if realm:
         ic.print(f"⚠️  Justice license initialization skipped: {e}")
 else:
     ic.print("❌ No Realm found")
-
-# Print entity counts
-ic.print("len(Realm.instances()) = %d" % len(Realm.instances()))
-ic.print("len(Treasury.instances()) = %d" % len(Treasury.instances()))
-ic.print("len(UserProfile.instances()) = %d" % len(UserProfile.instances()))
-ic.print("len(User.instances()) = %d" % len(User.instances()))
-ic.print("len(Codex.instances()) = %d" % len(Codex.instances()))
-ic.print("len(Instrument.instances()) = %d" % len(Instrument.instances()))
-ic.print("len(Transfer.instances()) = %d" % len(Transfer.instances()))
-
-for codex in Codex.instances():
-    ic.print(f"{codex.name}: {len(codex.code)}")

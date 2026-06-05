@@ -8,7 +8,7 @@ backend and the (input-driven) public dashboard can read it.
 """
 
 from _cdk import ic
-from ggg import Realm, Treasury, UserProfile, User, Codex, Instrument, Transfer
+from ggg import Realm, Treasury, UserProfile
 import json
 import os
 
@@ -39,7 +39,7 @@ if realm:
     lifecycle = dict(manifest.get("lifecycle", {}))
     population_target = lifecycle.get("population_target", 0)
     lifecycle.setdefault("critical_mass", population_target)
-    lifecycle.setdefault("registered_users", User.count())
+    # registered_users is provided live by get_realm_stage; no need to store it
 
     # Keep manifest_data lean (Realm.manifest_data is capped at 4096 chars):
     # store only what the backend and public dashboard read. Department *names*
@@ -118,15 +118,3 @@ try:
     ic.print(f"📊 Accounting entities: {result.get('status', 'unknown')}")
 except Exception as e:
     ic.print(f"⚠️  Accounting entity initialization: {e}")
-
-# Print entity counts
-ic.print("len(Realm.instances()) = %d" % len(Realm.instances()))
-ic.print("len(Treasury.instances()) = %d" % len(Treasury.instances()))
-ic.print("len(UserProfile.instances()) = %d" % len(UserProfile.instances()))
-ic.print("len(User.instances()) = %d" % len(User.instances()))
-ic.print("len(Codex.instances()) = %d" % len(Codex.instances()))
-ic.print("len(Instrument.instances()) = %d" % len(Instrument.instances()))
-ic.print("len(Transfer.instances()) = %d" % len(Transfer.instances()))
-
-for codex in Codex.instances():
-    ic.print(f"{codex.name}: {len(codex.code)}")
