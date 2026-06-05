@@ -1,5 +1,6 @@
 {
-  "version": "0.2.0",
+  "version": "0.3.0",
+  "name": "Agora",
 
   "currency": {
     "symbol": "ckUSDC",
@@ -7,9 +8,33 @@
     "decimals": 6
   },
 
+  "dependencies": [
+    "llm_chat"
+  ],
+
+  "onboarding": {
+    "territory_mode": "incumbent",
+    "registration": {
+      "open_registration": false,
+      "admin_requires_invite": true,
+      "member_requires_invite": true,
+      "bulk_import": true,
+      "programmatic_import": true
+    },
+    "identity_requirements": []
+  },
+
+  "lifecycle": {
+    "population_target": 100000,
+    "transitions": {
+      "alpha_to_beta": { "mode": "admin_approval" },
+      "beta_to_production": { "mode": "admin_approval" }
+    }
+  },
+
   "fees": {
-    "registration": 1.00,
-    "monthly_membership": 0.50,
+    "registration": 1.0,
+    "monthly_membership": 1.0,
     "proposal_submission": 0.10
   },
 
@@ -37,8 +62,26 @@
   },
 
   "membership": {
-    "activation_requires": ["passport_verified", "invoice_paid"],
+    "activation_requires": ["registered"],
     "invoice_validity_days": 30
+  },
+
+  "dashboard": {
+    "public": {
+      "profile": "incumbent_migration",
+      "sections": ["hero", "migration_progress", "departments", "lifecycle", "kpi_strip", "zones_map"],
+      "hero": { "show_join_cta": false },
+      "migration_progress": {
+        "label": "Population migrated",
+        "target_field": "lifecycle.population_target"
+      }
+    }
+  },
+
+  "data_files": {
+    "departments": "departments.json",
+    "justice_license": "justice_license.json",
+    "zones": "zones.json"
   },
 
   "entity_method_overrides": [
@@ -47,7 +90,7 @@
       "method": "user_register_posthook",
       "type": "staticmethod",
       "implementation": "Codex.user_registration_hook.user_register_posthook",
-      "description": "Custom post-registration hook — creates initial invoices for new users"
+      "description": "Incumbent migration onboarding — no payment during alpha/beta; shows declaration and future tax deadlines"
     },
     {
       "entity": "Treasury",

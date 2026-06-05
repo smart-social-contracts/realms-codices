@@ -1,0 +1,11 @@
+{
+  "description": "License for justice — authorizes the realm to operate courts and resolve disputes under the Agora codex. For an incumbent migration this records the continuity of the existing public judiciary.",
+  "license": {
+    "name": "Agora Justice License",
+    "license_type": "justice_provider",
+    "issuing_authority": "Agora Administration",
+    "scope": ["dispute_resolution", "jury_trials", "enforcement_sanctions"],
+    "status": "active",
+    "terms": "Courts operate under direct-democracy oversight. Guilty verdicts may impose fines recorded in the realm budget; sanctions beyond warnings require a community vote."
+  }
+}

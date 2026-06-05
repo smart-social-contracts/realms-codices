@@ -8,17 +8,68 @@ Three branches:
   - Judicial: Constitutional court reviews enacted laws for constitutionality
 """
 
-from ggg import Proposal, Vote, User
+from ggg import Proposal, Vote, User, Realm
 from datetime import datetime, timedelta
+import json
 import uuid
+
+
+# ---------------------------------------------------------------------------
+# Lifecycle gate — before production, member voting is not executable.
+# Only admins can make fundamental changes (see issue: Syntropia greenfield).
+# ---------------------------------------------------------------------------
+
+class MemberVotingNotAllowed(Exception):
+    """Raised when a member attempts to vote/propose before the realm is live."""
+
+
+def _realm():
+    instances = Realm.instances()
+    return list(instances)[0] if instances else None
+
+
+def _realm_stage() -> str:
+    realm = _realm()
+    return (getattr(realm, "status", None) or "alpha") if realm else "alpha"
+
+
+def _member_voting_enabled_stage() -> str:
+    """Stage at which member voting becomes executable (default: production)."""
+    realm = _realm()
+    try:
+        meta = json.loads(realm.manifest_data) if realm and realm.manifest_data else {}
+    except (json.JSONDecodeError, TypeError):
+        meta = {}
+    return meta.get("governance", {}).get("member_voting_enabled_stage", "production")
+
+
+def member_voting_enabled() -> bool:
+    """True once the realm has reached the stage where members may vote."""
+    return _realm_stage() == _member_voting_enabled_stage()
+
+
+def _ensure_can_act(actor_is_admin: bool):
+    """Gate: members can only propose/vote once the realm is live; admins always can."""
+    if actor_is_admin:
+        return
+    if not member_voting_enabled():
+        raise MemberVotingNotAllowed(
+            f"Member voting is not executable before the '{_member_voting_enabled_stage()}' "
+            f"stage (current: '{_realm_stage()}'). Only admins can make fundamental changes."
+        )
 
 
 # ---------------------------------------------------------------------------
 # Legislative Branch
 # ---------------------------------------------------------------------------
 
-def create_legislative_proposal(title: str, description: str, branch: str = "legislative") -> str:
-    """Create a new legislative proposal (bill) for parliamentary debate"""
+def create_legislative_proposal(title: str, description: str, branch: str = "legislative",
+                                actor_is_admin: bool = False) -> str:
+    """Create a new legislative proposal (bill) for parliamentary debate.
+
+    Before the realm reaches production, only admins may create proposals.
+    """
+    _ensure_can_act(actor_is_admin)
     pid = "leg_" + uuid.uuid4().hex[:8]
     deadline = (datetime.now() + timedelta(days=14)).isoformat()
 
@@ -31,6 +82,33 @@ def create_legislative_proposal(title: str, description: str, branch: str = "leg
         metadata=f"branch:{branch}",
     )
     return proposal.proposal_id
+
+
+def cast_member_vote(proposal_id: str, choice: str, actor_is_admin: bool = False) -> dict:
+    """Record a member's vote on a proposal.
+
+    Enforces the lifecycle gate: before production, members cannot vote — only
+    admins can make fundamental changes.
+    """
+    _ensure_can_act(actor_is_admin)
+
+    proposal = _find_proposal(proposal_id)
+    if not proposal:
+        return {"error": "Proposal not found"}
+
+    if choice == "yes":
+        proposal.votes_yes = int(proposal.votes_yes or 0) + 1
+    elif choice == "no":
+        proposal.votes_no = int(proposal.votes_no or 0) + 1
+    else:
+        return {"error": "Vote must be 'yes' or 'no'"}
+
+    return {
+        "proposal_id": proposal_id,
+        "choice": choice,
+        "votes_yes": int(proposal.votes_yes or 0),
+        "votes_no": int(proposal.votes_no or 0),
+    }
 
 
 # ---------------------------------------------------------------------------
