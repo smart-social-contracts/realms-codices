@@ -40,6 +40,24 @@ print("User choice assignment: " + assigned_uc)
 quarter_mod.ASSIGNMENT_STRATEGY = orig_strategy
 print("Quarter assignment strategies verified")
 
+# ── TEST 2: Auto-scaling hook (should_deploy_quarter) ────────────────────
+print("=== TEST 2: AUTO-SCALING HOOK ===")
+
+# test network => N=10, threshold = ceil(0.9 * 10) = 9
+assert quarter_mod._effective_n("test") == 10, "test network N should be 10"
+assert quarter_mod._effective_n("ic") == 2000, "prod network N should be 2000"
+
+# Below threshold: fullest quarter at 8 < 9 => no scale
+assert quarter_mod.should_deploy_quarter([5, 8, 3], "test") is False, "8/10 should not scale"
+# At threshold: fullest quarter at 9 >= 9 => scale
+assert quarter_mod.should_deploy_quarter([2, 9], "test") is True, "9/10 should scale"
+# Production: 1799 < 1800 no scale, 1800 >= 1800 scale
+assert quarter_mod.should_deploy_quarter([1799], "ic") is False, "1799/2000 should not scale"
+assert quarter_mod.should_deploy_quarter([1800], "ic") is True, "1800/2000 should scale"
+# Empty / disabled
+assert quarter_mod.should_deploy_quarter([], "test") is False, "empty should not scale"
+print("Auto-scaling hook thresholds verified (test N=10, prod N=2000, 90% rule)")
+
 # Summary
 print("=== FEDERATION TESTS PASSED ===")
 print("Quarters: " + str(Quarter.count()) + " Realms: " + str(Realm.count()))

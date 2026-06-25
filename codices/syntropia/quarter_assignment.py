@@ -105,3 +105,43 @@ def assign_quarter(principal: str, quarters: list, preferred: str) -> str:
     if not strategy_fn:
         raise ValueError(f"Unknown assignment strategy: {ASSIGNMENT_STRATEGY}")
     return strategy_fn(principal, quarters, preferred)
+
+
+# ---------------------------------------------------------------------------
+# Auto-scaling / sharding hook (issue #156)
+# ---------------------------------------------------------------------------
+
+# Per-quarter capacity N. 0 => use the environment default (2000 prod,
+# 10 for test/staging/demo). Override here to tune sharding for this realm.
+SCALE_N = 0
+
+# Spawn a new quarter once the fullest quarter reaches this fraction of N,
+# leaving headroom so the triggering user still lands on an existing quarter.
+SCALE_FRACTION = 0.9
+
+_LOW_THRESHOLD_NETWORKS = ("test", "staging", "demo")
+
+
+def _effective_n(network: str) -> int:
+    if SCALE_N and SCALE_N > 0:
+        return int(SCALE_N)
+    return 10 if (network or "").strip().lower() in _LOW_THRESHOLD_NETWORKS else 2000
+
+
+def should_deploy_quarter(populations: list, network: str, realm=None) -> bool:
+    """Decide whether the federation should spawn a new quarter.
+
+    Called after each new user registration. ``populations`` is the list of
+    per-quarter resident counts (including the capital). Returns True when the
+    fullest quarter has reached 90% of N — the realm then queues a (non-blocking)
+    Casals provisioning job. A custom codex can replace this with any policy
+    (cycle budget, time-of-day, manual approval, …).
+    """
+    pops = [int(p or 0) for p in (populations or [])]
+    if not pops:
+        return False
+    n = _effective_n(network)
+    if n <= 0:
+        return False  # unlimited / disabled
+    threshold = max(1, int((SCALE_FRACTION * n) + 0.999))  # ceil
+    return max(pops) >= threshold
