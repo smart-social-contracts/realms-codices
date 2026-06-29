@@ -4,7 +4,7 @@ Handles recurring monthly invoices for all active members of the Agora realm.
 
 Accepted currencies:
   - ckBTC (Bitcoin on IC)
-  - AGO (Agora realm token, ic-tokens) at fixed rate 1 AGO = 0.5 BTC
+  - AGO (Agora realm token, ic-tokens) at fixed rate 1 AGO = 1 USD (1 BTC ≈ 60,000 USD)
 
 Lifecycle:
   1. New user registers → user_registration_hook creates the FIRST invoice.
@@ -43,12 +43,12 @@ import budget
 # ---------------------------------------------------------------------------
 
 # Monthly fee: 0.00001000 ckBTC (1000 satoshis) or equivalent in AGO
-MONTHLY_FEE_CKBTC = 0.00001000         # ckBTC (8 decimals)
+MONTHLY_FEE_CKBTC = 0.00001000         # ~$0.60/month (1000 satoshis)
 MONTHLY_FEE_SATOSHIS = 1000            # raw satoshis
 
-# AGO equivalent: 1 AGO = 0.5 BTC, so 1000 sat = 0.00001 BTC = 0.00002 AGO
-AGO_PER_BTC = 2.0                      # 1 AGO = 0.5 BTC → 2 AGO per BTC
-MONTHLY_FEE_AGO = MONTHLY_FEE_CKBTC * AGO_PER_BTC   # 0.00002 AGO
+# AGO equivalent: 1 AGO = 1 USD; 1 BTC = 60,000 AGO
+AGO_PER_BTC = 60_000.0                 # 1 AGO = 1 USD; 1 BTC = 60,000 AGO
+MONTHLY_FEE_AGO = 10.0                 # $10/month in AGO
 
 GRACE_PERIOD_DAYS = 7                  # days before warning
 SUSPENSION_AFTER_DAYS = 30             # days before suspension (after due date)

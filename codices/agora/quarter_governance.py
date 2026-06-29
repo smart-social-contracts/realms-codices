@@ -24,7 +24,7 @@ from ggg import (
     Realm, Quarter, QuarterConfig, User, Member,
     Proposal, Vote, Notification,
     LedgerEntry, Fund, FiscalPeriod, Budget,
-    EntryType, Category,
+    EntryType, Category, Transfer,
 )
 from ic_basilisk_toolkit.date_utils import ic_time_to_epoch, epoch_to_datetime_str
 import json
@@ -121,6 +121,8 @@ def record_tax_payment(user_id: str, amount_btc: float, currency: str,
     ctx = get_quarter_context()
     sat_amount = _btc_to_satoshis(amount_btc)
 
+    now_str = _now_iso()
+
     if ctx["is_capital"]:
         # Capital keeps everything
         local_amount = sat_amount
@@ -134,6 +136,36 @@ def record_tax_payment(user_id: str, amount_btc: float, currency: str,
             f"Quarter {ctx['canister_id']}: recorded {sat_amount} sat from {user_id} "
             f"(local={local_amount}, federal={federal_amount})"
         )
+
+    # Persist local revenue as a LedgerEntry (debit Cash / credit Tax Revenue).
+    try:
+        LedgerEntry(
+            entry_type=EntryType.CREDIT,
+            category=Category.REVENUE,
+            amount=local_amount,
+            currency=currency,
+            description=f"{description} — local share ({ctx['canister_id']})",
+            user_id=user_id,
+            timestamp=now_str,
+        )
+    except Exception as _e:
+        ic.print(f"record_tax_payment: LedgerEntry failed: {_e}")
+
+    # Record federal portion as a Transfer earmarked for the capital.
+    if federal_amount > 0:
+        try:
+            Transfer(
+                amount=federal_amount,
+                currency=currency,
+                sender_canister=ctx["canister_id"],
+                recipient_canister="capital",  # resolved at settlement time
+                description=f"{description} — federal share (10%) from {ctx['canister_id']}",
+                user_id=user_id,
+                timestamp=now_str,
+                status="pending",
+            )
+        except Exception as _e:
+            ic.print(f"record_tax_payment: Transfer (federal) failed: {_e}")
 
     return {
         "recorded": True,
@@ -171,13 +203,15 @@ def allocate_federal_budget(total_federal_revenue_sat: int) -> dict:
     total_pop = sum(getattr(q, "population", 1) or 1 for q in quarters)
     allocations = []
 
+    now_str = _now_iso()
     for q in quarters:
         pop = getattr(q, "population", 1) or 1
         share = pop / total_pop
         amount = int(total_federal_revenue_sat * share)
+        canister_id = q.canister_id or ""
         allocations.append({
-            "quarter": q.name or q.canister_id,
-            "canister_id": q.canister_id or "",
+            "quarter": q.name or canister_id,
+            "canister_id": canister_id,
             "population": pop,
             "share": round(share, 4),
             "amount_satoshis": amount,
@@ -185,6 +219,26 @@ def allocate_federal_budget(total_federal_revenue_sat: int) -> dict:
         ic.print(
             f"  → {q.name}: {amount} sat ({share:.1%} of {total_federal_revenue_sat})"
         )
+
+        # Record an inter-quarter allocation Transfer even before the actual
+        # ICP inter-canister call is made (the call itself is a TODO stub).
+        if canister_id:
+            try:
+                Transfer(
+                    amount=amount,
+                    currency="ckBTC_sat",
+                    sender_canister=ctx["canister_id"],
+                    recipient_canister=canister_id,
+                    description=(
+                        f"Federal budget allocation to {q.name or canister_id} "
+                        f"({share:.1%} of {total_federal_revenue_sat} sat)"
+                    ),
+                    timestamp=now_str,
+                    status="pending",
+                    # TODO: cross-quarter inter-canister call to canister_id
+                )
+            except Exception as _e:
+                ic.print(f"allocate_federal_budget: Transfer record failed for {canister_id}: {_e}")
 
     ic.print(f"Federal budget allocated to {len(quarters)} quarters")
     return {"allocated": True, "distributions": allocations}
@@ -339,4 +393,41 @@ def cast_vote(user_id: str, proposal_id: str, vote_choice: str) -> dict:
         "proposal_id": proposal_id,
         "choice": vote_choice,
         "scope": scope,
+    }
+
+
+# ---------------------------------------------------------------------------
+# 4. Tax Summary Query
+# ---------------------------------------------------------------------------
+
+def get_tax_summary() -> dict:
+    """Return total taxes collected, routed to projects, and social security."""
+    try:
+        total_collected = sum(
+            (e.amount or 0)
+            for e in LedgerEntry.instances()
+            if getattr(e, "category", None) == Category.REVENUE
+        )
+    except Exception:
+        total_collected = 0  # TODO: sum from LedgerEntry REVENUE records
+
+    try:
+        quarters_allocated = []
+        project_funding = 0
+        for t in Transfer.instances():
+            rc = getattr(t, "recipient_canister", "") or ""
+            amt = t.amount or 0
+            if rc and rc != "capital":
+                project_funding += amt
+                if rc not in quarters_allocated:
+                    quarters_allocated.append(rc)
+    except Exception:
+        project_funding = 0  # TODO: sum from Transfer records
+        quarters_allocated = []
+
+    return {
+        "total_collected_ago": total_collected,  # TODO: sum from Transfer records
+        "project_funding_ago": project_funding,
+        "social_security_ago": 0,  # TODO: derive from welfare allocations
+        "quarters_allocated": quarters_allocated,
     }
