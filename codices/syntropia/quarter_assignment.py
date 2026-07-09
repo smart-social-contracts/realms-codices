@@ -33,7 +33,8 @@ from datetime import datetime
 MAX_POPULATION = 0
 
 # Strategy: "random", "user_choice", "least_populated"
-ASSIGNMENT_STRATEGY = "random"
+# Product default (issue #156): least_populated among joinable quarters.
+ASSIGNMENT_STRATEGY = "least_populated"
 
 
 # ---------------------------------------------------------------------------
