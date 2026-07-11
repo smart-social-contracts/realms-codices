@@ -1,18 +1,14 @@
 {
   "version": "0.3.0",
   "name": "Syntropia",
-
   "currency": {
     "symbol": "ckBTC",
     "name": "ckBTC",
     "decimals": 8
   },
-
   "dependencies": [
-    "llm_chat",
     "passport_verification"
   ],
-
   "onboarding": {
     "territory_mode": "greenfield",
     "registration": {
@@ -20,70 +16,98 @@
       "admin_requires_invite": true,
       "member_requires_invite": false
     },
-    "identity_requirements": ["passport_zk", "deposit_paid", "kyc_submitted"]
+    "identity_requirements": [
+      "passport_zk",
+      "deposit_paid",
+      "kyc_submitted"
+    ]
   },
-
   "lifecycle": {
     "critical_mass": 10000,
     "deposit_amount": 0.01,
     "deposit_label": "a house in a zone",
     "go_live_target": "2027-01-01T00:00:00",
     "transitions": {
-      "alpha_to_beta": { "mode": "auto_milestones", "milestones": ["critical_mass"] },
-      "beta_to_production": { "mode": "admin_vote" }
+      "alpha_to_beta": {
+        "mode": "auto_milestones",
+        "milestones": [
+          "critical_mass"
+        ]
+      },
+      "beta_to_production": {
+        "mode": "admin_vote"
+      }
     }
   },
-
   "fees": {
-    "registration": 0.000001,
+    "registration": 1e-06,
     "deposit": 0.01,
-    "monthly_membership": 0.0000005,
-    "proposal_submission": 0.0000001
+    "monthly_membership": 5e-07,
+    "proposal_submission": 1e-07
   },
-
   "governance": {
     "voting_window_days": 7,
     "quorum_percent": 20,
     "approval_threshold": 0.5,
     "member_voting_enabled_stage": "production",
-    "proposal_types": ["codex_change", "treasury_spend"]
+    "proposal_types": [
+      "codex_change",
+      "treasury_spend"
+    ]
   },
-
   "billing": {
     "cycle_days": 30,
     "grace_period_days": 7,
     "suspension_after_days": 30
   },
-
   "membership": {
-    "activation_requires": ["passport_verified", "deposit_paid", "kyc_submitted"],
+    "activation_requires": [
+      "passport_verified",
+      "deposit_paid",
+      "kyc_submitted"
+    ],
     "invoice_validity_days": 30
   },
-
   "dashboard": {
     "public": {
       "profile": "greenfield_smart_city",
-      "sections": ["hero", "countdown", "citizen_counter", "threshold", "lifecycle", "zones_map"],
-      "hero": { "show_join_cta": true, "join_label": "Become a citizen" },
-      "countdown": { "label": "Time to go-live", "target_field": "lifecycle.go_live_target" },
-      "citizen_counter": { "label": "Citizens onboarded" },
-      "threshold": { "label": "Critical mass", "target_field": "lifecycle.critical_mass" }
+      "sections": [
+        "hero",
+        "countdown",
+        "citizen_counter",
+        "threshold",
+        "lifecycle",
+        "zones_map"
+      ],
+      "hero": {
+        "show_join_cta": true,
+        "join_label": "Become a citizen"
+      },
+      "countdown": {
+        "label": "Time to go-live",
+        "target_field": "lifecycle.go_live_target"
+      },
+      "citizen_counter": {
+        "label": "Citizens onboarded"
+      },
+      "threshold": {
+        "label": "Critical mass",
+        "target_field": "lifecycle.critical_mass"
+      }
     }
   },
-
   "data_files": {
     "departments": "departments.json",
     "justice_license": "justice_license.json",
     "zones": "zones.json"
   },
-
   "entity_method_overrides": [
     {
       "entity": "User",
       "method": "user_register_posthook",
       "type": "staticmethod",
       "implementation": "Codex.user_registration_hook.user_register_posthook",
-      "description": "Greenfield onboarding — passport verification prompt, deposit (a house in a zone) invoice, and Know-Your-Citizen submission"
+      "description": "Greenfield onboarding \u2014 passport verification prompt, deposit (a house in a zone) invoice, and Know-Your-Citizen submission"
     }
   ]
 }

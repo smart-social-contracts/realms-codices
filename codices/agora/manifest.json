@@ -1,17 +1,12 @@
 {
   "version": "0.3.0",
   "name": "Agora",
-
   "currency": {
     "symbol": "ckUSDC",
     "name": "ckUSDC",
     "decimals": 6
   },
-
-  "dependencies": [
-    "llm_chat"
-  ],
-
+  "dependencies": [],
   "onboarding": {
     "territory_mode": "incumbent",
     "registration": {
@@ -23,74 +18,85 @@
     },
     "identity_requirements": []
   },
-
   "lifecycle": {
     "population_target": 100000,
     "transitions": {
-      "alpha_to_beta": { "mode": "admin_approval" },
-      "beta_to_production": { "mode": "admin_approval" }
+      "alpha_to_beta": {
+        "mode": "admin_approval"
+      },
+      "beta_to_production": {
+        "mode": "admin_approval"
+      }
     }
   },
-
   "fees": {
     "registration": 1.0,
     "monthly_membership": 1.0,
-    "proposal_submission": 0.10
+    "proposal_submission": 0.1
   },
-
   "governance": {
     "voting_window_days": 7,
     "quorum_percent": 20,
     "approval_threshold": 0.5,
     "proposal_types": [
-      "codex_change", "treasury_spend", "welfare_policy",
-      "procurement", "elect_enforcer", "remove_enforcer",
-      "defense_mission", "defense_policy"
+      "codex_change",
+      "treasury_spend",
+      "welfare_policy",
+      "procurement",
+      "elect_enforcer",
+      "remove_enforcer",
+      "defense_mission",
+      "defense_policy"
     ]
   },
-
   "welfare": {
     "percent_of_budget": 30,
     "eligibility_months": 1,
     "distribution_interval_days": 30
   },
-
   "billing": {
     "cycle_days": 30,
     "grace_period_days": 7,
     "suspension_after_days": 30
   },
-
   "membership": {
-    "activation_requires": ["registered"],
+    "activation_requires": [
+      "registered"
+    ],
     "invoice_validity_days": 30
   },
-
   "dashboard": {
     "public": {
       "profile": "incumbent_migration",
-      "sections": ["hero", "migration_progress", "departments", "lifecycle", "kpi_strip", "zones_map"],
-      "hero": { "show_join_cta": false },
+      "sections": [
+        "hero",
+        "migration_progress",
+        "departments",
+        "lifecycle",
+        "kpi_strip",
+        "zones_map"
+      ],
+      "hero": {
+        "show_join_cta": false
+      },
       "migration_progress": {
         "label": "Population migrated",
         "target_field": "lifecycle.population_target"
       }
     }
   },
-
   "data_files": {
     "departments": "departments.json",
     "justice_license": "justice_license.json",
     "zones": "zones.json"
   },
-
   "entity_method_overrides": [
     {
       "entity": "User",
       "method": "user_register_posthook",
       "type": "staticmethod",
       "implementation": "Codex.user_registration_hook.user_register_posthook",
-      "description": "Incumbent migration onboarding — no payment during alpha/beta; shows declaration and future tax deadlines"
+      "description": "Incumbent migration onboarding \u2014 no payment during alpha/beta; shows declaration and future tax deadlines"
     },
     {
       "entity": "Treasury",
