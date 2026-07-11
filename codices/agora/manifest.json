@@ -1,12 +1,23 @@
 {
-  "version": "0.3.0",
+  "version": "0.4.0",
   "name": "Agora",
   "currency": {
     "symbol": "ckUSDC",
     "name": "ckUSDC",
     "decimals": 6
   },
-  "dependencies": [],
+  "dependencies": [
+    "access_manager",
+    "census",
+    "voting",
+    "vault",
+    "public_dashboard",
+    "member_dashboard",
+    "notifications",
+    "metrics",
+    "land_registry",
+    "migration_console"
+  ],
   "onboarding": {
     "territory_mode": "incumbent",
     "registration": {

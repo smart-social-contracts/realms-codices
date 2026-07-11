@@ -1,35 +1,49 @@
 {
-  "description": "Initial departments, profiles, and permission assignments for the Agora incumbent migration. Mirrors a typical public administration org chart so an existing PA can map its staff 1-to-1.",
+  "description": "Initial departments, profiles, and permission assignments for the Agora incumbent migration. Mirrors a typical public administration org chart so an existing PA can map its staff 1-to-1. Seeded as real Department organizations (policy, fund, permissions, staff invite codes) by init.py — see issue #241.",
+  "invite": {
+    "expires_in_hours": 720,
+    "max_uses": 100
+  },
   "departments": [
     {
       "name": "Civil Registry",
       "description": "Population register, identity records, and migration of existing citizens into the realm.",
       "profiles": ["registrar", "clerk"],
-      "permissions": ["member.import", "member.read", "member.update", "registration_code.issue"]
+      "permissions": ["member.import", "member.read", "member.update", "registration_code.issue"],
+      "policy": { "threshold_m": 1, "threshold_n": 1, "quorum_percent": 0 },
+      "fund_code": "DEPT-CIVREG"
     },
     {
       "name": "Treasury & Tax Office",
       "description": "Public finances, budgets, and (future) tax declarations and collection.",
       "profiles": ["treasurer", "tax_officer"],
-      "permissions": ["treasury.read", "treasury.send", "invoice.create", "budget.read"]
+      "permissions": ["treasury.read", "treasury.send", "invoice.create", "budget.read"],
+      "policy": { "threshold_m": 2, "threshold_n": 3, "quorum_percent": 0 },
+      "fund_code": "DEPT-TREAS"
     },
     {
       "name": "Justice",
       "description": "Courts, dispute resolution, and enforcement oversight.",
       "profiles": ["judge", "court_clerk"],
-      "permissions": ["case.read", "case.assign", "verdict.issue", "license.read"]
+      "permissions": ["case.read", "case.assign", "verdict.issue", "license.read"],
+      "policy": { "threshold_m": 1, "threshold_n": 1, "quorum_percent": 0 },
+      "fund_code": "DEPT-JUST"
     },
     {
       "name": "Public Works & Land",
       "description": "Land zones, infrastructure, and the geographic organization of quarters.",
       "profiles": ["land_officer", "operator"],
-      "permissions": ["zone.read", "zone.update", "land.read"]
+      "permissions": ["zone.read", "zone.update", "land.read"],
+      "policy": { "threshold_m": 1, "threshold_n": 1, "quorum_percent": 0 },
+      "fund_code": "DEPT-WORKS"
     },
     {
       "name": "Administration",
       "description": "Realm operations, role management, and lifecycle administration.",
       "profiles": ["admin"],
-      "permissions": ["role.assign", "role.revoke", "realm.lifecycle", "extension.manage"]
+      "permissions": ["role.assign", "role.revoke", "realm.lifecycle", "extension.manage"],
+      "policy": { "threshold_m": 1, "threshold_n": 1, "quorum_percent": 0 },
+      "fund_code": "DEPT-ADMIN"
     }
   ]
 }
