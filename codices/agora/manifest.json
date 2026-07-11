@@ -33,7 +33,7 @@
     "population_target": 100000,
     "transitions": {
       "alpha_to_beta": {
-        "mode": "admin_approval"
+        "mode": "checklist"
       },
       "beta_to_production": {
         "mode": "admin_approval"
