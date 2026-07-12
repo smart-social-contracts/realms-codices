@@ -1,5 +1,5 @@
 {
-  "version": "0.3.0",
+  "version": "0.3.1",
   "name": "Syntropia",
   "currency": {
     "symbol": "ckBTC",
@@ -14,7 +14,8 @@
     "registration": {
       "open_registration": true,
       "admin_requires_invite": true,
-      "member_requires_invite": false
+      "member_requires_invite": false,
+      "default_profile": "member"
     },
     "identity_requirements": [
       "passport_zk",
