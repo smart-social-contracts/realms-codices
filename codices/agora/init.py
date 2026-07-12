@@ -8,8 +8,9 @@ passport). This init:
    and the (input-driven) public dashboard can read it.
 2. Seeds the template org chart from ``departments.json`` as **real
    Department organizations** — policy defaults, a Fund budget envelope,
-   permissions, staff profiles, and one multi-use invite code per
-   (department, profile) so civil servants can be onboarded with a URL
+   permissions, staff profiles, Position seats (headcount + salary line),
+   and one multi-use invite code per position so civil servants can be
+   onboarded with a URL and appointed to their seat on redemption
    (issue #241).
 
 Seeding is idempotent: existing departments/profiles/codes are left alone, so
@@ -32,7 +33,8 @@ def _load_json(filename):
     path = os.path.join(_DIR, filename)
     try:
         with open(path, "r") as f:
-            return json.load(f)
+            # IC WASM json module exposes loads/dumps only (no json.load).
+            return json.loads(f.read())
     except Exception as e:
         ic.print(f"⚠️  Could not load {filename}: {e}")
         return None
@@ -52,8 +54,33 @@ _STAFF_BASELINE_OPS = [
 ]
 
 
+def _position_specs(spec):
+    """Position specs for one department, with legacy ``profiles`` fallback.
+
+    New schema: ``positions: [{title, profile, headcount, salary_amount}]``.
+    Old schema: ``profiles: ["judge", ...]`` → one seat per profile.
+    """
+    positions = spec.get("positions")
+    if positions:
+        return [
+            {
+                "title": (p.get("title") or p.get("profile") or "").strip(),
+                "profile": (p.get("profile") or p.get("title") or "").strip(),
+                "headcount": int(p.get("headcount", 1) or 1),
+                "salary_amount": int(p.get("salary_amount", 0) or 0),
+                "salary_period": p.get("salary_period", "monthly"),
+            }
+            for p in positions
+            if (p.get("title") or p.get("profile"))
+        ]
+    return [
+        {"title": p, "profile": p, "headcount": 1, "salary_amount": 0, "salary_period": "monthly"}
+        for p in spec.get("profiles", [])
+    ]
+
+
 def seed_organizations(dept_data, realm):
-    """Create Department orgs, funds, permissions, profiles, and invite codes."""
+    """Create Department orgs, funds, permissions, profiles, positions, and invite codes."""
     from ggg import (
         Department,
         Fund,
@@ -62,6 +89,12 @@ def seed_organizations(dept_data, realm):
         RegistrationCode,
         UserProfile,
     )
+
+    # Position entity may be missing on older backends — degrade gracefully.
+    try:
+        from ggg import Position
+    except ImportError:
+        Position = None
 
     # Root org first (idempotent) so authority grants have a grantor.
     try:
@@ -81,20 +114,23 @@ def seed_organizations(dept_data, realm):
     baseline = ",".join(_STAFF_BASELINE_OPS)
 
     # Existing (department, profile) invite pairs — for idempotency.
-    existing_invites = set()
+    existing_invites = {}
     for c in RegistrationCode.instances():
         if getattr(c, "department", ""):
-            existing_invites.add((c.department, c.profile))
+            existing_invites[(c.department, c.profile)] = c
 
-    n_depts = n_profiles = n_codes = 0
+    n_depts = n_profiles = n_positions = n_codes = 0
 
     for spec in dept_data.get("departments", []):
         name = (spec.get("name") or "").strip()
         if not name:
             continue
 
+        position_specs = _position_specs(spec)
+
         # 1. Staff profiles (skip platform-default ones like "admin").
-        for pname in spec.get("profiles", []):
+        for pspec in position_specs:
+            pname = pspec["profile"]
             if not UserProfile[pname]:
                 UserProfile(
                     name=pname,
@@ -140,9 +176,37 @@ def seed_organizations(dept_data, realm):
                 perm = Permission(name=perm_name)
             dept.permissions.add(perm)
 
-        # 5. One multi-use staff invite per (department, profile).
-        for pname in spec.get("profiles", []):
-            if (name, pname) in existing_invites:
+        # 5. Position seats: title + profile + headcount + salary line
+        #    (personnel budget planning = headcount x salary_amount).
+        for pspec in position_specs:
+            if Position is None:
+                break
+            key = f"{name}/{pspec['title']}"
+            if not Position[key]:
+                Position(
+                    key=key,
+                    title=pspec["title"],
+                    description=f"{pspec['title']} at {name} (Agora codex)",
+                    department=dept,
+                    profile=UserProfile[pspec["profile"]],
+                    headcount=pspec["headcount"],
+                    salary_amount=pspec["salary_amount"],
+                    salary_period=pspec["salary_period"],
+                    status="open",
+                )
+                n_positions += 1
+
+        # 6. One multi-use staff invite per position. Redeeming appoints the
+        #    redeemer to the seat (join_realm side effect). Pre-existing
+        #    (department, profile) invites are kept and backfilled with the
+        #    position key so upgrades never invalidate distributed URLs.
+        for pspec in position_specs:
+            pname = pspec["profile"]
+            key = f"{name}/{pspec['title']}"
+            existing = existing_invites.get((name, pname))
+            if existing is not None:
+                if not getattr(existing, "position", ""):
+                    existing.position = key
                 continue
             RegistrationCode.create(
                 user_id="",
@@ -152,10 +216,11 @@ def seed_organizations(dept_data, realm):
                 profile=pname,
                 max_uses=invite_max_uses,
                 department=name,
+                position=key,
             )
             n_codes += 1
 
-        # 6. Department staff see the migration console in their sidebar
+        # 7. Department staff see the migration console in their sidebar
         #    (extension installed beforehand via codex dependencies).
         try:
             from ggg import Extension
@@ -178,7 +243,7 @@ def seed_organizations(dept_data, realm):
 
     ic.print(
         f"✅ Agora organizations seeded: {n_depts} departments, "
-        f"{n_profiles} profiles, {n_codes} invite codes"
+        f"{n_profiles} profiles, {n_positions} positions, {n_codes} invite codes"
     )
 
 

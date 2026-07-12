@@ -1,9 +1,10 @@
 """Tests for init.py organization seeding — Agora incumbent migration (issue #241).
 
 departments.json is seeded as real Department organizations: policy defaults,
-Fund budget envelope, permissions, staff profiles, and one multi-use invite
-code per (department, profile). Seeding must be idempotent so upgrades and
-reinstalls never duplicate entities or reset creator edits.
+Fund budget envelope, permissions, staff profiles, Position seats (headcount +
+salary line), and one multi-use invite code per position. Seeding must be
+idempotent so upgrades and reinstalls never duplicate entities or reset
+creator edits.
 """
 
 import json
@@ -18,9 +19,11 @@ from ggg import (
     Department,
     Fund,
     Permission,
+    Position,
     Realm,
     RegistrationCode,
     UserProfile,
+    department_personnel_cost,
 )
 
 _CODEX_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -29,9 +32,11 @@ with open(os.path.join(_CODEX_DIR, "departments.json")) as f:
     DEPT_DATA = json.load(f)
 
 SPEC_DEPTS = DEPT_DATA["departments"]
-SPEC_PROFILE_PAIRS = [
-    (d["name"], p) for d in SPEC_DEPTS for p in d.get("profiles", [])
+SPEC_POSITIONS = [
+    (d["name"], p) for d in SPEC_DEPTS for p in d.get("positions", [])
 ]
+SPEC_PROFILE_PAIRS = [(name, p["profile"]) for name, p in SPEC_POSITIONS]
+SPEC_POSITION_KEYS = {f"{name}/{p['title']}" for name, p in SPEC_POSITIONS}
 
 # A realm must exist before init runs.
 realm = Realm(name="Agoria Test")
@@ -111,14 +116,49 @@ for _, pname in SPEC_PROFILE_PAIRS:
 print("  staff profiles: OK")
 
 
-# ── Invite codes: one multi-use code per (department, profile) ───────────────
+# ── Position seats: headcount + salary line per (department, title) ──────────
+print("Testing position seeding...")
+
+assert Position.count() == len(SPEC_POSITIONS), (
+    f"expected {len(SPEC_POSITIONS)} positions, got {Position.count()}"
+)
+
+for dept_name, pspec in SPEC_POSITIONS:
+    key = f"{dept_name}/{pspec['title']}"
+    pos = Position[key]
+    assert pos is not None, f"position '{key}' not seeded"
+    assert pos.title == pspec["title"]
+    assert pos.headcount == pspec.get("headcount", 1)
+    assert pos.salary_amount == pspec.get("salary_amount", 0)
+    assert pos.status == "open"
+    assert pos.department is Department[dept_name]
+    assert pos.profile is UserProfile[pspec["profile"]]
+    # Nobody appointed yet.
+    assert pos.filled_count() == 0
+    assert pos.vacancies() == pos.headcount
+
+# Personnel budget line = sum(headcount x salary) over the org's open seats.
+justice_spec = next(d for d in SPEC_DEPTS if d["name"] == "Justice")
+expected_cost = sum(
+    p.get("headcount", 1) * p.get("salary_amount", 0)
+    for p in justice_spec["positions"]
+)
+assert department_personnel_cost("Justice") == expected_cost
+
+print("  position seeding: OK")
+
+
+# ── Invite codes: one multi-use code per position ────────────────────────────
 print("Testing staff invite codes...")
 
 codes = RegistrationCode.instances()
-assert len(codes) == len(SPEC_PROFILE_PAIRS)
+assert len(codes) == len(SPEC_POSITIONS)
 
 pairs = {(c.department, c.profile) for c in codes}
 assert pairs == set(SPEC_PROFILE_PAIRS)
+
+# Each invite carries the position key so redemption appoints to the seat.
+assert {c.position for c in codes} == SPEC_POSITION_KEYS
 
 invite_cfg = DEPT_DATA["invite"]
 for c in codes:
@@ -140,6 +180,7 @@ before = (
     Fund.count(),
     Permission.count(),
     UserProfile.count(),
+    Position.count(),
     RegistrationCode.count(),
 )
 
@@ -150,10 +191,36 @@ after = (
     Fund.count(),
     Permission.count(),
     UserProfile.count(),
+    Position.count(),
     RegistrationCode.count(),
 )
 assert before == after, f"seeding is not idempotent: {before} -> {after}"
 
 print("  idempotency: OK")
+
+
+# ── Legacy invite backfill: pre-position codes gain the position key ─────────
+print("Testing legacy invite backfill...")
+
+legacy = RegistrationCode.create(
+    user_id="",
+    created_by="codex:agora",
+    frontend_url="",
+    profile="judge",
+    max_uses=100,
+    department="Justice",
+)
+assert legacy.position == ""
+# Remove the position-linked judge invite so the legacy one is "the" invite.
+for c in RegistrationCode.find_by_department("Justice"):
+    if c.profile == "judge" and c.position:
+        c.delete()
+
+init.seed_organizations(DEPT_DATA, realm)
+assert legacy.position == "Justice/judge", (
+    f"legacy invite not backfilled: {legacy.position!r}"
+)
+
+print("  legacy invite backfill: OK")
 
 print("All org seeding tests passed.")

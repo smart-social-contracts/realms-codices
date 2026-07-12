@@ -1,5 +1,5 @@
 {
-  "description": "Initial departments, profiles, and permission assignments for the Agora incumbent migration. Mirrors a typical public administration org chart so an existing PA can map its staff 1-to-1. Seeded as real Department organizations (policy, fund, permissions, staff invite codes) by init.py — see issue #241.",
+  "description": "Initial departments, positions, and permission assignments for the Agora incumbent migration. Mirrors a typical public administration org chart so an existing PA can map its staff 1-to-1. Seeded as real Department organizations (policy, fund, permissions, Position seats, staff invite codes) by init.py — see issue #241. Position salary_amount is per salary_period in the realm's accounting currency; headcount x salary is the org's personnel budget line.",
   "invite": {
     "expires_in_hours": 720,
     "max_uses": 100
@@ -8,7 +8,10 @@
     {
       "name": "Civil Registry",
       "description": "Population register, identity records, and migration of existing citizens into the realm.",
-      "profiles": ["registrar", "clerk"],
+      "positions": [
+        { "title": "registrar", "profile": "registrar", "headcount": 2, "salary_amount": 3000 },
+        { "title": "clerk", "profile": "clerk", "headcount": 5, "salary_amount": 2200 }
+      ],
       "permissions": ["member.import", "member.read", "member.update", "registration_code.issue"],
       "policy": { "threshold_m": 1, "threshold_n": 1, "quorum_percent": 0 },
       "fund_code": "DEPT-CIVREG"
@@ -16,7 +19,10 @@
     {
       "name": "Treasury & Tax Office",
       "description": "Public finances, budgets, and (future) tax declarations and collection.",
-      "profiles": ["treasurer", "tax_officer"],
+      "positions": [
+        { "title": "treasurer", "profile": "treasurer", "headcount": 1, "salary_amount": 4500 },
+        { "title": "tax_officer", "profile": "tax_officer", "headcount": 4, "salary_amount": 2800 }
+      ],
       "permissions": ["treasury.read", "treasury.send", "invoice.create", "budget.read"],
       "policy": { "threshold_m": 2, "threshold_n": 3, "quorum_percent": 0 },
       "fund_code": "DEPT-TREAS"
@@ -24,7 +30,10 @@
     {
       "name": "Justice",
       "description": "Courts, dispute resolution, and enforcement oversight.",
-      "profiles": ["judge", "court_clerk"],
+      "positions": [
+        { "title": "judge", "profile": "judge", "headcount": 2, "salary_amount": 5000 },
+        { "title": "court_clerk", "profile": "court_clerk", "headcount": 3, "salary_amount": 2500 }
+      ],
       "permissions": ["case.read", "case.assign", "verdict.issue", "license.read"],
       "policy": { "threshold_m": 1, "threshold_n": 1, "quorum_percent": 0 },
       "fund_code": "DEPT-JUST"
@@ -32,7 +41,10 @@
     {
       "name": "Public Works & Land",
       "description": "Land zones, infrastructure, and the geographic organization of quarters.",
-      "profiles": ["land_officer", "operator"],
+      "positions": [
+        { "title": "land_officer", "profile": "land_officer", "headcount": 2, "salary_amount": 3000 },
+        { "title": "operator", "profile": "operator", "headcount": 4, "salary_amount": 2200 }
+      ],
       "permissions": ["zone.read", "zone.update", "land.read"],
       "policy": { "threshold_m": 1, "threshold_n": 1, "quorum_percent": 0 },
       "fund_code": "DEPT-WORKS"
@@ -40,7 +52,9 @@
     {
       "name": "Administration",
       "description": "Realm operations, role management, and lifecycle administration.",
-      "profiles": ["admin"],
+      "positions": [
+        { "title": "admin", "profile": "admin", "headcount": 2, "salary_amount": 4000 }
+      ],
       "permissions": ["role.assign", "role.revoke", "realm.lifecycle", "extension.manage"],
       "policy": { "threshold_m": 1, "threshold_n": 1, "quorum_percent": 0 },
       "fund_code": "DEPT-ADMIN"
