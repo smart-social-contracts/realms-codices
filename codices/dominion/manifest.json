@@ -1,5 +1,6 @@
 {
-  "version": "0.2.0",
+ "id": "dominion",
+ "version": "0.2.0",
 
   "currency": {
     "symbol": "DOM",

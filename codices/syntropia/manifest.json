@@ -1,11 +1,14 @@
 {
-  "version": "0.4.0",
+  "id": "syntropia",
+  "version": "0.4.1",
   "name": "Syntropia",
   "dependencies": [
     "passport_verification",
     "zone_selector",
     "land_registry",
-    "notifications"
+    "notifications",
+    "access_manager",
+    "role_manager"
   ],
   "onboarding": {
     "territory_mode": "greenfield",
