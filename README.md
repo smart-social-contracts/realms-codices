@@ -19,3 +19,14 @@ extensions it needs.
   open registration (defaults to `member`).
 - `entity_method_overrides` — hooks replacing entity methods (see
   `codices/_common`).
+
+## End-to-end testing
+
+Each codex ships an agent-executable test plan in
+`codices/<codex>/E2E_TEST_PROMPT.md`. Give an agent that prompt together with
+the shared preamble `testing/E2E_AGENT_GUIDE.md` (staging environment,
+authentication, Playwright conventions, universal checks) and it will drive a
+real browser through the wizard, founder/member/civil-servant journeys, and
+backend assertions, producing a pass/fail report. Prompt files are
+documentation only — the registry publisher does not ship `.md` files with
+the package.
