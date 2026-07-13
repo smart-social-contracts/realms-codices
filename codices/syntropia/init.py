@@ -25,7 +25,8 @@ def _load_json(filename):
     path = os.path.join(_DIR, filename)
     try:
         with open(path, "r") as f:
-            return json.load(f)
+            # IC WASM json module exposes loads/dumps only (no json.load).
+            return json.loads(f.read())
     except Exception as e:
         ic.print(f"⚠️  Could not load {filename}: {e}")
         return None
