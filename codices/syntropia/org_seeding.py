@@ -1,47 +1,27 @@
-"""Agora codex initialization.
+"""Organization scaffolding for the Syntropia codex.
 
-Agora is an *incumbent migration*: an existing public administration replacing
-its IT with Realms GOS. Onboarding is by registration code / bulk import (no ZK
-passport). This init:
-
-1. Writes the codex configuration into ``Realm.manifest_data`` so the backend
-   and the (input-driven) public dashboard can read it.
-2. Seeds the template org chart from ``departments.json`` as **real
-   Department organizations** — policy defaults, a Fund budget envelope,
-   permissions, staff profiles, Position seats (headcount + salary line),
-   and one multi-use invite code per position so civil servants can be
-   onboarded with a URL and appointed to their seat on redemption
-   (issue #241).
+Seeds the departments declared in ``departments.json`` as **real Department
+organizations**: policy defaults, a Fund budget envelope, permissions, staff
+profiles, Position seats (headcount + salary line), and one multi-use invite
+code per position so civil servants can be onboarded with a URL and appointed
+to their seat on redemption (issues #241/#244).
 
 Seeding is idempotent: existing departments/profiles/codes are left alone, so
 re-running init (upgrade, reinstall) never duplicates or resets creator edits.
 
-Zone and License entity creation is intentionally deferred (creator-triggered)
-to avoid hitting the IC 40B-instruction per-message limit on canisters with
-large amounts of existing state.
+Departments may declare a ``target_policy`` (e.g. 5-of-10) alongside the
+seeded ``policy``: fresh realms start founder-friendly (1/1) because a
+five-approval rule would deadlock a realm with one member; admins ratchet the
+policy up in Organizations once the seats are staffed.
 """
 
 from _cdk import ic
-from ggg import Realm
-import json
-import os
 
-_DIR = os.path.dirname(__file__)
-
-
-def _load_json(filename):
-    path = os.path.join(_DIR, filename)
-    try:
-        with open(path, "r") as f:
-            # IC WASM json module exposes loads/dumps only (no json.load).
-            return json.loads(f.read())
-    except Exception as e:
-        ic.print(f"⚠️  Could not load {filename}: {e}")
-        return None
-
+CODEX_ID = "syntropia"
+CODEX_LABEL = "Syntropia codex"
 
 # Baseline operations for seeded staff profiles (literal Operations values —
-# stable platform strings). Domain powers (member.import, treasury.send, …)
+# stable platform strings). Domain powers (treasury.send, zone.update, …)
 # live on the Department as Permission grants; the profile only needs
 # self-service + extension access.
 _STAFF_BASELINE_OPS = [
@@ -55,11 +35,7 @@ _STAFF_BASELINE_OPS = [
 
 
 def _position_specs(spec):
-    """Position specs for one department, with legacy ``profiles`` fallback.
-
-    New schema: ``positions: [{title, profile, headcount, salary_amount}]``.
-    Old schema: ``profiles: ["judge", ...]`` → one seat per profile.
-    """
+    """Position specs for one department, with legacy ``profiles`` fallback."""
     positions = spec.get("positions")
     if positions:
         return [
@@ -135,7 +111,7 @@ def seed_organizations(dept_data, realm):
                 UserProfile(
                     name=pname,
                     allowed_to=baseline,
-                    description=f"{name} staff profile (Agora codex)",
+                    description=f"{name} staff profile ({CODEX_LABEL})",
                 )
                 n_profiles += 1
 
@@ -162,7 +138,7 @@ def seed_organizations(dept_data, realm):
                     code=fund_code[:16],
                     name=f"{name} Fund",
                     fund_type=FundType.SPECIAL_REVENUE,
-                    description=f"Budget envelope for {name} (Agora codex)",
+                    description=f"Budget envelope for {name} ({CODEX_LABEL})",
                 )
             dept.fund = fund
 
@@ -176,8 +152,7 @@ def seed_organizations(dept_data, realm):
                 perm = Permission(name=perm_name)
             dept.permissions.add(perm)
 
-        # 5. Position seats: title + profile + headcount + salary line
-        #    (personnel budget planning = headcount x salary_amount).
+        # 5. Position seats: title + profile + headcount + salary line.
         for pspec in position_specs:
             if Position is None:
                 break
@@ -186,7 +161,7 @@ def seed_organizations(dept_data, realm):
                 Position(
                     key=key,
                     title=pspec["title"],
-                    description=f"{pspec['title']} at {name} (Agora codex)",
+                    description=f"{pspec['title']} at {name} ({CODEX_LABEL})",
                     department=dept,
                     profile=UserProfile[pspec["profile"]],
                     headcount=pspec["headcount"],
@@ -210,7 +185,7 @@ def seed_organizations(dept_data, realm):
                 continue
             RegistrationCode.create(
                 user_id="",
-                created_by="codex:agora",
+                created_by=f"codex:{CODEX_ID}",
                 frontend_url=frontend_url,
                 expires_in_hours=invite_hours,
                 profile=pname,
@@ -219,19 +194,6 @@ def seed_organizations(dept_data, realm):
                 position=key,
             )
             n_codes += 1
-
-        # 7. Department staff see the migration console in their sidebar
-        #    (extension installed beforehand via codex dependencies).
-        try:
-            from ggg import Extension
-
-            console_ext = Extension["migration_console"]
-            if console_ext and not any(
-                d.name == name for d in console_ext.departments
-            ):
-                console_ext.departments.add(dept)
-        except Exception:
-            pass
 
     # Root gets default manage authority over the freshly seeded orgs.
     try:
@@ -242,65 +204,6 @@ def seed_organizations(dept_data, realm):
         ic.print(f"⚠️  grant_root_authority_over_local_orgs unavailable: {e}")
 
     ic.print(
-        f"✅ Agora organizations seeded: {n_depts} departments, "
+        f"✅ {CODEX_LABEL} organizations seeded: {n_depts} departments, "
         f"{n_profiles} profiles, {n_positions} positions, {n_codes} invite codes"
     )
-
-
-realm = list(Realm.instances())[0] if Realm.instances() else None
-if realm:
-    manifest = _load_json("manifest.json") or {}
-
-    # Reference data files (JSON) shipped with the codex.
-    departments = _load_json(manifest.get("data_files", {}).get("departments", "departments.json"))
-
-    # Lifecycle metrics consumed by the public dashboard.
-    lifecycle = dict(manifest.get("lifecycle", {}))
-    population_target = lifecycle.get("population_target", 0)
-    lifecycle.setdefault("critical_mass", population_target)
-
-    # Keep manifest_data lean (Realm.manifest_data is capped at 4096 chars).
-    # Store only what the backend and public dashboard read.
-    department_names = [d.get("name", "") for d in (departments or {}).get("departments", [])]
-
-    realm_manifest = {
-        "entity_method_overrides": manifest.get("entity_method_overrides", []),
-        "onboarding": manifest.get("onboarding", {}),
-        "lifecycle": lifecycle,
-        "dashboard": manifest.get("dashboard", {}),
-        "dependencies": manifest.get("dependencies", []),
-        "departments": department_names,
-    }
-
-    realm.manifest_data = json.dumps(realm_manifest)
-
-    # The registration model is part of the codex's governance design —
-    # enforce it server-side so a stale or broken wizard can never produce
-    # a realm that contradicts its codex (issue #244). Agora is an incumbent
-    # migration: invitation/import only, never open registration.
-    registration = (manifest.get("onboarding", {}) or {}).get("registration", {}) or {}
-    if "open_registration" in registration:
-        realm.open_registration = bool(registration["open_registration"])
-        ic.print(f"✅ Registration policy enforced: open_registration={realm.open_registration}")
-
-    # Identity fields are the creator's, not the codex's: fill them only
-    # when the wizard left them empty — never overwrite a chosen realm name.
-    if manifest.get("name") and not getattr(realm, "name", ""):
-        realm.name = manifest["name"]
-    if manifest.get("manifesto") and not getattr(realm, "manifesto", ""):
-        realm.manifesto = manifest["manifesto"]
-    if manifest.get("welcome_message") and not getattr(realm, "welcome_message", ""):
-        realm.welcome_message = manifest["welcome_message"]
-
-    # Seed the org chart as real organizations (issue #241).
-    if departments:
-        try:
-            seed_organizations(departments, realm)
-        except Exception as e:
-            import traceback
-
-            ic.print(f"❌ Organization seeding failed: {e}\n{traceback.format_exc()}")
-
-    ic.print("✅ Agora (incumbent) manifest_data written")
-else:
-    ic.print("❌ No Realm found")

@@ -1,5 +1,5 @@
 {
-  "description": "Initial departments, positions, and permission assignments for the Agora incumbent migration. Mirrors a typical public administration org chart so an existing PA can map its staff 1-to-1. Seeded as real Department organizations (policy, fund, permissions, Position seats, staff invite codes) by init.py — see issue #241. Position salary_amount is per salary_period in the realm's accounting currency; headcount x salary is the org's personnel budget line.",
+  "description": "Initial departments, positions, and permission assignments for the Agora incumbent migration. Mirrors a typical public administration org chart so an existing PA can map its staff 1-to-1. Seeded as real Department organizations (policy, fund, permissions, Position seats, staff invite codes) by init.py — see issue #241. Policies start founder-friendly because a fresh realm has few members; each department declares a target_policy (5-of-10) that admins ratchet up in Organizations once the seats are staffed. Position salary_amount is per salary_period in the realm's accounting currency; headcount x salary is the org's personnel budget line.",
   "invite": {
     "expires_in_hours": 720,
     "max_uses": 100
@@ -14,18 +14,8 @@
       ],
       "permissions": ["member.import", "member.read", "member.update", "registration_code.issue"],
       "policy": { "threshold_m": 1, "threshold_n": 1, "quorum_percent": 0 },
+      "target_policy": { "threshold_m": 5, "threshold_n": 10 },
       "fund_code": "DEPT-CIVREG"
-    },
-    {
-      "name": "Treasury & Tax Office",
-      "description": "Public finances, budgets, and (future) tax declarations and collection.",
-      "positions": [
-        { "title": "treasurer", "profile": "treasurer", "headcount": 1, "salary_amount": 4500 },
-        { "title": "tax_officer", "profile": "tax_officer", "headcount": 4, "salary_amount": 2800 }
-      ],
-      "permissions": ["treasury.read", "treasury.send", "invoice.create", "budget.read"],
-      "policy": { "threshold_m": 2, "threshold_n": 3, "quorum_percent": 0 },
-      "fund_code": "DEPT-TREAS"
     },
     {
       "name": "Justice",
@@ -36,18 +26,57 @@
       ],
       "permissions": ["case.read", "case.assign", "verdict.issue", "license.read"],
       "policy": { "threshold_m": 1, "threshold_n": 1, "quorum_percent": 0 },
+      "target_policy": { "threshold_m": 5, "threshold_n": 10 },
       "fund_code": "DEPT-JUST"
     },
     {
-      "name": "Public Works & Land",
-      "description": "Land zones, infrastructure, and the geographic organization of quarters.",
+      "name": "Defense",
+      "description": "Civil protection, emergency response, and public security.",
+      "positions": [
+        { "title": "defense_director", "profile": "defense_director", "headcount": 1, "salary_amount": 4500 },
+        { "title": "security_officer", "profile": "security_officer", "headcount": 4, "salary_amount": 2800 }
+      ],
+      "permissions": ["defense.read", "incident.report", "incident.respond"],
+      "policy": { "threshold_m": 1, "threshold_n": 1, "quorum_percent": 0 },
+      "target_policy": { "threshold_m": 5, "threshold_n": 10 },
+      "fund_code": "DEPT-DEF"
+    },
+    {
+      "name": "Social Security",
+      "description": "Welfare benefits, pensions, social support, and redistribution programs.",
+      "positions": [
+        { "title": "benefits_officer", "profile": "benefits_officer", "headcount": 3, "salary_amount": 2800 },
+        { "title": "social_worker", "profile": "social_worker", "headcount": 5, "salary_amount": 2500 }
+      ],
+      "permissions": ["benefit.read", "benefit.grant", "welfare.distribute"],
+      "policy": { "threshold_m": 1, "threshold_n": 1, "quorum_percent": 0 },
+      "target_policy": { "threshold_m": 5, "threshold_n": 10 },
+      "fund_code": "DEPT-SOC"
+    },
+    {
+      "name": "Infrastructure",
+      "description": "Land zones, public works, and the geographic organization of quarters.",
       "positions": [
         { "title": "land_officer", "profile": "land_officer", "headcount": 2, "salary_amount": 3000 },
+        { "title": "engineer", "profile": "engineer", "headcount": 4, "salary_amount": 3000 },
         { "title": "operator", "profile": "operator", "headcount": 4, "salary_amount": 2200 }
       ],
-      "permissions": ["zone.read", "zone.update", "land.read"],
+      "permissions": ["zone.read", "zone.update", "land.read", "infrastructure.plan"],
       "policy": { "threshold_m": 1, "threshold_n": 1, "quorum_percent": 0 },
-      "fund_code": "DEPT-WORKS"
+      "target_policy": { "threshold_m": 5, "threshold_n": 10 },
+      "fund_code": "DEPT-INFRA"
+    },
+    {
+      "name": "Economy",
+      "description": "Public finances, treasury, budgets, and (future) tax declarations and collection.",
+      "positions": [
+        { "title": "treasurer", "profile": "treasurer", "headcount": 1, "salary_amount": 4500 },
+        { "title": "tax_officer", "profile": "tax_officer", "headcount": 4, "salary_amount": 2800 }
+      ],
+      "permissions": ["treasury.read", "treasury.send", "invoice.create", "budget.read", "tax.collect"],
+      "policy": { "threshold_m": 2, "threshold_n": 3, "quorum_percent": 0 },
+      "target_policy": { "threshold_m": 5, "threshold_n": 10 },
+      "fund_code": "DEPT-ECON"
     },
     {
       "name": "Administration",
@@ -57,6 +86,7 @@
       ],
       "permissions": ["role.assign", "role.revoke", "realm.lifecycle", "extension.manage"],
       "policy": { "threshold_m": 1, "threshold_n": 1, "quorum_percent": 0 },
+      "target_policy": { "threshold_m": 5, "threshold_n": 10 },
       "fund_code": "DEPT-ADMIN"
     }
   ]

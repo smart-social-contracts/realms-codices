@@ -31,6 +31,21 @@ def _load_json(filename):
         return None
 
 
+def _load_module(filename):
+    """Exec a sibling codex .py file into a namespace (init runs in a bare
+    exec namespace, so plain ``import`` cannot see package siblings)."""
+    path = os.path.join(_DIR, filename)
+    try:
+        with open(path, "r") as f:
+            code = f.read()
+        ns = {"__file__": path, "__name__": f"codex_syntropia_{filename[:-3]}"}
+        exec(compile(code, path, "exec"), ns)
+        return ns
+    except Exception as e:
+        ic.print(f"⚠️  Could not load module {filename}: {e}")
+        return None
+
+
 realm = list(Realm.instances())[0] if Realm.instances() else None
 if realm:
     manifest = _load_json("manifest.json") or {}
@@ -65,12 +80,33 @@ if realm:
     if not getattr(realm, "status", None):
         realm.status = "alpha"
 
-    if manifest.get("name"):
+    # The registration model is part of the codex's governance design —
+    # enforce it server-side so a stale or broken wizard can never produce
+    # a realm that contradicts its codex (issue #244).
+    registration = (manifest.get("onboarding", {}) or {}).get("registration", {}) or {}
+    if "open_registration" in registration:
+        realm.open_registration = bool(registration["open_registration"])
+        ic.print(f"✅ Registration policy enforced: open_registration={realm.open_registration}")
+
+    # Identity fields are the creator's, not the codex's: fill them only
+    # when the wizard left them empty — never overwrite a chosen realm name.
+    if manifest.get("name") and not getattr(realm, "name", ""):
         realm.name = manifest["name"]
-    if manifest.get("manifesto"):
+    if manifest.get("manifesto") and not getattr(realm, "manifesto", ""):
         realm.manifesto = manifest["manifesto"]
-    if manifest.get("welcome_message"):
+    if manifest.get("welcome_message") and not getattr(realm, "welcome_message", ""):
         realm.welcome_message = manifest["welcome_message"]
+
+    # Seed the org chart as real organizations (issues #241/#244).
+    if departments:
+        seeding = _load_module("org_seeding.py")
+        if seeding and "seed_organizations" in seeding:
+            try:
+                seeding["seed_organizations"](departments, realm)
+            except Exception as e:
+                import traceback
+
+                ic.print(f"❌ Organization seeding failed: {e}\n{traceback.format_exc()}")
 
     ic.print("✅ Syntropia (greenfield) manifest_data written")
 else:
