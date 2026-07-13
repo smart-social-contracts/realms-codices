@@ -1,13 +1,11 @@
 {
-  "version": "0.3.1",
+  "version": "0.4.0",
   "name": "Syntropia",
-  "currency": {
-    "symbol": "ckBTC",
-    "name": "ckBTC",
-    "decimals": 8
-  },
   "dependencies": [
-    "passport_verification"
+    "passport_verification",
+    "zone_selector",
+    "land_registry",
+    "notifications"
   ],
   "onboarding": {
     "territory_mode": "greenfield",
