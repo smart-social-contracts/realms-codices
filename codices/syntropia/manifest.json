@@ -1,7 +1,10 @@
 {
   "id": "syntropia",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "name": "Syntropia",
+  "kind": "codex",
+  "codex_api_version": 1,
+  "show_in_sidebar": false,
   "dependencies": [
     "passport_verification",
     "zone_selector",
@@ -99,17 +102,8 @@
     }
   },
   "data_files": {
-    "departments": "departments.json",
-    "justice_license": "justice_license.json",
-    "zones": "zones.json"
-  },
-  "entity_method_overrides": [
-    {
-      "entity": "User",
-      "method": "user_register_posthook",
-      "type": "staticmethod",
-      "implementation": "Codex.user_registration_hook.user_register_posthook",
-      "description": "Greenfield onboarding \u2014 passport verification prompt, deposit (a house in a zone) invoice, and Know-Your-Citizen submission"
-    }
-  ]
+    "departments": "data/departments.json",
+    "justice_license": "data/justice_license.json",
+    "zones": "data/zones.json"
+  }
 }

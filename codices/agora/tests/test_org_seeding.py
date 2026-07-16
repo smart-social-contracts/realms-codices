@@ -1,4 +1,5 @@
-"""Tests for init.py organization seeding — Agora incumbent migration (issue #241).
+"""Tests for the init/seed hooks' organization seeding — Agora incumbent
+migration (issues #241/#244).
 
 departments.json is seeded as real Department organizations: policy defaults,
 Fund budget envelope, permissions, staff profiles, Position seats (headcount +
@@ -28,7 +29,7 @@ from ggg import (
 
 _CODEX_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-with open(os.path.join(_CODEX_DIR, "departments.json")) as f:
+with open(os.path.join(_CODEX_DIR, "backend", "data", "departments.json")) as f:
     DEPT_DATA = json.load(f)
 
 SPEC_DEPTS = DEPT_DATA["departments"]
@@ -41,8 +42,12 @@ SPEC_POSITION_KEYS = {f"{name}/{p['title']}" for name, p in SPEC_POSITIONS}
 # A realm must exist before init runs.
 realm = Realm(name="Agoria Test")
 
-# Running init.py (module import executes it) writes manifest_data and seeds orgs.
-import init  # noqa: F401  (import side effect is the point)
+# The init hook (issue #244) writes manifest_data and seeds orgs.
+import entry
+import org_seeding
+
+init_result = json.loads(entry.init("{}"))
+assert init_result["success"], f"init hook failed: {init_result}"
 
 
 # ── manifest_data still written as before ────────────────────────────────────
@@ -184,7 +189,7 @@ before = (
     RegistrationCode.count(),
 )
 
-init.seed_organizations(DEPT_DATA, realm)
+org_seeding.seed_organizations(DEPT_DATA, realm)
 
 after = (
     Department.count(),
@@ -216,7 +221,7 @@ for c in RegistrationCode.find_by_department("Justice"):
     if c.profile == "judge" and c.position:
         c.delete()
 
-init.seed_organizations(DEPT_DATA, realm)
+org_seeding.seed_organizations(DEPT_DATA, realm)
 assert legacy.position == "Justice/judge", (
     f"legacy invite not backfilled: {legacy.position!r}"
 )

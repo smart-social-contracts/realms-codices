@@ -27,10 +27,16 @@ import os
 # ---------------------------------------------------------------------------
 
 def _load_manifest() -> dict:
-    """Load manifest.json from the codex directory."""
-    manifest_path = os.path.join(os.path.dirname(__file__), "manifest.json")
-    with open(manifest_path) as f:
-        return json.load(f)
+    """Load manifest.json from the codex package (searches upward: the
+    module may live at the package root, in backend/, or backend/modules/)."""
+    d = os.path.dirname(os.path.abspath(__file__))
+    for _ in range(3):
+        candidate = os.path.join(d, "manifest.json")
+        if os.path.exists(candidate):
+            with open(candidate) as f:
+                return json.load(f)
+        d = os.path.dirname(d)
+    raise FileNotFoundError("manifest.json not found in codex package")
 
 
 def get_params() -> dict:

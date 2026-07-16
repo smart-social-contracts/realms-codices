@@ -20,12 +20,14 @@ REALM_NAME = "Syntropia"
 
 
 def _manifest():
-    path = os.path.join(os.path.dirname(__file__), "manifest.json")
-    try:
-        with open(path, "r") as f:
-            return json.load(f)
-    except Exception:
-        return {}
+    d = os.path.dirname(os.path.abspath(__file__))
+    for _ in range(3):
+        try:
+            with open(os.path.join(d, "manifest.json"), "r") as f:
+                return json.load(f)
+        except Exception:
+            d = os.path.dirname(d)
+    return {}
 
 
 def user_register_posthook(user):

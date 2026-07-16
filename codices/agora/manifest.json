@@ -1,7 +1,10 @@
 {
   "id": "agora",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "name": "Agora",
+  "kind": "codex",
+  "codex_api_version": 1,
+  "show_in_sidebar": false,
   "dependencies": [
     "access_manager",
     "role_manager",
@@ -89,24 +92,8 @@
     }
   },
   "data_files": {
-    "departments": "departments.json",
-    "justice_license": "justice_license.json",
-    "zones": "zones.json"
-  },
-  "entity_method_overrides": [
-    {
-      "entity": "User",
-      "method": "user_register_posthook",
-      "type": "staticmethod",
-      "implementation": "Codex.user_registration_hook.user_register_posthook",
-      "description": "Incumbent migration onboarding \u2014 no payment during alpha/beta; shows declaration and future tax deadlines"
-    },
-    {
-      "entity": "Treasury",
-      "method": "send",
-      "type": "staticmethod",
-      "implementation": "Codex.treasury_send_hook.send_hook",
-      "description": "Custom send hook for treasuries using vault extension"
-    }
-  ]
+    "departments": "data/departments.json",
+    "justice_license": "data/justice_license.json",
+    "zones": "data/zones.json"
+  }
 }

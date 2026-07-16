@@ -1,6 +1,10 @@
 {
- "id": "dominion",
- "version": "0.2.0",
+  "id": "dominion",
+  "version": "0.3.0",
+  "name": "Dominion",
+  "kind": "codex",
+  "codex_api_version": 1,
+  "show_in_sidebar": false,
 
   "currency": {
     "symbol": "DOM",
@@ -30,15 +34,5 @@
   "membership": {
     "activation_requires": ["passport_verified", "invoice_paid"],
     "invoice_validity_days": 30
-  },
-
-  "entity_method_overrides": [
-    {
-      "entity": "User",
-      "method": "user_register_posthook",
-      "type": "staticmethod",
-      "implementation": "Codex.user_registration_hook.user_register_posthook",
-      "description": "Custom post-registration hook — creates initial invoices for new users"
-    }
-  ]
+  }
 }
