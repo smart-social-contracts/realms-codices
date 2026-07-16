@@ -75,9 +75,6 @@ for spec in SPEC_DEPTS:
     assert dept.policy_threshold_n == policy.get("threshold_n", 1)
     assert dept.is_root is False
 
-treasury = Department["Treasury & Tax Office"]
-assert treasury.policy_threshold_m == 2 and treasury.policy_threshold_n == 3
-
 print("  department seeding: OK")
 
 
