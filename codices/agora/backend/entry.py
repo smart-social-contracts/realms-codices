@@ -7,12 +7,18 @@ through the hooks defined here — no ``entity_method_overrides``, no
 exec'd ``init.py``.
 
 Hooks implemented:
-  get_config          — manifest config blocks (single source of realm policy)
+  get_config          — manifest config blocks (single source of realm policy),
+                        with deploy-time lifecycle overrides (issue #253)
   init                — post-install realm setup: manifest_data, server-side
                         registration-policy enforcement, org seeding
   seed                — idempotent org-chart re-seed (admin re-run)
   on_user_register    — migration onboarding: activation + phase-aware invoice
+  on_stage_change     — beta: tax/membership invoicing starts (issue #253)
   on_treasury_send    — treasury transfers through the vault extension
+
+Extension methods (extension_sync_call "agora"):
+  run_payroll         — record salary payments for filled positions from
+                        department funds (issue #253)
 """
 
 import json
@@ -75,9 +81,27 @@ def _realm():
 
 
 def get_config(args: str) -> str:
-    """Realm configuration blocks declared by this codex."""
+    """Realm configuration blocks declared by this codex.
+
+    Deploy/test-time parameterization (issue #253): a realm admin may patch
+    ``lifecycle_overrides`` into ``Realm.manifest_data`` (via realm_settings
+    ``patch_manifest_data``); those keys are applied over the codex-declared
+    ``lifecycle`` block, so e.g. ``population_target`` or
+    ``beta_proving_days`` can be tuned per deployment without republishing
+    the codex.
+    """
     manifest = _manifest()
     config = {k: v for k, v in manifest.items() if k not in _NON_CONFIG_KEYS}
+    try:
+        realm = _realm()
+        raw = getattr(realm, "manifest_data", "") or "{}" if realm else "{}"
+        overrides = (json.loads(raw) or {}).get("lifecycle_overrides") or {}
+        if isinstance(overrides, dict) and overrides:
+            lifecycle = dict(config.get("lifecycle", {}) or {})
+            lifecycle.update(overrides)
+            config["lifecycle"] = lifecycle
+    except Exception as e:
+        ic.print(f"⚠️  Agora: could not apply lifecycle_overrides: {e}")
     return json.dumps(config)
 
 
@@ -175,9 +199,10 @@ def seed(args: str) -> str:
 
 
 def on_user_register(args: str) -> str:
-    """Migration onboarding — no payment during alpha/beta; a registration
-    invoice is issued only once the realm is live (production) and only if a
-    registration fee is configured."""
+    """Migration onboarding — no payment during alpha; a registration invoice
+    is issued once the realm reaches **beta** (money starts flowing at the
+    Beta transition, issue #253) and only if a registration fee is
+    configured."""
     from ggg import Invoice, Notification, User
     from ic_basilisk_toolkit.date_utils import epoch_to_datetime_str, ic_time_to_epoch
 
@@ -210,8 +235,9 @@ def on_user_register(args: str) -> str:
         except Exception as e:
             ic.print(f"Agora: could not activate member {user.id}: {e}")
 
-        # Live realm with a real fee: issue a registration invoice.
-        if stage == "production" and fee and fee > 0:
+        # Beta or live realm with a real fee: issue a registration invoice
+        # (payments start at the Beta transition, issue #253).
+        if stage in ("beta", "production") and fee and fee > 0:
             due_date = epoch_to_datetime_str(
                 now_epoch + validity_days * 86400
             ).replace(" ", "T")
@@ -246,14 +272,14 @@ def on_user_register(args: str) -> str:
             )
             return json.dumps({"success": True, "invoice_id": invoice.id})
 
-        # Migration phases (alpha/beta): no payment, informational only.
+        # Alpha (migration preparation): no payment, informational only.
         Notification(
             topic="welcome",
             title=f"Welcome to {REALM_NAME}",
             message=(
                 f"Your account has been migrated into **{REALM_NAME}** during the **{stage}** phase. "
                 f"**Nothing to pay for now.** Your member dashboard shows your declaration and any "
-                f"*potential future* tax deadlines so you can prepare ahead of go-live. "
+                f"*potential future* tax deadlines so you can prepare ahead of the beta transition. "
                 f"Questions? Ask the **AI Assistant** — it knows everything about this realm."
             ),
             sender="Administration",
@@ -271,6 +297,71 @@ def on_user_register(args: str) -> str:
 
     except Exception as e:
         ic.print(f"Error in Agora on_user_register: {e}")
+        return json.dumps({"success": False, "error": str(e)})
+
+
+def _lifecycle_billing():
+    # Prefer the top-level sibling module — the runtime loader only preloads
+    # backend/*.py, not backend/modules/*.py (see runtime_extensions._load_module).
+    try:
+        from . import lifecycle_billing  # installed (package sibling)
+    except ImportError:
+        try:
+            import lifecycle_billing  # local test (flat path)
+        except ImportError:
+            from modules import lifecycle_billing  # source-tree fallback
+    return lifecycle_billing
+
+
+def on_stage_change(args: str) -> str:
+    """React to lifecycle transitions (issue #253).
+
+    Entering **beta** starts the money flow: every citizen receives a
+    tax/membership invoice and the payroll baseline is recorded so admin
+    salaries begin accruing from department funds.
+    """
+    try:
+        params = json.loads(args) if args else {}
+        to_stage = (params.get("to_stage") or "").strip().lower()
+        if to_stage != "beta":
+            return json.dumps({"success": True, "skipped": f"no action for {to_stage}"})
+
+        manifest = _manifest()
+        billing = _lifecycle_billing()
+        invoices = billing.issue_membership_invoices(manifest, REALM_NAME)
+        payroll = billing.run_payroll(manifest, REALM_NAME)
+
+        return json.dumps({
+            "success": True,
+            "invoiced": invoices.get("invoiced", 0),
+            "payroll_payments": len(payroll.get("payments", [])),
+        })
+    except Exception as e:
+        ic.print(f"Error in Agora on_stage_change: {e}")
+        return json.dumps({"success": False, "error": str(e)})
+
+
+def run_payroll(args: str) -> str:
+    """Record salary payments for all filled seats (admin/testing entry point,
+    callable via ``extension_sync_call("agora", "run_payroll", "{}")``)."""
+    try:
+        from core.access import _check_access
+        from ggg.system.user_profile import Operations
+
+        caller = ic.caller().to_str()
+        if not _check_access(caller, Operations.REALM_ADMIN):
+            return json.dumps({
+                "success": False,
+                "error": f"Access denied: {caller} is not a realm admin",
+            })
+    except Exception:
+        pass
+
+    try:
+        result = _lifecycle_billing().run_payroll(_manifest(), REALM_NAME)
+        return json.dumps(result)
+    except Exception as e:
+        ic.print(f"Error in Agora run_payroll: {e}")
         return json.dumps({"success": False, "error": str(e)})
 
 

@@ -4,7 +4,9 @@
   "type": "module",
   "scripts": {
     "test": "playwright test",
-    "test:agora": "playwright test specs/agora.spec.ts"
+    "test:agora": "playwright test specs/agora.spec.ts",
+    "test:agora-lifecycle": "playwright test specs/agora-lifecycle.spec.ts",
+    "test:syntropia-lifecycle": "playwright test specs/syntropia-lifecycle.spec.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0"
@@ -12,6 +14,7 @@
   "dependencies": {
     "@dfinity/agent": "^3.4.3",
     "@dfinity/candid": "^3.4.3",
+    "@dfinity/identity": "^3.4.3",
     "@dfinity/principal": "^3.4.3"
   }
 }

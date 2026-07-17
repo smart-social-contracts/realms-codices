@@ -10,11 +10,21 @@ The codex integrates with the core exclusively through the hooks defined
 here — no ``entity_method_overrides``, no exec'd ``init.py``.
 
 Hooks implemented:
-  get_config          — manifest config blocks (single source of realm policy)
+  get_config          — manifest config blocks (single source of realm policy),
+                        with deploy-time lifecycle overrides (issue #253)
   init                — post-install realm setup: manifest_data, server-side
                         registration-policy enforcement, org seeding
   seed                — idempotent org-chart re-seed (admin re-run)
   on_user_register    — greenfield onboarding: deposit invoice + welcome steps
+  on_stage_change     — beta: tax/membership invoicing starts + citizens are
+                        asked to submit their actual identity (issue #253)
+
+Extension methods (extension_sync_call "syntropia"):
+  run_payroll               — record salary payments from department funds
+  submit_identity           — citizen submits real identity (simple mock;
+                              reviewed by the Citizenship & Identity dept)
+  review_identity           — registrar approves/rejects a submission
+  list_identity_attestations — registrar/admin listing
 """
 
 import json
@@ -77,9 +87,26 @@ def _realm():
 
 
 def get_config(args: str) -> str:
-    """Realm configuration blocks declared by this codex."""
+    """Realm configuration blocks declared by this codex.
+
+    Deploy/test-time parameterization (issue #253): a realm admin may patch
+    ``lifecycle_overrides`` into ``Realm.manifest_data`` (via realm_settings
+    ``patch_manifest_data``); those keys are applied over the codex-declared
+    ``lifecycle`` block, so e.g. ``critical_mass`` or ``beta_proving_days``
+    can be tuned per deployment without republishing the codex.
+    """
     manifest = _manifest()
     config = {k: v for k, v in manifest.items() if k not in _NON_CONFIG_KEYS}
+    try:
+        realm = _realm()
+        raw = getattr(realm, "manifest_data", "") or "{}" if realm else "{}"
+        overrides = (json.loads(raw) or {}).get("lifecycle_overrides") or {}
+        if isinstance(overrides, dict) and overrides:
+            lifecycle = dict(config.get("lifecycle", {}) or {})
+            lifecycle.update(overrides)
+            config["lifecycle"] = lifecycle
+    except Exception as e:
+        ic.print(f"⚠️  Syntropia: could not apply lifecycle_overrides: {e}")
     return json.dumps(config)
 
 
@@ -250,4 +277,309 @@ def on_user_register(args: str) -> str:
 
     except Exception as e:
         ic.print(f"Error in Syntropia on_user_register: {e}")
+        return json.dumps({"success": False, "error": str(e)})
+
+
+# ---------------------------------------------------------------------------
+# Beta transition: billing, payroll, real-identity submission (issue #253)
+# ---------------------------------------------------------------------------
+
+
+def _lifecycle_billing():
+    # Prefer the top-level sibling module — the runtime loader only preloads
+    # backend/*.py, not backend/modules/*.py (see runtime_extensions._load_module).
+    try:
+        from . import lifecycle_billing  # installed (package sibling)
+    except ImportError:
+        try:
+            import lifecycle_billing  # local test (flat path)
+        except ImportError:
+            from modules import lifecycle_billing  # source-tree fallback
+    return lifecycle_billing
+
+
+def on_stage_change(args: str) -> str:
+    """React to lifecycle transitions (issue #253).
+
+    Entering **beta** starts the money flow (tax/membership invoices,
+    payroll baseline) and asks every citizen to submit their *actual*
+    identity — beyond the anonymous ZK passport proof — to the
+    Citizenship & Identity department.
+    """
+    try:
+        params = json.loads(args) if args else {}
+        to_stage = (params.get("to_stage") or "").strip().lower()
+        if to_stage != "beta":
+            return json.dumps({"success": True, "skipped": f"no action for {to_stage}"})
+
+        manifest = _manifest()
+        billing = _lifecycle_billing()
+        invoices = billing.issue_membership_invoices(manifest, REALM_NAME)
+        payroll = billing.run_payroll(manifest, REALM_NAME)
+        notified = _request_identity_submissions()
+
+        return json.dumps({
+            "success": True,
+            "invoiced": invoices.get("invoiced", 0),
+            "payroll_payments": len(payroll.get("payments", [])),
+            "identity_requests": notified,
+        })
+    except Exception as e:
+        ic.print(f"Error in Syntropia on_stage_change: {e}")
+        return json.dumps({"success": False, "error": str(e)})
+
+
+def _request_identity_submissions() -> int:
+    """Notify every citizen to submit their real identity (beta requirement)."""
+    from ggg import Notification
+    from ic_basilisk_toolkit.date_utils import epoch_to_datetime_str, ic_time_to_epoch
+
+    from core.membership import iter_users, user_has_profile
+
+    now_epoch = ic_time_to_epoch(ic.time())
+    notified = 0
+    for user in iter_users():
+        if not user_has_profile(user, "member"):
+            continue
+        Notification(
+            topic="identity",
+            title="Submit your identity",
+            message=(
+                f"**{REALM_NAME}** has entered **beta**. Citizens must now "
+                f"submit their actual identity (name + document reference) to "
+                f"the *Citizenship & Identity* department — your anonymous "
+                f"ZK-passport proof is no longer sufficient for this stage."
+            ),
+            sender="Citizenship & Identity",
+            recipient=str(user.id),
+            user=user,
+            read=False,
+            icon="identification",
+            href="/extensions/member_dashboard",
+            color="yellow",
+            metadata="identity_submission_request",
+            timestamp_created=epoch_to_datetime_str(now_epoch)[:16],
+        )
+        notified += 1
+    ic.print(f"Syntropia: requested identity submission from {notified} citizen(s)")
+    return notified
+
+
+def run_payroll(args: str) -> str:
+    """Record salary payments for all filled seats (admin/testing entry point,
+    callable via ``extension_sync_call("syntropia", "run_payroll", "{}")``)."""
+    try:
+        from core.access import _check_access
+        from ggg.system.user_profile import Operations
+
+        caller = ic.caller().to_str()
+        if not _check_access(caller, Operations.REALM_ADMIN):
+            return json.dumps({
+                "success": False,
+                "error": f"Access denied: {caller} is not a realm admin",
+            })
+    except Exception:
+        pass
+
+    try:
+        result = _lifecycle_billing().run_payroll(_manifest(), REALM_NAME)
+        return json.dumps(result)
+    except Exception as e:
+        ic.print(f"Error in Syntropia run_payroll: {e}")
+        return json.dumps({"success": False, "error": str(e)})
+
+
+# ---------------------------------------------------------------------------
+# Real-identity attestations (mock, issue #253)
+# ---------------------------------------------------------------------------
+#
+# A deliberately simple flow owned by the Citizenship & Identity department:
+# citizens submit name + document reference; a registrar (or admin) marks the
+# attestation approved/rejected. No real verification — this stands in for a
+# future integration.
+
+_IDENTITY_REVIEW_DEPARTMENT = "Citizenship & Identity"
+_IdentityAttestation = None
+
+
+def _identity_attestation_cls():
+    global _IdentityAttestation
+    if _IdentityAttestation is not None:
+        return _IdentityAttestation
+
+    from core.extensions import create_extension_entity_class
+    from ic_python_db import Integer, String
+
+    ExtensionEntity = create_extension_entity_class("syntropia")
+
+    class IdentityAttestation(ExtensionEntity):
+        __alias__ = "user_id"
+
+        user_id = String(max_length=128)
+        full_name = String(max_length=256)
+        document_ref = String(max_length=256)
+        status = String(max_length=16, default="submitted")
+        reviewed_by = String(max_length=128)
+        submitted_at = Integer(default=0)
+        reviewed_at = Integer(default=0)
+
+    _IdentityAttestation = IdentityAttestation
+    return IdentityAttestation
+
+
+def register_entities() -> None:
+    """Register codex-scoped entity types (called by the extension loader)."""
+    _identity_attestation_cls()
+
+
+def _attestation_to_dict(att) -> dict:
+    return {
+        "user_id": att.user_id,
+        "full_name": att.full_name or "",
+        "document_ref": att.document_ref or "",
+        "status": att.status or "submitted",
+        "reviewed_by": att.reviewed_by or "",
+        "submitted_at": int(att.submitted_at or 0),
+        "reviewed_at": int(att.reviewed_at or 0),
+    }
+
+
+def _can_review_identity(caller: str) -> bool:
+    """Registrars of Citizenship & Identity, department head, or realm admin."""
+    try:
+        from core.access import _check_access
+        from ggg.system.user_profile import Operations
+
+        if _check_access(caller, Operations.REALM_ADMIN):
+            return True
+    except Exception:
+        pass
+    try:
+        from ggg import Department, User
+
+        from core.membership import user_has_profile, user_in_department
+
+        user = User[caller]
+        dept = Department[_IDENTITY_REVIEW_DEPARTMENT]
+        if user is None or dept is None:
+            return False
+        head = getattr(dept, "head", None)
+        if head is not None and str(getattr(head, "id", "")) == caller:
+            return True
+        return user_in_department(user, dept) and user_has_profile(user, "registrar")
+    except Exception:
+        return False
+
+
+def submit_identity(args: str) -> str:
+    """Citizen submits their actual identity (mock — no verification).
+
+    Args: {"full_name": "...", "document_ref": "..."}
+    """
+    try:
+        params = json.loads(args) if args else {}
+        full_name = (params.get("full_name") or "").strip()
+        document_ref = (params.get("document_ref") or "").strip()
+        if not full_name or not document_ref:
+            return json.dumps({
+                "success": False,
+                "error": "full_name and document_ref are required",
+            })
+
+        caller = ic.caller().to_str()
+        from ggg import User
+
+        if User[caller] is None:
+            return json.dumps({
+                "success": False,
+                "error": "caller is not a registered user",
+            })
+
+        IdentityAttestation = _identity_attestation_cls()
+        now = int(ic.time()) // 1_000_000_000
+
+        att = IdentityAttestation[caller]
+        if att is None:
+            att = IdentityAttestation(
+                user_id=caller,
+                full_name=full_name,
+                document_ref=document_ref,
+                status="submitted",
+                submitted_at=now,
+            )
+        else:
+            # Resubmission resets the review.
+            att.full_name = full_name
+            att.document_ref = document_ref
+            att.status = "submitted"
+            att.reviewed_by = ""
+            att.reviewed_at = 0
+            att.submitted_at = now
+
+        ic.print(f"Syntropia: identity submitted by {caller}")
+        return json.dumps({"success": True, "attestation": _attestation_to_dict(att)})
+    except Exception as e:
+        ic.print(f"Error in Syntropia submit_identity: {e}")
+        return json.dumps({"success": False, "error": str(e)})
+
+
+def review_identity(args: str) -> str:
+    """Registrar approves/rejects a citizen's identity submission.
+
+    Args: {"user_id": "...", "approve": true}
+    """
+    try:
+        params = json.loads(args) if args else {}
+        user_id = (params.get("user_id") or "").strip()
+        approve = bool(params.get("approve", True))
+        if not user_id:
+            return json.dumps({"success": False, "error": "user_id is required"})
+
+        caller = ic.caller().to_str()
+        if not _can_review_identity(caller):
+            return json.dumps({
+                "success": False,
+                "error": (
+                    f"Access denied: {caller} is not a Citizenship & Identity "
+                    f"registrar or realm admin"
+                ),
+            })
+
+        IdentityAttestation = _identity_attestation_cls()
+        att = IdentityAttestation[user_id]
+        if att is None:
+            return json.dumps({
+                "success": False,
+                "error": f"No identity submission found for {user_id}",
+            })
+
+        att.status = "approved" if approve else "rejected"
+        att.reviewed_by = caller
+        att.reviewed_at = int(ic.time()) // 1_000_000_000
+
+        ic.print(
+            f"Syntropia: identity of {user_id} "
+            f"{'approved' if approve else 'rejected'} by {caller}"
+        )
+        return json.dumps({"success": True, "attestation": _attestation_to_dict(att)})
+    except Exception as e:
+        ic.print(f"Error in Syntropia review_identity: {e}")
+        return json.dumps({"success": False, "error": str(e)})
+
+
+def list_identity_attestations(args: str) -> str:
+    """List identity submissions (reviewers only)."""
+    try:
+        caller = ic.caller().to_str()
+        if not _can_review_identity(caller):
+            return json.dumps({
+                "success": False,
+                "error": f"Access denied: {caller} may not list identity submissions",
+            })
+
+        IdentityAttestation = _identity_attestation_cls()
+        items = [_attestation_to_dict(a) for a in IdentityAttestation.instances()]
+        return json.dumps({"success": True, "attestations": items, "count": len(items)})
+    except Exception as e:
+        ic.print(f"Error in Syntropia list_identity_attestations: {e}")
         return json.dumps({"success": False, "error": str(e)})

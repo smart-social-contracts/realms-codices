@@ -1,6 +1,6 @@
 {
   "id": "agora",
-  "version": "0.7.0",
+  "version": "0.8.1",
   "name": "Agora",
   "kind": "codex",
   "codex_api_version": 1,
@@ -11,7 +11,9 @@
     "notifications",
     "metrics",
     "land_registry",
-    "migration_console"
+    "migration_console",
+    "zone_selector",
+    "procurement"
   ],
   "onboarding": {
     "territory_mode": "incumbent",
@@ -26,6 +28,7 @@
   },
   "lifecycle": {
     "population_target": 100000,
+    "beta_proving_days": 30,
     "transitions": {
       "alpha_to_beta": {
         "mode": "checklist"

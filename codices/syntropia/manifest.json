@@ -1,6 +1,6 @@
 {
   "id": "syntropia",
-  "version": "0.6.0",
+  "version": "0.7.1",
   "name": "Syntropia",
   "kind": "codex",
   "codex_api_version": 1,
@@ -11,7 +11,8 @@
     "land_registry",
     "notifications",
     "access_manager",
-    "role_manager"
+    "role_manager",
+    "procurement"
   ],
   "onboarding": {
     "territory_mode": "greenfield",
@@ -32,6 +33,7 @@
     "deposit_amount": 0.01,
     "deposit_label": "a house in a zone",
     "go_live_target": "2027-01-01T00:00:00",
+    "beta_proving_days": 30,
     "transitions": {
       "alpha_to_beta": {
         "mode": "auto_milestones",

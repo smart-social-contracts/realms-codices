@@ -6,6 +6,18 @@
   },
   "departments": [
     {
+      "name": "Congress",
+      "description": "Supreme legislative authority. Receives root from the creator at the Beta transition and holds all realm permissions from then on; decides the move to Live by vote.",
+      "positions": [
+        { "title": "speaker", "profile": "speaker", "headcount": 1, "salary_amount": 5000 },
+        { "title": "congress_member", "profile": "congress_member", "headcount": 5, "salary_amount": 4000 }
+      ],
+      "permissions": ["realm.lifecycle", "governance.update", "proposal.create", "org.appoint", "org.set_policy"],
+      "policy": { "threshold_m": 1, "threshold_n": 1, "quorum_percent": 0 },
+      "target_policy": { "threshold_m": 5, "threshold_n": 10 },
+      "fund_code": "DEPT-CONGRESS"
+    },
+    {
       "name": "Citizenship & Identity",
       "description": "ZK passport onboarding, Know-Your-Citizen review, and deposit verification.",
       "positions": [
