@@ -509,12 +509,12 @@ print("Land parcels: " + str(Land.count()))
 zone_central = Zone(
     h3_index="861203a4fffffff", name=ts + " Central District",
     description="Main commercial and administrative zone",
-    latitude=34.0522, longitude=-118.2437, resolution=6.0,
+    zone_type="commercial",
 )
 zone_residential = Zone(
     h3_index="861203a5fffffff", name=ts + " Residential Quarter",
     description="Primary residential area",
-    latitude=34.0550, longitude=-118.2400, resolution=6.0, land=land_res,
+    zone_type="residential", land=land_res,
 )
 print("Zones: " + str(Zone.count()))
 

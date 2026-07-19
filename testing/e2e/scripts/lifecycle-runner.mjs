@@ -472,15 +472,13 @@ export class LifecycleHarness {
     // Offset per codex so Agora/Syntropia capitals don't share one map pin.
     const codexShift = this.codex === 'syntropia' ? 0.12 : 0;
     for (let i = 0; i < count; i++) {
-      // Pass an explicit h3_index so we skip core.h3.latlng_to_cell —
-      // staging's Python runtime stubs math.radians, which breaks H3.
+      // The backend stores only the H3 cell index; geometry is computed on
+      // the frontend using h3-js. Use a deterministic pseudo-cell id here.
       const lat = 41.38 + codexShift + i * 0.05;
       const lng = 2.17 + codexShift * 0.5 + i * 0.05;
       const res = await extCall(actor, 'zone_selector', 'add_zone', {
         user_id: testPrincipal(byIndex),
         h3_index: `e2e_${lat.toFixed(4)}_${lng.toFixed(4)}`,
-        latitude: lat,
-        longitude: lng,
         name: `E2E Zone ${i + 1}`,
         description: `Zone defined by Infrastructure during the ${this.codex} lifecycle E2E`,
       });

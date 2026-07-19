@@ -1,9 +1,9 @@
 {
   "description": "Initial land zones for Agora. As an incumbent migration, quarters are well-defined in advance and each maps to specific, pre-existing administrative zones.",
   "zones": [
-    { "name": "Central District", "description": "Historic administrative core and civic center.", "h3_index": "", "latitude": 48.8566, "longitude": 2.3522 },
-    { "name": "North Quarter", "description": "Residential and education zone.", "h3_index": "", "latitude": 48.8966, "longitude": 2.3522 },
-    { "name": "South Quarter", "description": "Industrial and public works zone.", "h3_index": "", "latitude": 48.8166, "longitude": 2.3522 },
-    { "name": "Riverside", "description": "Mixed-use waterfront and commerce zone.", "h3_index": "", "latitude": 48.8566, "longitude": 2.3922 }
+    { "name": "Central District", "description": "Historic administrative core and civic center.", "h3_index": "871fb4662ffffff", "zone_type": "public" },
+    { "name": "North Quarter", "description": "Residential and education zone.", "h3_index": "871fb4664ffffff", "zone_type": "residential" },
+    { "name": "South Quarter", "description": "Industrial and public works zone.", "h3_index": "871fb4646ffffff", "zone_type": "industrial" },
+    { "name": "Riverside", "description": "Mixed-use waterfront and commerce zone.", "h3_index": "871fb4663ffffff", "zone_type": "mixed" }
   ]
 }

@@ -20,9 +20,7 @@ import json
 
 
 def create_zone(name: str, description: str, category: str = "general",
-                h3_index: str = "", latitude: float = 0.0,
-                longitude: float = 0.0, resolution: float = 7.0,
-                parent_zone_id: str = None) -> dict:
+                h3_index: str = "", parent_zone_id: str = None) -> dict:
     """Create a new zone of action.
 
     Args:
@@ -31,9 +29,6 @@ def create_zone(name: str, description: str, category: str = "general",
         category: Zone type — e.g. administrative, health, police,
                   infrastructure, judicial, economic, general.
         h3_index: H3 hexagonal cell index for spatial location.
-        latitude: Centre latitude of the zone.
-        longitude: Centre longitude of the zone.
-        resolution: H3 resolution level (0-15).
         parent_zone_id: Optional parent zone for hierarchical nesting.
 
     Returns:
@@ -52,9 +47,7 @@ def create_zone(name: str, description: str, category: str = "general",
         h3_index=h3_index,
         name=name,
         description=description,
-        latitude=latitude,
-        longitude=longitude,
-        resolution=resolution,
+        zone_type=category,
         metadata=json.dumps(meta),
     )
 
@@ -63,6 +56,7 @@ def create_zone(name: str, description: str, category: str = "general",
         "name": zone.name,
         "category": category,
         "h3_index": zone.h3_index,
+        "zone_type": zone.zone_type,
         "status": "active",
     }
 
@@ -103,7 +97,9 @@ def update_zone(zone_id: str, updates: dict) -> dict:
     return {
         "zone_id": zone_id,
         "name": zone.name,
+        "h3_index": zone.h3_index,
         "category": meta.get("category"),
+        "zone_type": zone.zone_type,
         "status": meta.get("status"),
     }
 
@@ -214,9 +210,7 @@ def get_zone(zone_id: str) -> dict:
         "name": zone.name,
         "description": zone.description,
         "h3_index": zone.h3_index,
-        "latitude": zone.latitude,
-        "longitude": zone.longitude,
-        "resolution": zone.resolution,
+        "zone_type": zone.zone_type,
         "category": meta.get("category"),
         "status": meta.get("status"),
         "assigned_licenses": meta.get("assigned_licenses", []),
@@ -229,35 +223,31 @@ def get_zone(zone_id: str) -> dict:
 # ---------------------------------------------------------------------------
 
 def create_sample_zones():
-    """Create sample zones for a generic western state"""
+    """Create sample zones for a generic western state."""
     zones = [
         {
             "name": "Capital District",
             "description": "Central administrative and governmental zone.",
             "category": "administrative",
-            "latitude": 48.8566,
-            "longitude": 2.3522,
+            "h3_index": "871fb4662ffffff",
         },
         {
             "name": "Northern Health Region",
             "description": "Health service delivery area covering the northern territories.",
             "category": "health",
-            "latitude": 50.6292,
-            "longitude": 3.0573,
+            "h3_index": "87194d29affffff",
         },
         {
             "name": "Southern Industrial Corridor",
             "description": "Zone with special infrastructure and industrial licensing.",
             "category": "infrastructure",
-            "latitude": 43.2965,
-            "longitude": 5.3698,
+            "h3_index": "873968152ffffff",
         },
         {
             "name": "Eastern Judicial Circuit",
             "description": "Jurisdiction for eastern courts and legal services.",
             "category": "judicial",
-            "latitude": 48.5734,
-            "longitude": 7.7521,
+            "h3_index": "871f85603ffffff",
         },
     ]
 
