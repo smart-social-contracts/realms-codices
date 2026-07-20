@@ -1,6 +1,6 @@
 {
   "id": "agora",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "name": "Agora",
   "kind": "codex",
   "codex_api_version": 1,
@@ -26,6 +26,76 @@
     },
     "identity_requirements": []
   },
+  "parameters": [
+    {
+      "path": "lifecycle.population_target",
+      "label": "Population target",
+      "description": "Citizens to import before the migration checklist allows beta.",
+      "type": "integer",
+      "default": 100000,
+      "min": 1
+    },
+    {
+      "path": "lifecycle.beta_proving_days",
+      "label": "Beta proving period (days)",
+      "description": "Days the realm must spend in beta before going live. Fractions allowed.",
+      "type": "number",
+      "default": 30,
+      "min": 0
+    },
+    {
+      "path": "governance.voting_window_days",
+      "label": "Voting window (days)",
+      "description": "How long proposals stay open for voting. Fractions allowed (0.0007 \u2248 1 minute).",
+      "type": "number",
+      "default": 7,
+      "min": 0.0001
+    },
+    {
+      "path": "governance.quorum_percent",
+      "label": "Quorum (%)",
+      "description": "Minimum participation for realm-wide proposals to pass.",
+      "type": "integer",
+      "default": 20,
+      "min": 0,
+      "max": 100,
+      "advanced": true
+    },
+    {
+      "path": "governance.approval_threshold",
+      "label": "Approval threshold",
+      "description": "Fraction of decisive votes that must be yes.",
+      "type": "number",
+      "default": 0.5,
+      "min": 0,
+      "max": 1,
+      "advanced": true
+    },
+    {
+      "path": "fees.registration",
+      "label": "Registration fee",
+      "type": "number",
+      "default": 1.0,
+      "min": 0,
+      "advanced": true
+    },
+    {
+      "path": "fees.monthly_membership",
+      "label": "Monthly membership fee",
+      "type": "number",
+      "default": 1.0,
+      "min": 0,
+      "advanced": true
+    },
+    {
+      "path": "billing.cycle_days",
+      "label": "Billing cycle (days)",
+      "type": "number",
+      "default": 30,
+      "min": 0.0001,
+      "advanced": true
+    }
+  ],
   "lifecycle": {
     "population_target": 100000,
     "beta_proving_days": 30,

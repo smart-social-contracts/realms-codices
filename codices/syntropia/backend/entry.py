@@ -41,8 +41,51 @@ _NON_CONFIG_KEYS = {
     "id", "name", "version", "kind", "codex_api_version", "description",
     "author", "dependencies", "extension_overrides", "data_files",
     "profiles", "categories", "icon", "show_in_sidebar", "sidebar_label",
-    "doc_url", "permissions",
+    "doc_url", "permissions", "parameters",
 }
+
+
+def _deep_merge(base: dict, overrides: dict) -> dict:
+    merged = dict(base)
+    for key, value in overrides.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _deep_merge(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def _manifest_overrides() -> dict:
+    """Per-deployment overrides stored in ``Realm.manifest_data``.
+
+    ``config_overrides`` holds the wizard's codex-parameter choices (issue
+    #253); ``lifecycle_overrides`` is the older lifecycle-only mechanism,
+    kept for realms patched before config_overrides existed.
+    """
+    try:
+        realm = _realm()
+        raw = getattr(realm, "manifest_data", "") or "{}" if realm else "{}"
+        data = json.loads(raw) or {}
+    except Exception as e:
+        ic.print(f"⚠️  Syntropia: could not read manifest_data overrides: {e}")
+        return {}
+    overrides = {}
+    legacy = data.get("lifecycle_overrides")
+    if isinstance(legacy, dict) and legacy:
+        overrides["lifecycle"] = dict(legacy)
+    general = data.get("config_overrides")
+    if isinstance(general, dict) and general:
+        overrides = _deep_merge(overrides, general)
+    return overrides
+
+
+def _config() -> dict:
+    """Effective codex configuration: manifest blocks with per-deployment
+    overrides applied. Use this (not ``_manifest()``) wherever fees,
+    lifecycle, governance, or membership values are read."""
+    manifest = _manifest()
+    overrides = _manifest_overrides()
+    return _deep_merge(manifest, overrides) if overrides else manifest
 
 
 def _manifest() -> dict:
@@ -89,24 +132,14 @@ def _realm():
 def get_config(args: str) -> str:
     """Realm configuration blocks declared by this codex.
 
-    Deploy/test-time parameterization (issue #253): a realm admin may patch
-    ``lifecycle_overrides`` into ``Realm.manifest_data`` (via realm_settings
-    ``patch_manifest_data``); those keys are applied over the codex-declared
-    ``lifecycle`` block, so e.g. ``critical_mass`` or ``beta_proving_days``
-    can be tuned per deployment without republishing the codex.
+    Deploy/test-time parameterization (issue #253): per-deployment values —
+    the wizard's codex-parameter choices in ``config_overrides`` or an
+    admin's legacy ``lifecycle_overrides`` patch (via realm_settings
+    ``patch_manifest_data``) — are applied over the codex-declared blocks,
+    so e.g. ``critical_mass``, ``beta_proving_days``, or governance fees can
+    be tuned per realm without republishing the codex.
     """
-    manifest = _manifest()
-    config = {k: v for k, v in manifest.items() if k not in _NON_CONFIG_KEYS}
-    try:
-        realm = _realm()
-        raw = getattr(realm, "manifest_data", "") or "{}" if realm else "{}"
-        overrides = (json.loads(raw) or {}).get("lifecycle_overrides") or {}
-        if isinstance(overrides, dict) and overrides:
-            lifecycle = dict(config.get("lifecycle", {}) or {})
-            lifecycle.update(overrides)
-            config["lifecycle"] = lifecycle
-    except Exception as e:
-        ic.print(f"⚠️  Syntropia: could not apply lifecycle_overrides: {e}")
+    config = {k: v for k, v in _config().items() if k not in _NON_CONFIG_KEYS}
     return json.dumps(config)
 
 
@@ -148,6 +181,16 @@ def init(args: str) -> str:
         "governance": manifest.get("governance", {}),
         "departments": department_names,
     }
+    # Preserve runtime keys that don't belong to the codex (per-deployment
+    # parameter overrides, casals autoscale config) — init may re-run after
+    # they were written.
+    try:
+        existing = json.loads(getattr(realm, "manifest_data", "") or "{}") or {}
+        for key in ("config_overrides", "lifecycle_overrides", "casals"):
+            if key in existing and key not in realm_manifest:
+                realm_manifest[key] = existing[key]
+    except Exception:
+        pass
     realm.manifest_data = json.dumps(realm_manifest)
 
     # Greenfield realms begin in alpha (gathering founding citizens).
@@ -223,7 +266,7 @@ def on_user_register(args: str) -> str:
         if not user:
             return json.dumps({"success": False, "error": "user not found"})
 
-        manifest = _manifest()
+        manifest = _config()
         currency = manifest.get("currency", {}).get("symbol", "ckBTC")
         lifecycle = manifest.get("lifecycle", {})
         deposit = manifest.get("fees", {}).get(
@@ -312,7 +355,7 @@ def on_stage_change(args: str) -> str:
         if to_stage != "beta":
             return json.dumps({"success": True, "skipped": f"no action for {to_stage}"})
 
-        manifest = _manifest()
+        manifest = _config()
         billing = _lifecycle_billing()
         invoices = billing.issue_membership_invoices(manifest, REALM_NAME)
         payroll = billing.run_payroll(manifest, REALM_NAME)
@@ -382,7 +425,7 @@ def run_payroll(args: str) -> str:
         pass
 
     try:
-        result = _lifecycle_billing().run_payroll(_manifest(), REALM_NAME)
+        result = _lifecycle_billing().run_payroll(_config(), REALM_NAME)
         return json.dumps(result)
     except Exception as e:
         ic.print(f"Error in Syntropia run_payroll: {e}")
