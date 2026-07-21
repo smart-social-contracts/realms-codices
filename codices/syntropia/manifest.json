@@ -1,18 +1,27 @@
 {
   "id": "syntropia",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "name": "Syntropia",
   "kind": "codex",
   "codex_api_version": 1,
   "show_in_sidebar": false,
   "dependencies": [
-    "passport_verification",
-    "zone_selector",
-    "land_registry",
-    "notifications",
     "access_manager",
+    "department_docs",
+    "justice_litigation",
+    "land_registry",
+    "managed_services",
+    "market_place",
+    "member_manager",
+    "metrics",
+    "notifications",
+    "package_manager",
+    "passport_verification",
+    "procurement",
     "role_manager",
-    "procurement"
+    "system_info",
+    "task_monitor",
+    "zone_selector"
   ],
   "onboarding": {
     "territory_mode": "greenfield",

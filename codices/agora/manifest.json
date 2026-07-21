@@ -1,19 +1,26 @@
 {
   "id": "agora",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "name": "Agora",
   "kind": "codex",
   "codex_api_version": 1,
   "show_in_sidebar": false,
   "dependencies": [
     "access_manager",
-    "role_manager",
-    "notifications",
-    "metrics",
+    "department_docs",
+    "justice_litigation",
     "land_registry",
-    "migration_console",
-    "zone_selector",
-    "procurement"
+    "managed_services",
+    "market_place",
+    "member_manager",
+    "metrics",
+    "notifications",
+    "package_manager",
+    "procurement",
+    "role_manager",
+    "system_info",
+    "task_monitor",
+    "zone_selector"
   ],
   "onboarding": {
     "territory_mode": "incumbent",
