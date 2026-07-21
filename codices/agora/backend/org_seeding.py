@@ -2,9 +2,11 @@
 
 Seeds the template org chart from ``data/departments.json`` as real
 Department organizations — policy defaults, a Fund budget envelope,
-permissions, staff profiles, Position seats (headcount + salary line), and
-one multi-use invite code per position so civil servants can be onboarded
-with a URL and appointed to their seat on redemption.
+permissions, staff profiles, Position seats (headcount + salary line),
+extension access grants (``extensions``), sidebar hide rules
+(``hidden_extensions``), and one multi-use invite code per position so civil
+servants can be onboarded with a URL and appointed to their seat on
+redemption.
 
 Idempotent: existing departments/profiles/codes are left alone, so re-running
 (upgrade, reinstall, admin re-seed) never duplicates or resets creator edits.
@@ -91,7 +93,18 @@ def seed_organizations(dept_data, realm):
         if getattr(c, "department", ""):
             existing_invites[(c.department, c.profile)] = c
 
-    n_depts = n_profiles = n_positions = n_codes = 0
+    # Existing (extension, department) hide rules — for idempotency.
+    existing_hide_rules = set()
+    try:
+        from ggg import MenuDepartmentVisibility
+
+        for r in MenuDepartmentVisibility.instances():
+            dept_name = r.department.name if r.department else ""
+            existing_hide_rules.add((r.extension_name, dept_name))
+    except ImportError:
+        MenuDepartmentVisibility = None
+
+    n_depts = n_profiles = n_positions = n_codes = n_ext_grants = n_hide_rules = 0
 
     for spec in dept_data.get("departments", []):
         name = (spec.get("name") or "").strip()
@@ -192,18 +205,32 @@ def seed_organizations(dept_data, realm):
             )
             n_codes += 1
 
-        # 7. Department staff see the migration console in their sidebar
-        #    (extension installed beforehand via codex dependencies).
+        # 7. Extension access template (``extensions`` in departments.json):
+        #    grant this department's staff access to its domain extensions
+        #    via Extension.departments. Grants are additive — admins can
+        #    extend or revoke them later in Department Management.
         try:
             from ggg import Extension
 
-            console_ext = Extension["migration_console"]
-            if console_ext and not any(
-                d.name == name for d in console_ext.departments
-            ):
-                console_ext.departments.add(dept)
-        except Exception:
-            pass
+            for ext_id in spec.get("extensions", []):
+                ext = Extension[ext_id]
+                if ext and not any(d.name == name for d in ext.departments):
+                    ext.departments.add(dept)
+                    n_ext_grants += 1
+        except Exception as e:
+            ic.print(f"⚠️  extension access seeding failed for {name}: {e}")
+
+        # 8. Sidebar hide rules (``hidden_extensions`` in departments.json):
+        #    explicit per-department hide entries (MenuDepartmentVisibility,
+        #    visible=False). Default stays visible; only hide rules are seeded.
+        if MenuDepartmentVisibility is not None:
+            for ext_id in spec.get("hidden_extensions", []):
+                if (ext_id, name) in existing_hide_rules:
+                    continue
+                MenuDepartmentVisibility(
+                    extension_name=ext_id, department=dept, visible=False
+                )
+                n_hide_rules += 1
 
     # Root gets default manage authority over the freshly seeded orgs.
     try:
@@ -215,5 +242,6 @@ def seed_organizations(dept_data, realm):
 
     ic.print(
         f"✅ Agora organizations seeded: {n_depts} departments, "
-        f"{n_profiles} profiles, {n_positions} positions, {n_codes} invite codes"
+        f"{n_profiles} profiles, {n_positions} positions, {n_codes} invite codes, "
+        f"{n_ext_grants} extension grants, {n_hide_rules} hide rules"
     )

@@ -1,5 +1,5 @@
 {
-  "description": "Initial civic org chart for the Syntropia greenfield smart city, seeded as real Department organizations (policy, fund, permissions, Position seats, staff invite codes) by init.py. Founders bootstrap these before opening citizenship. Policies start founder-friendly (1/1) because a fresh realm has a single member; each department declares a target_policy (5-of-10) that admins ratchet up in Departments once the seats are staffed. Position salary_amount is per salary_period in the realm's accounting currency.",
+  "description": "Initial civic org chart for the Syntropia greenfield smart city, seeded as real Department organizations (policy, fund, permissions, Position seats, staff invite codes) by init.py. Founders bootstrap these before opening citizenship. Policies start founder-friendly (1/1) because a fresh realm has a single member; each department declares a target_policy (5-of-10) that admins ratchet up in Departments once the seats are staffed. Position salary_amount is per salary_period in the realm's accounting currency. Each department may declare 'extensions' (domain extensions its staff can access, seeded as Extension→department grants) and 'hidden_extensions' (sidebar hide rules via MenuDepartmentVisibility, visible=False); both are templates that admins can override later in Department Management.",
   "invite": {
     "expires_in_hours": 720,
     "max_uses": 100
@@ -9,97 +9,311 @@
       "name": "Congress",
       "description": "Supreme legislative authority. Receives root from the creator at the Beta transition and holds all realm permissions from then on; decides the move to Live by vote.",
       "positions": [
-        { "title": "speaker", "profile": "speaker", "headcount": 1, "salary_amount": 5000 },
-        { "title": "congress_member", "profile": "congress_member", "headcount": 5, "salary_amount": 4000 }
+        {
+          "title": "speaker",
+          "profile": "speaker",
+          "headcount": 1,
+          "salary_amount": 5000
+        },
+        {
+          "title": "congress_member",
+          "profile": "congress_member",
+          "headcount": 5,
+          "salary_amount": 4000
+        }
       ],
-      "permissions": ["realm.lifecycle", "governance.update", "proposal.create", "org.appoint", "org.set_policy"],
-      "policy": { "threshold_m": 1, "threshold_n": 1, "quorum_percent": 0 },
-      "target_policy": { "threshold_m": 5, "threshold_n": 10 },
-      "fund_code": "DEPT-CONGRESS"
+      "permissions": [
+        "realm.lifecycle",
+        "governance.update",
+        "proposal.create",
+        "org.appoint",
+        "org.set_policy"
+      ],
+      "policy": {
+        "threshold_m": 1,
+        "threshold_n": 1,
+        "quorum_percent": 0
+      },
+      "target_policy": {
+        "threshold_m": 5,
+        "threshold_n": 10
+      },
+      "fund_code": "DEPT-CONGRESS",
+      "extensions": [
+        "voting",
+        "codex_viewer"
+      ]
     },
     {
       "name": "Citizenship & Identity",
       "description": "ZK passport onboarding, Know-Your-Citizen review, and deposit verification.",
       "positions": [
-        { "title": "registrar", "profile": "registrar", "headcount": 2, "salary_amount": 3000 },
-        { "title": "kyc_officer", "profile": "kyc_officer", "headcount": 3, "salary_amount": 2500 }
+        {
+          "title": "registrar",
+          "profile": "registrar",
+          "headcount": 2,
+          "salary_amount": 3000
+        },
+        {
+          "title": "kyc_officer",
+          "profile": "kyc_officer",
+          "headcount": 3,
+          "salary_amount": 2500
+        }
       ],
-      "permissions": ["member.read", "member.update", "kyc.review", "passport.verify"],
-      "policy": { "threshold_m": 1, "threshold_n": 1, "quorum_percent": 0 },
-      "target_policy": { "threshold_m": 5, "threshold_n": 10 },
-      "fund_code": "DEPT-CITIZEN"
+      "permissions": [
+        "member.read",
+        "member.update",
+        "kyc.review",
+        "passport.verify"
+      ],
+      "policy": {
+        "threshold_m": 1,
+        "threshold_n": 1,
+        "quorum_percent": 0
+      },
+      "target_policy": {
+        "threshold_m": 5,
+        "threshold_n": 10
+      },
+      "fund_code": "DEPT-CITIZEN",
+      "extensions": [
+        "role_manager",
+        "member_manager",
+        "passport_verification",
+        "department_docs"
+      ]
     },
     {
       "name": "Justice",
       "description": "Constitutional court and dispute resolution.",
       "positions": [
-        { "title": "judge", "profile": "judge", "headcount": 2, "salary_amount": 5000 },
-        { "title": "court_clerk", "profile": "court_clerk", "headcount": 3, "salary_amount": 2500 }
+        {
+          "title": "judge",
+          "profile": "judge",
+          "headcount": 2,
+          "salary_amount": 5000
+        },
+        {
+          "title": "court_clerk",
+          "profile": "court_clerk",
+          "headcount": 3,
+          "salary_amount": 2500
+        }
       ],
-      "permissions": ["case.read", "case.assign", "verdict.issue", "license.read"],
-      "policy": { "threshold_m": 1, "threshold_n": 1, "quorum_percent": 0 },
-      "target_policy": { "threshold_m": 5, "threshold_n": 10 },
-      "fund_code": "DEPT-JUST"
+      "permissions": [
+        "case.read",
+        "case.assign",
+        "verdict.issue",
+        "license.read"
+      ],
+      "policy": {
+        "threshold_m": 1,
+        "threshold_n": 1,
+        "quorum_percent": 0
+      },
+      "target_policy": {
+        "threshold_m": 5,
+        "threshold_n": 10
+      },
+      "fund_code": "DEPT-JUST",
+      "extensions": [
+        "justice_litigation",
+        "department_docs"
+      ]
     },
     {
       "name": "Defense",
       "description": "Civil protection, emergency response, and security of the city.",
       "positions": [
-        { "title": "defense_director", "profile": "defense_director", "headcount": 1, "salary_amount": 4500 },
-        { "title": "security_officer", "profile": "security_officer", "headcount": 4, "salary_amount": 2800 }
+        {
+          "title": "defense_director",
+          "profile": "defense_director",
+          "headcount": 1,
+          "salary_amount": 4500
+        },
+        {
+          "title": "security_officer",
+          "profile": "security_officer",
+          "headcount": 4,
+          "salary_amount": 2800
+        }
       ],
-      "permissions": ["defense.read", "incident.report", "incident.respond"],
-      "policy": { "threshold_m": 1, "threshold_n": 1, "quorum_percent": 0 },
-      "target_policy": { "threshold_m": 5, "threshold_n": 10 },
-      "fund_code": "DEPT-DEF"
+      "permissions": [
+        "defense.read",
+        "incident.report",
+        "incident.respond"
+      ],
+      "policy": {
+        "threshold_m": 1,
+        "threshold_n": 1,
+        "quorum_percent": 0
+      },
+      "target_policy": {
+        "threshold_m": 5,
+        "threshold_n": 10
+      },
+      "fund_code": "DEPT-DEF",
+      "extensions": [
+        "notifications",
+        "department_docs"
+      ]
     },
     {
       "name": "Social Security",
       "description": "Welfare benefits, social support, and redistribution programs.",
       "positions": [
-        { "title": "benefits_officer", "profile": "benefits_officer", "headcount": 2, "salary_amount": 2800 },
-        { "title": "social_worker", "profile": "social_worker", "headcount": 4, "salary_amount": 2500 }
+        {
+          "title": "benefits_officer",
+          "profile": "benefits_officer",
+          "headcount": 2,
+          "salary_amount": 2800
+        },
+        {
+          "title": "social_worker",
+          "profile": "social_worker",
+          "headcount": 4,
+          "salary_amount": 2500
+        }
       ],
-      "permissions": ["benefit.read", "benefit.grant", "welfare.distribute"],
-      "policy": { "threshold_m": 1, "threshold_n": 1, "quorum_percent": 0 },
-      "target_policy": { "threshold_m": 5, "threshold_n": 10 },
-      "fund_code": "DEPT-SOC"
+      "permissions": [
+        "benefit.read",
+        "benefit.grant",
+        "welfare.distribute"
+      ],
+      "policy": {
+        "threshold_m": 1,
+        "threshold_n": 1,
+        "quorum_percent": 0
+      },
+      "target_policy": {
+        "threshold_m": 5,
+        "threshold_n": 10
+      },
+      "fund_code": "DEPT-SOC",
+      "extensions": [
+        "department_docs"
+      ]
     },
     {
       "name": "Infrastructure",
       "description": "Zones, housing allocation, public works, and quarter planning as the city grows.",
       "positions": [
-        { "title": "land_officer", "profile": "land_officer", "headcount": 2, "salary_amount": 3000 },
-        { "title": "planner", "profile": "planner", "headcount": 2, "salary_amount": 3200 },
-        { "title": "engineer", "profile": "engineer", "headcount": 3, "salary_amount": 3000 }
+        {
+          "title": "land_officer",
+          "profile": "land_officer",
+          "headcount": 2,
+          "salary_amount": 3000
+        },
+        {
+          "title": "planner",
+          "profile": "planner",
+          "headcount": 2,
+          "salary_amount": 3200
+        },
+        {
+          "title": "engineer",
+          "profile": "engineer",
+          "headcount": 3,
+          "salary_amount": 3000
+        }
       ],
-      "permissions": ["zone.read", "zone.update", "land.allocate", "infrastructure.plan"],
-      "policy": { "threshold_m": 1, "threshold_n": 1, "quorum_percent": 0 },
-      "target_policy": { "threshold_m": 5, "threshold_n": 10 },
-      "fund_code": "DEPT-INFRA"
+      "permissions": [
+        "zone.read",
+        "zone.update",
+        "land.allocate",
+        "infrastructure.plan"
+      ],
+      "policy": {
+        "threshold_m": 1,
+        "threshold_n": 1,
+        "quorum_percent": 0
+      },
+      "target_policy": {
+        "threshold_m": 5,
+        "threshold_n": 10
+      },
+      "fund_code": "DEPT-INFRA",
+      "extensions": [
+        "land_registry",
+        "zone_selector",
+        "department_docs"
+      ]
     },
     {
       "name": "Economy",
       "description": "Deposits (a house in a zone), treasury, budgets, and realm finances.",
       "positions": [
-        { "title": "treasurer", "profile": "treasurer", "headcount": 1, "salary_amount": 4500 },
-        { "title": "finance_officer", "profile": "finance_officer", "headcount": 3, "salary_amount": 2800 }
+        {
+          "title": "treasurer",
+          "profile": "treasurer",
+          "headcount": 1,
+          "salary_amount": 4500
+        },
+        {
+          "title": "finance_officer",
+          "profile": "finance_officer",
+          "headcount": 3,
+          "salary_amount": 2800
+        }
       ],
-      "permissions": ["treasury.read", "treasury.send", "invoice.create", "budget.read", "deposit.manage"],
-      "policy": { "threshold_m": 1, "threshold_n": 1, "quorum_percent": 0 },
-      "target_policy": { "threshold_m": 5, "threshold_n": 10 },
-      "fund_code": "DEPT-ECON"
+      "permissions": [
+        "treasury.read",
+        "treasury.send",
+        "invoice.create",
+        "budget.read",
+        "deposit.manage"
+      ],
+      "policy": {
+        "threshold_m": 1,
+        "threshold_n": 1,
+        "quorum_percent": 0
+      },
+      "target_policy": {
+        "threshold_m": 5,
+        "threshold_n": 10
+      },
+      "fund_code": "DEPT-ECON",
+      "extensions": [
+        "vault",
+        "metrics",
+        "department_docs"
+      ]
     },
     {
       "name": "Administration",
       "description": "Founders and admins — the only actors who can make fundamental changes before go-live.",
       "positions": [
-        { "title": "admin", "profile": "admin", "headcount": 2, "salary_amount": 4000 }
+        {
+          "title": "admin",
+          "profile": "admin",
+          "headcount": 2,
+          "salary_amount": 4000
+        }
       ],
-      "permissions": ["role.assign", "role.revoke", "realm.lifecycle", "extension.manage"],
-      "policy": { "threshold_m": 1, "threshold_n": 1, "quorum_percent": 0 },
-      "target_policy": { "threshold_m": 5, "threshold_n": 10 },
-      "fund_code": "DEPT-ADMIN"
+      "permissions": [
+        "role.assign",
+        "role.revoke",
+        "realm.lifecycle",
+        "extension.manage"
+      ],
+      "policy": {
+        "threshold_m": 1,
+        "threshold_n": 1,
+        "quorum_percent": 0
+      },
+      "target_policy": {
+        "threshold_m": 5,
+        "threshold_n": 10
+      },
+      "fund_code": "DEPT-ADMIN",
+      "extensions": [
+        "role_manager",
+        "access_manager",
+        "admin_dashboard",
+        "realm_settings",
+        "package_manager"
+      ]
     }
   ]
 }

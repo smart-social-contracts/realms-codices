@@ -1,6 +1,6 @@
 {
   "id": "syntropia",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "name": "Syntropia",
   "kind": "codex",
   "codex_api_version": 1,
@@ -56,7 +56,7 @@
     {
       "path": "governance.voting_window_days",
       "label": "Voting window (days)",
-      "description": "How long proposals stay open for voting. Fractions allowed (0.0007 \u2248 1 minute).",
+      "description": "How long proposals stay open for voting. Fractions allowed (0.0007 ≈ 1 minute).",
       "type": "number",
       "default": 7,
       "min": 0.0001
