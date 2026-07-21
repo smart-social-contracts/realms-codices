@@ -16,6 +16,13 @@ import {
   PARAMS,
   sleep,
 } from '../scripts/lifecycle-runner.mjs';
+import {
+  capture,
+  lifecycleUiCheckpoint,
+  openExtension,
+  realmBaseUrl,
+  screenshotWizardCodex,
+} from '../scripts/ui-checkpoints.mjs';
 
 const harness = new LifecycleHarness('agora');
 
@@ -27,7 +34,15 @@ test.describe.serial('Agora lifecycle (alpha → beta → production)', () => {
     console.log(`Lifecycle report: ${file}`);
   });
 
-  test('P1 — founder session and preflight (alpha, Congress seeded)', async () => {
+  test('P0 — wizard codex parameters UI', async ({ page }) => {
+    test.setTimeout(120_000);
+    const file = await screenshotWizardCodex(page, 'agora', { showAdvanced: true });
+    expect(file).toBeTruthy();
+  });
+
+  test('P1 — founder session and preflight (alpha, Congress seeded)', async ({
+    page,
+  }) => {
     test.setTimeout(300_000);
     const join = await harness.ensureFounderAdmin();
     expect(join.ok, `founder join failed: ${join.error}`).toBe(true);
@@ -36,6 +51,14 @@ test.describe.serial('Agora lifecycle (alpha → beta → production)', () => {
     // Fresh runs start in alpha; idempotent re-runs may already be further along.
     expect(['alpha', 'beta', 'production']).toContain(status.realm_stage);
     expect(departments).toContain('Congress');
+
+    if (realmBaseUrl()) {
+      await lifecycleUiCheckpoint(page, 'agora', '01-founder-realm-settings', {
+        extension: 'realm_settings',
+      });
+      await openExtension(page, 'migration_console');
+      await capture(page, 'agora', '01-founder-migration-console');
+    }
   });
 
   test('P2 — parameterize gates for a 25-citizen run', async () => {
@@ -82,7 +105,9 @@ test.describe.serial('Agora lifecycle (alpha → beta → production)', () => {
     expect(Number(status.users_count)).toBeGreaterThanOrEqual(PARAMS.citizenCount);
   });
 
-  test('P5 — staff every department seat (admins + citizens)', async () => {
+  test('P5 — staff every department seat (admins + citizens)', async ({
+    page,
+  }) => {
     test.setTimeout(1_800_000);
     const { failed } = await harness.staffAllPositions();
     expect(
@@ -90,6 +115,12 @@ test.describe.serial('Agora lifecycle (alpha → beta → production)', () => {
       `unstaffed positions: ${JSON.stringify(failed)}`,
     ).toHaveLength(0);
     expect(harness.congressIndices.length).toBeGreaterThan(0);
+
+    if (realmBaseUrl()) {
+      await lifecycleUiCheckpoint(page, 'agora', '05-staffed-access-manager', {
+        extension: 'access_manager',
+      });
+    }
   });
 
   test('P6 — Infrastructure defines zones', async () => {
@@ -118,7 +149,9 @@ test.describe.serial('Agora lifecycle (alpha → beta → production)', () => {
     harness.record('creator_demoted', { denied_error: after.error });
   });
 
-  test('P9 — Congress advances the realm to beta; money starts flowing', async () => {
+  test('P9 — Congress advances the realm to beta; money starts flowing', async ({
+    page,
+  }) => {
     test.setTimeout(600_000);
     await harness.refreshCongressIndices();
     const congress = harness.congressIndices[0];
@@ -158,6 +191,13 @@ test.describe.serial('Agora lifecycle (alpha → beta → production)', () => {
       transfers_after: String(after.transfers_count ?? ''),
       tax_invoices_first_citizen: taxInvoices.length,
     });
+
+    if (realmBaseUrl()) {
+      await lifecycleUiCheckpoint(page, 'agora', '09-beta-realm-settings', {
+        extension: 'realm_settings',
+        inviteCode: 'admin',
+      });
+    }
   });
 
   test('P10 — citizen pays the tax invoice (REALMS self-mint)', async () => {
@@ -192,7 +232,9 @@ test.describe.serial('Agora lifecycle (alpha → beta → production)', () => {
     }
   });
 
-  test('P11 — beta→production requires the Congress vote + proving period', async () => {
+  test('P11 — beta→production requires the Congress vote + proving period', async ({
+    page,
+  }) => {
     test.setTimeout(600_000);
     await harness.refreshCongressIndices();
     const congress = harness.congressIndices[0];
@@ -226,5 +268,12 @@ test.describe.serial('Agora lifecycle (alpha → beta → production)', () => {
 
     const stage = await harness.getStage(congress);
     expect(stage.stage).toBe('production');
+
+    if (realmBaseUrl()) {
+      await lifecycleUiCheckpoint(page, 'agora', '11-production-realm-settings', {
+        extension: 'realm_settings',
+        inviteCode: 'admin',
+      });
+    }
   });
 });

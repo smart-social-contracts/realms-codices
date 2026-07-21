@@ -64,6 +64,22 @@ export class LifecycleHarness {
     this.report.phases[phase] = { at: new Date().toISOString(), ...data };
   }
 
+  /** Playwright test outcome + attachments for the HTML report. */
+  recordTestRun(phaseId, testInfo) {
+    if (!this.report.testRuns) this.report.testRuns = {};
+    const video = testInfo.attachments?.find((a) =>
+      (a.contentType || '').startsWith('video/'),
+    );
+    this.report.testRuns[phaseId] = {
+      title: testInfo.title,
+      status: testInfo.status,
+      duration: testInfo.duration,
+      video: video?.path || null,
+      errors: testInfo.errors?.map((e) => e.message) || [],
+      at: new Date().toISOString(),
+    };
+  }
+
   writeReport(dir = 'test-results') {
     fs.mkdirSync(dir, { recursive: true });
     const file = path.join(dir, `${this.codex}-lifecycle-report.json`);
@@ -194,9 +210,24 @@ export class LifecycleHarness {
       beta_proving_days: this.params.provingDays,
       ...overrides,
     };
+    const configOverrides = {};
+    const lifecycleBlock = {};
+    if (overrides.critical_mass != null) {
+      lifecycleBlock.critical_mass = overrides.critical_mass;
+    }
+    if (overrides.population_target != null) {
+      lifecycleBlock.population_target = overrides.population_target;
+    }
+    if (Object.keys(lifecycleBlock).length) {
+      configOverrides.lifecycle = lifecycleBlock;
+    }
+    const fields = { lifecycle_overrides: lifecycleOverrides };
+    if (Object.keys(configOverrides).length) {
+      fields.config_overrides = configOverrides;
+    }
     const tryAt = async (index) =>
       extCall(await this.actor(index), 'realm_settings', 'patch_manifest_data', {
-        fields: { lifecycle_overrides: lifecycleOverrides },
+        fields,
       });
 
     let index = byIndex != null ? byIndex : 0;
