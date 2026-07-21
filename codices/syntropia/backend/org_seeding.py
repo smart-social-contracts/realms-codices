@@ -12,7 +12,7 @@ re-running init (upgrade, reinstall) never duplicates or resets creator edits.
 Departments may declare a ``target_policy`` (e.g. 5-of-10) alongside the
 seeded ``policy``: fresh realms start founder-friendly (1/1) because a
 five-approval rule would deadlock a realm with one member; admins ratchet the
-policy up in Organizations once the seats are staffed.
+policy up in Departments once the seats are staffed.
 """
 
 from _cdk import ic

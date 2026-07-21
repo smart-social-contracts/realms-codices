@@ -67,7 +67,7 @@ meaningful when the bypass flags are off.
   Cross-check against `list_codices` + the published `manifest.json`.
 - **U2 Founder**: after deployment the deploying identity enters the realm
   with the admin profile (admin sidebar sections: Data Explorer, Realm
-  Settings, Organizations if access_manager is installed) without redeeming
+  Settings, Departments if access_manager is installed) without redeeming
   any code.
 - **U3 Extensions installed**: `get_sidebar_manifests` lists the 9 core
   extensions (public_dashboard, member_dashboard, realm_settings,

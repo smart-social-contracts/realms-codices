@@ -1,5 +1,5 @@
 {
-  "description": "Initial civic org chart for the Syntropia greenfield smart city, seeded as real Department organizations (policy, fund, permissions, Position seats, staff invite codes) by init.py. Founders bootstrap these before opening citizenship. Policies start founder-friendly (1/1) because a fresh realm has a single member; each department declares a target_policy (5-of-10) that admins ratchet up in Organizations once the seats are staffed. Position salary_amount is per salary_period in the realm's accounting currency.",
+  "description": "Initial civic org chart for the Syntropia greenfield smart city, seeded as real Department organizations (policy, fund, permissions, Position seats, staff invite codes) by init.py. Founders bootstrap these before opening citizenship. Policies start founder-friendly (1/1) because a fresh realm has a single member; each department declares a target_policy (5-of-10) that admins ratchet up in Departments once the seats are staffed. Position salary_amount is per salary_period in the realm's accounting currency.",
   "invite": {
     "expires_in_hours": 720,
     "max_uses": 100
