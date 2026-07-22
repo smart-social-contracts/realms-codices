@@ -16,6 +16,7 @@ Hooks implemented:
                         registration-policy enforcement, org seeding
   seed                — idempotent org-chart re-seed (admin re-run)
   on_user_register    — greenfield onboarding: deposit invoice + welcome steps
+  on_invoice_accounting — realm-specific invoice journal policy
   on_stage_change     — beta: tax/membership invoicing starts + citizens are
                         asked to submit their actual identity (issue #253)
 
@@ -322,6 +323,26 @@ def on_user_register(args: str) -> str:
 
     except Exception as e:
         ic.print(f"Error in Syntropia on_user_register: {e}")
+        return json.dumps({"success": False, "error": str(e)})
+
+
+def on_invoice_accounting(args: str) -> str:
+    """Book an invoice event according to Syntropia's accounting policy."""
+    try:
+        params = json.loads(args) if args else {}
+        invoice_id = (params.get("invoice_id") or "").strip()
+        event = (params.get("event") or "").strip().lower()
+        if not invoice_id:
+            return json.dumps({"success": False, "error": "invoice_id is required"})
+
+        try:
+            from .invoice_accounting import book_invoice_event
+        except ImportError:
+            from invoice_accounting import book_invoice_event
+
+        return json.dumps(book_invoice_event(invoice_id, event))
+    except Exception as e:
+        ic.print(f"Error in Syntropia on_invoice_accounting: {e}")
         return json.dumps({"success": False, "error": str(e)})
 
 
