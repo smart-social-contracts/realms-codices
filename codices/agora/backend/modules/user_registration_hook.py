@@ -37,7 +37,12 @@ def _realm_stage():
 def user_register_posthook(user):
     try:
         manifest = _manifest()
-        currency = manifest.get("currency", {}).get("symbol", "ckUSDC")
+        try:
+            from invoice_currency import invoice_currency
+        except ImportError:
+            from ..invoice_currency import invoice_currency
+
+        currency = invoice_currency(manifest)
         fee = manifest.get("fees", {}).get("registration", 0.0)
         validity_days = manifest.get("membership", {}).get("invoice_validity_days", 30)
         stage = _realm_stage()

@@ -27,7 +27,12 @@ def issue_membership_invoices(manifest: dict, codex_label: str) -> dict:
     from ggg import Invoice, Notification, User
     from ic_basilisk_toolkit.date_utils import epoch_to_datetime_str, ic_time_to_epoch
 
-    currency = manifest.get("currency", {}).get("symbol", "REALMS")
+    try:
+        from invoice_currency import invoice_currency
+    except ImportError:
+        from ..invoice_currency import invoice_currency
+
+    currency = invoice_currency(manifest)
     fees = manifest.get("fees", {}) or {}
     amount = fees.get("monthly_membership") or fees.get("registration") or 0
     validity_days = manifest.get("membership", {}).get("invoice_validity_days", 30)
@@ -100,7 +105,12 @@ def run_payroll(manifest: dict, codex_label: str) -> dict:
     """
     from ggg import Position
 
-    currency = manifest.get("currency", {}).get("symbol", "REALMS")
+    try:
+        from invoice_currency import invoice_currency
+    except ImportError:
+        from ..invoice_currency import invoice_currency
+
+    currency = invoice_currency(manifest)
     now = int(ic.time()) // 1_000_000_000
 
     payments = []

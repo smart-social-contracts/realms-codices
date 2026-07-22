@@ -255,7 +255,9 @@ def on_user_register(args: str) -> str:
             return json.dumps({"success": False, "error": "user not found"})
 
         manifest = _config()
-        currency = manifest.get("currency", {}).get("symbol", "ckUSDC")
+        from invoice_currency import invoice_currency
+
+        currency = invoice_currency(manifest)
         fee = manifest.get("fees", {}).get("registration", 0.0)
         validity_days = manifest.get("membership", {}).get("invoice_validity_days", 30)
         realm = _realm()

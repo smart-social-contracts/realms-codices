@@ -267,7 +267,9 @@ def on_user_register(args: str) -> str:
             return json.dumps({"success": False, "error": "user not found"})
 
         manifest = _config()
-        currency = manifest.get("currency", {}).get("symbol", "ckBTC")
+        from invoice_currency import invoice_currency
+
+        currency = invoice_currency(manifest)
         lifecycle = manifest.get("lifecycle", {})
         deposit = manifest.get("fees", {}).get(
             "deposit", lifecycle.get("deposit_amount", 0.01)

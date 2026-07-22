@@ -33,7 +33,12 @@ def _manifest():
 def user_register_posthook(user):
     try:
         manifest = _manifest()
-        currency = manifest.get("currency", {}).get("symbol", "ckBTC")
+        try:
+            from invoice_currency import invoice_currency
+        except ImportError:
+            from ..invoice_currency import invoice_currency
+
+        currency = invoice_currency(manifest)
         lifecycle = manifest.get("lifecycle", {})
         deposit = manifest.get("fees", {}).get("deposit", lifecycle.get("deposit_amount", 0.01))
         deposit_label = lifecycle.get("deposit_label", "a house in a zone")
