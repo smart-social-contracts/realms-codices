@@ -1,6 +1,6 @@
 {
   "id": "agora",
-  "version": "0.9.4",
+  "version": "0.9.5",
   "name": "Agora",
   "kind": "codex",
   "codex_api_version": 1,
@@ -172,6 +172,7 @@
   },
   "data_files": {
     "departments": "data/departments.json",
+    "justice": "data/justice.json",
     "justice_license": "data/justice_license.json",
     "zones": "data/zones.json"
   }

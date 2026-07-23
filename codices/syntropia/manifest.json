@@ -1,6 +1,6 @@
 {
   "id": "syntropia",
-  "version": "0.8.5",
+  "version": "0.8.6",
   "name": "Syntropia",
   "kind": "codex",
   "codex_api_version": 1,
@@ -185,6 +185,7 @@
   },
   "data_files": {
     "departments": "data/departments.json",
+    "justice": "data/justice.json",
     "justice_license": "data/justice_license.json",
     "zones": "data/zones.json"
   }

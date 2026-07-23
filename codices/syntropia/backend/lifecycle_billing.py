@@ -132,7 +132,8 @@ def run_payroll(manifest: dict, codex_label: str) -> dict:
                 now=now,
             )
             payments.append(payment)
-            total += salary
+            if not payment.get("skipped"):
+                total += salary
 
     ic.print(
         f"{codex_label}: payroll recorded — {len(payments)} payment(s), "
@@ -144,9 +145,27 @@ def run_payroll(manifest: dict, codex_label: str) -> dict:
 def _record_salary_transfer(
     position, fund, fund_code, to_principal, amount, currency, now
 ):
+    from datetime import datetime
+
     from ggg import Transfer
 
-    transfer_id = f"SAL-{position.key}-{to_principal[:12]}-{now}"
+    # Period-based id — the idempotency key shared with core.payroll (issue
+    # #260): re-running payroll (or settling on-chain later) never duplicates
+    # a salary for the same seat and month.
+    dt = datetime.fromtimestamp(now)
+    period = f"{dt.year:04d}-{dt.month:02d}"
+    transfer_id = f"SAL-{position.key}-{to_principal}-{period}"
+
+    existing = Transfer[transfer_id]
+    if existing is not None:
+        return {
+            "transfer_id": transfer_id,
+            "position": position.key,
+            "to": to_principal,
+            "amount": amount,
+            "skipped": "already recorded for this period",
+        }
+
     transfer = Transfer(
         id=transfer_id,
         principal_from=fund_code or "treasury",

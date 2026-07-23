@@ -130,6 +130,7 @@ def disburse_project(proposal_id: str, budget_proposal_id: str) -> "Async[str]":
       1. Verify project is approved
       2. Draw from the budget procurement pool via budget_plan
       3. Transfer ckBTC to the receiver principal via vault extension
+      4. Record the expense in the fund ledger (Financial Reports, issue #260)
 
     Args:
         proposal_id: The procurement proposal ID.
@@ -169,6 +170,19 @@ def disburse_project(proposal_id: str, budget_proposal_id: str) -> "Async[str]":
     })
     result = yield extension_async_call("vault", "transfer", args)
 
+    # Only mark disbursed (and book the expense) if the transfer succeeded.
+    try:
+        result_dict = json.loads(result) if isinstance(result, str) else (result or {})
+    except (json.JSONDecodeError, TypeError):
+        result_dict = {}
+    if isinstance(result_dict, dict) and result_dict.get("success") is False:
+        return json.dumps({
+            "error": f"Vault transfer failed: {result_dict.get('error', 'unknown')}",
+            "proposal_id": proposal_id,
+        })
+
+    _record_disbursement_accounting(proposal_id, project, amount, receiver)
+
     # Update project status
     project["st"] = "disbursed"
     _save_project(proposal, project)
@@ -179,6 +193,43 @@ def disburse_project(proposal_id: str, budget_proposal_id: str) -> "Async[str]":
         "amount_satoshis": amount,
         "receiver": receiver,
     })
+
+
+def _record_disbursement_accounting(proposal_id: str, project: dict,
+                                    amount: int, receiver: str):
+    """Book a procurement disbursement in the fund ledger (issue #260).
+
+    Creates a Transfer record plus balanced double-entry ledger lines
+    (capital expense / cash) against the realm's general fund, so procurement
+    spending shows up in Financial Reports instead of bypassing accounting.
+    """
+    try:
+        from ggg import Fund
+
+        general_fund = next(
+            (f for f in Fund.instances() if (f.fund_type or "") == "general"),
+            None,
+        )
+
+        transfer_id = "PROC-" + proposal_id
+        transfer = Transfer(
+            id=transfer_id,
+            principal_from="vault",
+            principal_to=receiver,
+            instrument="ckBTC",
+            amount=amount,
+            timestamp=datetime.now().isoformat(),
+            tags="procurement",
+            status="completed",
+        )
+        transfer.record_accounting(
+            fund=general_fund,
+            expense_category="capital",
+            description="Procurement: " + project.get("name", proposal_id),
+        )
+    except Exception as e:
+        # Accounting must never block a successful disbursement.
+        print(f"procurement: accounting for {proposal_id} failed: {e}")
 
 
 # ---------------------------------------------------------------------------

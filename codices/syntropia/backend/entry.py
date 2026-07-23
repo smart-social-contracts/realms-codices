@@ -218,12 +218,14 @@ def init(args: str) -> str:
         realm.welcome_message = manifest["welcome_message"]
 
     seed_result = json.loads(seed(args))
+    justice_result = json.loads(seed_justice(args))
 
     ic.print("✅ Syntropia (greenfield) init complete")
     return json.dumps({
         "success": True,
         "codex": "syntropia",
         "seeded": seed_result.get("success", False),
+        "justice_seeded": justice_result.get("success", False),
     })
 
 
@@ -252,6 +254,44 @@ def seed(args: str) -> str:
         import traceback
 
         ic.print(f"❌ Organization seeding failed: {e}\n{traceback.format_exc()}")
+        return json.dumps({"success": False, "error": str(e)})
+
+
+def seed_justice(args: str) -> str:
+    """Seed the template court hierarchy + justice license (idempotent).
+
+    Quarter-scoped courts are created on every canister; capital-scoped ones
+    only on the capital (quarter self-bootstrap re-runs this via codex init).
+    """
+    realm = _realm()
+    if not realm:
+        return json.dumps({"success": False, "error": "No Realm found"})
+
+    manifest = _manifest()
+    data_files = manifest.get("data_files", {})
+    template = _load_data(data_files.get("justice", "data/justice.json"))
+    if not template:
+        return json.dumps({"success": False, "error": "justice data file missing"})
+    license_data = _load_data(
+        data_files.get("justice_license", "data/justice_license.json")
+    )
+
+    try:
+        from ggg import seed_justice_template
+    except ImportError:
+        # Older realm backend without the seeding helper: degrade gracefully
+        # so init still succeeds (courts can be created via justice_litigation).
+        ic.print("⚠️  Syntropia: backend has no seed_justice_template, skipping court seeding")
+        return json.dumps({"success": False, "error": "seed_justice_template unavailable"})
+
+    try:
+        result = seed_justice_template(template, license_data=license_data, realm=realm)
+        ic.print(f"✅ Justice seeding: {result}")
+        return json.dumps({"success": True, "data": result})
+    except Exception as e:
+        import traceback
+
+        ic.print(f"❌ Justice seeding failed: {e}\n{traceback.format_exc()}")
         return json.dumps({"success": False, "error": str(e)})
 
 

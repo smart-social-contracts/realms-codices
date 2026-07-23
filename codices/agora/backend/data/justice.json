@@ -1,0 +1,33 @@
+{
+  "description": "Template court hierarchy seeded at realm init. Quarter-scoped courts are created on every quarter (litigations are always filed locally); capital-scoped courts only exist on the capital, which hears appeals from the quarters.",
+  "justice_system": {
+    "name": "Agora Public Justice",
+    "description": "Official public justice system of the realm, continuing the incumbent judiciary under the Agora codex.",
+    "system_type": "public"
+  },
+  "courts": [
+    {
+      "name": "District Court",
+      "description": "Court of first instance for civil, commercial, and administrative matters.",
+      "jurisdiction": "General",
+      "level": "first_instance",
+      "scope": "quarter",
+      "parent": "Court of Appeals"
+    },
+    {
+      "name": "Court of Appeals",
+      "description": "Appellate court reviewing District Court decisions.",
+      "jurisdiction": "Realm-wide — Appeals",
+      "level": "appellate",
+      "scope": "capital",
+      "parent": "Supreme Court"
+    },
+    {
+      "name": "Supreme Court",
+      "description": "Court of last instance for the realm.",
+      "jurisdiction": "Realm-wide",
+      "level": "supreme",
+      "scope": "capital"
+    }
+  ]
+}

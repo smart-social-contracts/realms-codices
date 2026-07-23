@@ -1,0 +1,25 @@
+{
+  "description": "Template court hierarchy seeded at realm init. Quarter-scoped courts are created on every quarter (litigations are always filed locally); capital-scoped courts only exist on the capital, which hears appeals from the quarters.",
+  "justice_system": {
+    "name": "Syntropia Justice",
+    "description": "Public justice system of the Syntropia city-realm: local community courts under a single constitutional court.",
+    "system_type": "public"
+  },
+  "courts": [
+    {
+      "name": "Community Court",
+      "description": "Court of first instance for disputes between citizens, land and lease matters, and administrative claims.",
+      "jurisdiction": "General",
+      "level": "first_instance",
+      "scope": "quarter",
+      "parent": "Constitutional Court"
+    },
+    {
+      "name": "Constitutional Court",
+      "description": "The city's highest court: hears appeals from Community Courts and rules on constitutional questions.",
+      "jurisdiction": "City-wide",
+      "level": "supreme",
+      "scope": "capital"
+    }
+  ]
+}
