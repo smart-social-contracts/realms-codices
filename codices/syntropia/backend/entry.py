@@ -386,6 +386,80 @@ def on_invoice_accounting(args: str) -> str:
         return json.dumps({"success": False, "error": str(e)})
 
 
+def on_federation_message(args: str) -> str:
+    """Handle non-reserved federation topics (realms issue #263).
+
+    Args JSON: ``{topic, source, body}`` — ``source`` is the sending canister
+    id, already authenticated by core as a federation member. Value never
+    moves through these messages; they carry claims/orders/receipts verified
+    against the shared ICRC-1 ledgers.
+
+    Topics:
+      ping       liveness echo proving codex-level dispatch works end-to-end
+      tax.remit  a quarter reports a tax remittance it paid on the ledger to
+                 the capital treasury; the capital records the receipt
+    """
+    try:
+        params = json.loads(args) if args else {}
+        topic = (params.get("topic") or "").strip()
+        source = (params.get("source") or "").strip()
+        body = params.get("body") or {}
+
+        if topic == "ping":
+            return json.dumps({"success": True, "pong": REALM_NAME})
+
+        if topic == "tax.remit":
+            return json.dumps(_handle_tax_remit(source, body))
+
+        return json.dumps({
+            "success": False,
+            "error": f"Syntropia: no handler for federation topic '{topic}'",
+        })
+    except Exception as e:
+        ic.print(f"Error in Syntropia on_federation_message: {e}")
+        return json.dumps({"success": False, "error": str(e)})
+
+
+def _handle_tax_remit(source: str, body: dict) -> dict:
+    """Record a quarter's tax remittance receipt on the capital.
+
+    Record-only: the actual value moved on the shared ledger (quarter treasury
+    → capital treasury); this books the claim so consolidated reporting can
+    reconcile it against the ledger indexer.
+    """
+    realm = _realm()
+    if realm is None or bool(getattr(realm, "is_quarter", False)):
+        return {"success": False, "error": "tax.remit is handled by the capital only"}
+
+    tx_id = (str(body.get("tx_id") or "")).strip()
+    period = (str(body.get("period") or "")).strip()
+    instrument = (str(body.get("instrument") or "")).strip()
+    try:
+        amount = int(body.get("amount") or 0)
+    except (TypeError, ValueError):
+        amount = 0
+    if not tx_id or amount <= 0:
+        return {"success": False, "error": "tax.remit requires tx_id and a positive amount"}
+
+    from ggg import Transfer
+
+    receipt_id = f"fedtax-{source}-{tx_id}"
+    if Transfer[receipt_id] is not None:
+        return {"success": True, "receipt": receipt_id, "duplicate": True}
+
+    Transfer(
+        id=receipt_id,
+        principal_from=source,
+        principal_to=str(ic.id()),
+        instrument=instrument,
+        amount=amount,
+        status="reported",
+        tags=f"federation:tax_remit,period:{period}" if period else "federation:tax_remit",
+    )
+    ic.print(f"✅ Syntropia: recorded tax remittance {receipt_id} ({amount} {instrument})")
+    return {"success": True, "receipt": receipt_id, "amount": amount}
+
+
 # ---------------------------------------------------------------------------
 # Beta transition: billing, payroll, real-identity submission (issue #253)
 # ---------------------------------------------------------------------------
