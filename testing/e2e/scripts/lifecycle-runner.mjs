@@ -618,9 +618,19 @@ export class LifecycleHarness {
 
   async transferRoot(byIndex = 0, targetOrg = 'Congress') {
     const actor = await this.actor(byIndex);
-    const res = await extCall(actor, 'realm_settings', 'transfer_root', {
+    // Governed action (realms#262): confirm up front; a non-1/1 root policy
+    // yields a proposal whose replay demotes the recorded initiator (the
+    // founder), which we force through with the test-mode executor.
+    let res = await extCall(actor, 'realm_settings', 'transfer_root', {
       target_org: targetOrg,
+      confirm: true,
     });
+    if (res.applied === 'proposal' && res.proposal_id) {
+      const exec = await extCall(actor, 'voting', 'demo_approve_and_execute', {
+        proposal_id: res.proposal_id,
+      });
+      res = { ...exec, proposal_id: res.proposal_id };
+    }
     // Idempotent re-run: founder already demoted after a prior handover.
     if (
       !res.success &&
