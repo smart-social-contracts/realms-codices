@@ -654,12 +654,28 @@ export class LifecycleHarness {
     return res;
   }
 
+  /**
+   * Drive a governed stage transition to execution (realms#262): submit
+   * set_realm_stage with confirm=true. When the root policy demands a vote
+   * this creates a root-scoped proposal, which we force through with the
+   * test-mode demo_approve_and_execute helper; a 1/1 policy applies
+   * directly. The lifecycle hard gates (proving period, checklist) are
+   * re-checked when the proposal replays.
+   */
   async approveStage(byIndex, stage) {
     const actor = await this.actor(byIndex);
-    return extCall(actor, 'realm_settings', 'approve_stage_transition', {
+    const res = await extCall(actor, 'realm_settings', 'set_realm_stage', {
       stage,
-      approve: true,
+      reason: 'Congress vote (E2E)',
+      confirm: true,
     });
+    if (res.applied === 'proposal' && res.proposal_id) {
+      const exec = await extCall(actor, 'voting', 'demo_approve_and_execute', {
+        proposal_id: res.proposal_id,
+      });
+      return { ...exec, proposal_id: res.proposal_id };
+    }
+    return res;
   }
 
   /**

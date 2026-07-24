@@ -251,20 +251,22 @@ test.describe.serial('Agora lifecycle (alpha → beta → production)', () => {
     await harness.configureGates({ beta_proving_days: PARAMS.provingDays }, congress);
     await harness.ensureBetaHistory(congress);
 
-    // Negative: without approvals, production is blocked.
+    // Negative: without confirm the governed gate demands a vote (or, on a
+    // direct policy, the proving-period gate blocks) — no transition.
     const blocked = await harness.setStage(congress, 'production', 'E2E premature');
     expect(blocked.success).toBeFalsy();
-    harness.record('production_blocked', { missing: blocked.missing });
-
-    // Congress votes.
-    const vote = await harness.approveStage(congress, 'production');
-    expect(vote.success, `approve failed: ${vote.error}`).toBeTruthy();
+    harness.record('production_blocked', {
+      missing: blocked.missing,
+      requires_confirmation: blocked.requires_confirmation,
+    });
 
     // Wait out the (shortened) proving period.
     await sleep(Math.ceil(PARAMS.provingDays * 86_400_000) + 10_000);
 
-    const res = await harness.setStage(congress, 'production', 'Congress vote passed');
-    expect(res.success, `go-live failed: ${res.error}`).toBeTruthy();
+    // Governed flow (realms#262): confirm → root-scoped proposal → vote →
+    // replay applies the transition (hard gates re-checked at replay).
+    const vote = await harness.approveStage(congress, 'production');
+    expect(vote.success, `go-live vote failed: ${vote.error}`).toBeTruthy();
 
     const stage = await harness.getStage(congress);
     expect(stage.stage).toBe('production');

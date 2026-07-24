@@ -249,17 +249,21 @@ test.describe.serial('Syntropia lifecycle (alpha → beta → production)', () =
     test.setTimeout(600_000);
     const congress = harness.congressIndices[0];
 
+    // Without confirm the governed gate demands a vote (or, on a direct
+    // policy, the proving-period gate blocks) — either way no transition.
     const blocked = await harness.setStage(congress, 'production', 'E2E premature');
     expect(blocked.success).toBeFalsy();
-    harness.record('production_blocked', { missing: blocked.missing });
-
-    const vote = await harness.approveStage(congress, 'production');
-    expect(vote.success, `approve failed: ${vote.error}`).toBeTruthy();
+    harness.record('production_blocked', {
+      missing: blocked.missing,
+      requires_confirmation: blocked.requires_confirmation,
+    });
 
     await sleep(Math.ceil(PARAMS.provingDays * 86_400_000) + 10_000);
 
-    const res = await harness.setStage(congress, 'production', 'Congress vote passed');
-    expect(res.success, `go-live failed: ${res.error}`).toBeTruthy();
+    // Governed flow (realms#262): confirm → root-scoped proposal → vote →
+    // replay applies the transition (hard gates re-checked at replay).
+    const vote = await harness.approveStage(congress, 'production');
+    expect(vote.success, `go-live vote failed: ${vote.error}`).toBeTruthy();
 
     const stage = await harness.getStage(congress);
     expect(stage.stage).toBe('production');

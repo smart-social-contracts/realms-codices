@@ -147,8 +147,8 @@ export const SYNTROPIA_PHASES = [
       'Production blocked until vote + proving period; Congress approves; realm goes live.',
     actions: [
       'Blocked premature production advance.',
-      'approveStage(production) proposal + force-finalize in test mode.',
-      'Wait proving period; set_realm_stage(production).',
+      'Wait proving period.',
+      'set_realm_stage(production, confirm) → governed proposal → force-execute in test mode.',
     ],
     checklist: ['§4 production blocked pre-vote', '§4 Congress approval', '§4 stage = production'],
     uiShots: ['12-production-realm-settings', '12-production-voting-history'],
