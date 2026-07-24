@@ -188,5 +188,14 @@
     "justice": "data/justice.json",
     "justice_license": "data/justice_license.json",
     "zones": "data/zones.json"
+  },
+  "entry_access": {
+    "default": "admin",
+    "functions": {
+      "get_config": "member",
+      "submit_identity": "member",
+      "review_identity": "member",
+      "list_identity_attestations": "member"
+    }
   }
 }
