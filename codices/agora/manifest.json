@@ -5,6 +5,17 @@
   "kind": "codex",
   "codex_api_version": 1,
   "ggg_api_version": 1,
+  "sandbox_module": "sandbox_hooks.py",
+  "capabilities": [
+    "config.get",
+    "currency.get",
+    "time.now",
+    "user.get",
+    "realm.get",
+    "member.activate",
+    "invoice.create",
+    "notification.create"
+  ],
   "show_in_sidebar": false,
   "dependencies": [
     "access_manager",

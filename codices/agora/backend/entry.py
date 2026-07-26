@@ -36,6 +36,8 @@ _NON_CONFIG_KEYS = {
     "author", "dependencies", "extension_overrides", "data_files",
     "profiles", "categories", "icon", "show_in_sidebar", "sidebar_label",
     "doc_url", "permissions", "parameters",
+    # Capability-bridge plumbing (issue #265), not realm config.
+    "ggg_api_version", "capabilities", "sandbox_module",
 }
 
 
