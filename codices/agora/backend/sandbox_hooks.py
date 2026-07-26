@@ -4,8 +4,10 @@ This module is spawned inside the Basilisk subinterpreter (manifest
 ``sandbox_module``). It is intentionally self-contained: it imports **only**
 ``ggg_sdk`` (the in-sandbox SDK) and the standard library, so its module body
 executes cleanly inside the sandbox — no ``_cdk``, no ``ggg``, no sibling
-modules, no filesystem access. All realm access goes through the capability
-bridge via ``realm.*`` (authorized against the manifest ``capabilities``).
+modules, no filesystem access. The sandbox is pure compute: reads (``realm.config``,
+``realm.users.get``, ...) are served from the host-injected context and writes
+(``realm.invoices.create``, ...) are recorded as effects the host authorizes
+against the manifest ``capabilities`` and applies via the public ``ggg`` API.
 
 ``entry.py`` keeps an equivalent in-process implementation as the fallback used
 when the sandbox is unavailable; this module is the sandboxed path.
