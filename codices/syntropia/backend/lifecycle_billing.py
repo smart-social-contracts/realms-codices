@@ -48,7 +48,7 @@ def issue_membership_invoices(manifest: dict, codex_label: str) -> dict:
             if user is not None:
                 already.add(str(getattr(user, "id", "")))
 
-    from core.membership import iter_users, user_has_profile
+    from ggg import iter_users, user_has_profile
 
     invoiced = 0
     for user in iter_users():

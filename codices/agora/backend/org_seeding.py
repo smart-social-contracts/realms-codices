@@ -72,7 +72,7 @@ def seed_organizations(dept_data, realm):
 
     # Root org first (idempotent) so authority grants have a grantor.
     try:
-        from core.org_policy import ensure_root_org
+        from ggg import ensure_root_org
 
         ensure_root_org()
     except Exception as e:
@@ -234,7 +234,7 @@ def seed_organizations(dept_data, realm):
 
     # Root gets default manage authority over the freshly seeded orgs.
     try:
-        from core.org_policy import grant_root_authority_over_local_orgs
+        from ggg import grant_root_authority_over_local_orgs
 
         grant_root_authority_over_local_orgs()
     except Exception as e:

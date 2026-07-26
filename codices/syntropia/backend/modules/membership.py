@@ -18,10 +18,7 @@ from ggg import User, Member, Notification
 from datetime import datetime
 import json
 
-try:
-    from core.extensions import extension_async_call
-except ImportError:
-    from ..core.extensions import extension_async_call
+from ggg import extension_call as extension_async_call
 
 
 # ---------------------------------------------------------------------------

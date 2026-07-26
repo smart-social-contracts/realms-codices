@@ -514,7 +514,7 @@ def _request_identity_submissions() -> int:
     from ggg import Notification
     from ic_basilisk_toolkit.date_utils import epoch_to_datetime_str, ic_time_to_epoch
 
-    from core.membership import iter_users, user_has_profile
+    from ggg import iter_users, user_has_profile
 
     now_epoch = ic_time_to_epoch(ic.time())
     notified = 0
@@ -549,8 +549,7 @@ def run_payroll(args: str) -> str:
     """Record salary payments for all filled seats (admin/testing entry point,
     callable via ``extension_sync_call("syntropia", "run_payroll", "{}")``)."""
     try:
-        from core.access import _check_access
-        from ggg.system.user_profile import Operations
+        from ggg import check_access as _check_access, Operations
 
         caller = ic.caller().to_str()
         if not _check_access(caller, Operations.REALM_ADMIN):
@@ -587,7 +586,7 @@ def _identity_attestation_cls():
     if _IdentityAttestation is not None:
         return _IdentityAttestation
 
-    from core.extensions import create_extension_entity_class
+    from ggg import extension_entity_class as create_extension_entity_class
     from ic_python_db import Integer, String
 
     ExtensionEntity = create_extension_entity_class("syntropia")
@@ -627,8 +626,7 @@ def _attestation_to_dict(att) -> dict:
 def _can_review_identity(caller: str) -> bool:
     """Registrars of Citizenship & Identity, department head, or realm admin."""
     try:
-        from core.access import _check_access
-        from ggg.system.user_profile import Operations
+        from ggg import check_access as _check_access, Operations
 
         if _check_access(caller, Operations.REALM_ADMIN):
             return True
@@ -637,7 +635,7 @@ def _can_review_identity(caller: str) -> bool:
     try:
         from ggg import Department, User
 
-        from core.membership import user_has_profile, user_in_department
+        from ggg import user_has_profile, user_in_department
 
         user = User[caller]
         dept = Department[_IDENTITY_REVIEW_DEPARTMENT]

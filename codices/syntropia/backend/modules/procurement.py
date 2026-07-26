@@ -17,10 +17,7 @@ from ggg import Proposal, Transfer, User, Member, Notification, Treasury
 from datetime import datetime, timedelta
 import json
 
-try:
-    from core.extensions import extension_async_call
-except ImportError:
-    from ..core.extensions import extension_async_call
+from ggg import extension_call as extension_async_call
 
 
 # ---------------------------------------------------------------------------

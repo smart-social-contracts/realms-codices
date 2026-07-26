@@ -429,8 +429,7 @@ def run_payroll(args: str) -> str:
     """Record salary payments for all filled seats (admin/testing entry point,
     callable via ``extension_sync_call("agora", "run_payroll", "{}")``)."""
     try:
-        from core.access import _check_access
-        from ggg.system.user_profile import Operations
+        from ggg import check_access as _check_access, Operations
 
         caller = ic.caller().to_str()
         if not _check_access(caller, Operations.REALM_ADMIN):
@@ -451,7 +450,7 @@ def run_payroll(args: str) -> str:
 
 def on_treasury_send(args: str):
     """Treasury transfers go through the vault extension (async generator)."""
-    from core.extensions import extension_async_call
+    from ggg import extension_call as extension_async_call
 
     params = json.loads(args) if args else {}
     vault_args = json.dumps({

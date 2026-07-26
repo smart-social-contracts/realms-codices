@@ -4,6 +4,7 @@
   "name": "Dominion",
   "kind": "codex",
   "codex_api_version": 1,
+  "ggg_api_version": 1,
   "show_in_sidebar": false,
 
   "currency": {

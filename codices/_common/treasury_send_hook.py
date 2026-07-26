@@ -1,9 +1,6 @@
 import json
 
-try:
-    from core.extensions import extension_async_call
-except ImportError:
-    from ..core.extensions import extension_async_call
+from ggg import extension_call as extension_async_call
 
 from ic_python_logging import get_logger
 

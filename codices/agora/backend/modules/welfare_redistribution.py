@@ -27,7 +27,7 @@ import budget
 import governance
 
 try:
-    from core.extensions import extension_async_call
+    from ggg import extension_call as extension_async_call
 except Exception:
     extension_async_call = None
 
