@@ -200,12 +200,12 @@
     "zones": "data/zones.json"
   },
   "entry_access": {
-    "default": "admin",
+    "default": "realm.admin",
     "functions": {
-      "get_config": "member",
-      "submit_identity": "member",
-      "review_identity": "member",
-      "list_identity_attestations": "member"
+      "get_config": "realm.data_view",
+      "submit_identity": "identity.submit",
+      "review_identity": "identity.review",
+      "list_identity_attestations": "identity.review"
     }
   }
 }

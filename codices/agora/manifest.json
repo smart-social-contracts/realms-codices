@@ -187,5 +187,11 @@
     "justice": "data/justice.json",
     "justice_license": "data/justice_license.json",
     "zones": "data/zones.json"
+  },
+  "entry_access": {
+    "default": "realm.admin",
+    "functions": {
+      "get_config": "realm.data_view"
+    }
   }
 }

@@ -35,5 +35,12 @@
   "membership": {
     "activation_requires": ["passport_verified", "invoice_paid"],
     "invoice_validity_days": 30
+  },
+
+  "entry_access": {
+    "default": "realm.admin",
+    "functions": {
+      "get_config": "realm.data_view"
+    }
   }
 }
