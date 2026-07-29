@@ -1,18 +1,1 @@
-{
-  "entity_method_overrides": [
-    {
-      "entity": "User",
-      "method": "user_register_posthook",
-      "type": "staticmethod",
-      "implementation": "Codex.user_registration_hook.user_register_posthook",
-      "description": "Custom post-registration hook for new users"
-    },
-    {
-      "entity": "Treasury",
-      "method": "send",
-      "type": "staticmethod",
-      "implementation": "Codex.treasury_send_hook.send_hook",
-      "description": "Custom send hook for treasuries"
-    }
-  ]
-}
+{}

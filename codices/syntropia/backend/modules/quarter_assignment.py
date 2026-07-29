@@ -23,8 +23,6 @@ can override ``assign_quarter`` entirely for arbitrary eligibility rules
 (geography, invitation codes, profile attributes, etc.).
 """
 
-from datetime import datetime
-
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------

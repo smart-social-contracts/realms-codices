@@ -79,3 +79,12 @@ def on_user_register(args):
     )
 
     return {"success": True, "invoice_id": invoice["id"]}
+
+
+@hook
+def init(args):
+    """Post-install realm setup (idempotent)."""
+    realm.init.apply_init_policy()
+    realm.init.seed_org("departments")
+    realm.init.seed_justice()
+    return {"success": True, "codex": "syntropia"}

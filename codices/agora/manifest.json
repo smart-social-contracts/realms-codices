@@ -14,7 +14,11 @@
     "realm.get",
     "member.activate",
     "invoice.create",
-    "notification.create"
+    "notification.create",
+    "treasury.transfer",
+    "realm.apply_init_policy",
+    "org.seed_template",
+    "justice.seed_template"
   ],
   "show_in_sidebar": false,
   "dependencies": [

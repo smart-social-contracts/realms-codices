@@ -12,7 +12,10 @@
     "time.now",
     "user.get",
     "invoice.create",
-    "notification.create"
+    "notification.create",
+    "realm.apply_init_policy",
+    "org.seed_template",
+    "justice.seed_template"
   ],
   "show_in_sidebar": false,
   "dependencies": [

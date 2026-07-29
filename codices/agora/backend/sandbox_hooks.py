@@ -112,3 +112,23 @@ def on_user_register(args):
         timestamp_created=created_at,
     )
     return {"success": True, "stage": stage}
+
+
+@hook
+def on_treasury_send(args):
+    """Authorize a treasury transfer; host performs the vault ICRC call."""
+    realm.treasury.transfer(
+        to_principal=args.get("to_principal", ""),
+        amount=args.get("amount", 0),
+        treasury_name=args.get("treasury_name", ""),
+    )
+    return {"success": True}
+
+
+@hook
+def init(args):
+    """Post-install realm setup (idempotent)."""
+    realm.init.apply_init_policy()
+    realm.init.seed_org("departments")
+    realm.init.seed_justice()
+    return {"success": True, "codex": "agora"}
