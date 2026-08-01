@@ -47,16 +47,25 @@ print("=== TEST 2: AUTO-SCALING HOOK ===")
 assert quarter_mod._effective_n("test") == 10, "test network N should be 10"
 assert quarter_mod._effective_n("ic") == 2000, "prod network N should be 2000"
 
-# Below threshold: fullest quarter at 8 < 9 => no scale
+# Below threshold: all quarters under 9 => no scale
 assert quarter_mod.should_deploy_quarter([5, 8, 3], "test") is False, "8/10 should not scale"
-# At threshold: fullest quarter at 9 >= 9 => scale
-assert quarter_mod.should_deploy_quarter([2, 9], "test") is True, "9/10 should scale"
+# One quarter full but another has headroom => no scale (min semantics:
+# max() here re-minted forever — the fullest quarter stays above threshold
+# after the fresh one opens, so every join re-triggered provisioning)
+assert quarter_mod.should_deploy_quarter([2, 9], "test") is False, "headroom quarter should suppress scale"
+# All joinable quarters at threshold => scale
+assert quarter_mod.should_deploy_quarter([9, 9], "test") is True, "all full should scale"
 # Production: 1799 < 1800 no scale, 1800 >= 1800 scale
 assert quarter_mod.should_deploy_quarter([1799], "ic") is False, "1799/2000 should not scale"
 assert quarter_mod.should_deploy_quarter([1800], "ic") is True, "1800/2000 should scale"
+# Realm manifest override beats the network default
+class _FakeRealm:
+    manifest_data = '{"scaling": {"quarter_capacity": 2000}}'
+assert quarter_mod.should_deploy_quarter([9], "test", realm=_FakeRealm()) is False, "override 2000: 9 joins must not scale"
+assert quarter_mod.should_deploy_quarter([1800], "test", realm=_FakeRealm()) is True, "override 2000: 1800 should scale"
 # Empty / disabled
 assert quarter_mod.should_deploy_quarter([], "test") is False, "empty should not scale"
-print("Auto-scaling hook thresholds verified (test N=10, prod N=2000, 90% rule)")
+print("Auto-scaling hook thresholds verified (test N=10, prod N=2000, 90% rule, min semantics, manifest override)")
 
 # Summary
 print("=== FEDERATION TESTS PASSED ===")

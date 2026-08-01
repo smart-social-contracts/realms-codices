@@ -127,20 +127,46 @@ def _effective_n(network: str) -> int:
     return 10 if (network or "").strip().lower() in _LOW_THRESHOLD_NETWORKS else 2000
 
 
+def _realm_capacity_override(realm) -> int:
+    """Per-realm N from ``manifest_data.scaling.quarter_capacity`` (0 = none).
+
+    The platform's default policy honors this override; a codex hook replaces
+    that policy wholesale, so it must apply the override itself — otherwise an
+    operator-set capacity is silently ignored whenever a codex is installed
+    (found on the wizard-parity E2E realm: codex kept scaling at the staging
+    default N=10 despite the realm's 2000 override).
+    """
+    if realm is None:
+        return 0
+    try:
+        import json
+
+        md = json.loads(getattr(realm, "manifest_data", "") or "{}")
+        cap = int((md.get("scaling") or {}).get("quarter_capacity") or 0)
+        return cap if cap > 0 else 0
+    except Exception:
+        return 0
+
+
 def should_deploy_quarter(populations: list, network: str, realm=None) -> bool:
     """Decide whether the federation should spawn a new quarter.
 
     Called after each new user registration. ``populations`` is the list of
-    per-quarter resident counts (including the capital). Returns True when the
-    fullest quarter has reached 90% of N — the realm then queues a (non-blocking)
-    Casals provisioning job. A custom codex can replace this with any policy
-    (cycle budget, time-of-day, manual approval, …).
+    per-quarter resident counts (including the capital). Returns True when
+    every joinable quarter has reached 90% of N — the realm then queues a
+    (non-blocking) Casals provisioning job. A custom codex can replace this
+    with any policy (cycle budget, time-of-day, manual approval, …).
+
+    Uses ``min`` (all quarters full), not ``max`` (fullest quarter full):
+    with ``max``, the previously-filled quarter stays above threshold after
+    the fresh one opens, so every subsequent join re-triggers provisioning
+    and the realm mints quarters without bound.
     """
     pops = [int(p or 0) for p in (populations or [])]
     if not pops:
         return False
-    n = _effective_n(network)
+    n = _realm_capacity_override(realm) or _effective_n(network)
     if n <= 0:
         return False  # unlimited / disabled
     threshold = max(1, int((SCALE_FRACTION * n) + 0.999))  # ceil
-    return max(pops) >= threshold
+    return min(pops) >= threshold
