@@ -148,7 +148,9 @@ def _realm_capacity_override(realm) -> int:
         return 0
 
 
-def should_deploy_quarter(populations: list, network: str, realm=None) -> bool:
+def should_deploy_quarter(
+    populations: list, network: str, realm=None, quarter_capacity: int = 0
+) -> bool:
     """Decide whether the federation should spawn a new quarter.
 
     Called after each new user registration. ``populations`` is the list of
@@ -161,11 +163,20 @@ def should_deploy_quarter(populations: list, network: str, realm=None) -> bool:
     with ``max``, the previously-filled quarter stays above threshold after
     the fresh one opens, so every subsequent join re-triggers provisioning
     and the realm mints quarters without bound.
+
+    Capacity precedence: the platform-supplied ``quarter_capacity`` kwarg
+    (the realm's manifest_data override, passed as plain data because
+    sandboxed hooks receive no realm entity) → direct ``realm`` override
+    (non-sandboxed callers) → SCALE_N → env default.
     """
     pops = [int(p or 0) for p in (populations or [])]
     if not pops:
         return False
-    n = _realm_capacity_override(realm) or _effective_n(network)
+    n = (
+        int(quarter_capacity)
+        if quarter_capacity and int(quarter_capacity) > 0
+        else (_realm_capacity_override(realm) or _effective_n(network))
+    )
     if n <= 0:
         return False  # unlimited / disabled
     threshold = max(1, int((SCALE_FRACTION * n) + 0.999))  # ceil

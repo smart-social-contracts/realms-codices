@@ -63,6 +63,11 @@ class _FakeRealm:
     manifest_data = '{"scaling": {"quarter_capacity": 2000}}'
 assert quarter_mod.should_deploy_quarter([9], "test", realm=_FakeRealm()) is False, "override 2000: 9 joins must not scale"
 assert quarter_mod.should_deploy_quarter([1800], "test", realm=_FakeRealm()) is True, "override 2000: 1800 should scale"
+# Platform-bridge kwarg (sandboxed hooks get no realm entity — the override
+# arrives as plain data; P22: the bridge used to pass realm=None and no
+# capacity, so the hook silently scaled at the env default)
+assert quarter_mod.should_deploy_quarter([994], "staging", None, quarter_capacity=2000) is False, "bridge kwarg 2000: 994 must not scale"
+assert quarter_mod.should_deploy_quarter([1800], "staging", None, quarter_capacity=2000) is True, "bridge kwarg 2000: 1800 should scale"
 # Empty / disabled
 assert quarter_mod.should_deploy_quarter([], "test") is False, "empty should not scale"
 print("Auto-scaling hook thresholds verified (test N=10, prod N=2000, 90% rule, min semantics, manifest override)")
