@@ -7,6 +7,7 @@
     "test:agora": "playwright test specs/agora.spec.ts",
     "test:agora-lifecycle": "LIFECYCLE_E2E=1 playwright test specs/agora-lifecycle.spec.ts",
     "test:syntropia-lifecycle": "LIFECYCLE_E2E=1 playwright test specs/syntropia-lifecycle.spec.ts",
+    "test:cohort": "node cohort/cohort-runner.mjs",
     "report:syntropia": "node scripts/generate-lifecycle-report.mjs syntropia",
     "build:test-site": "node scripts/build-test-results-site.mjs",
     "gallery": "node scripts/serve-e2e-gallery.mjs",

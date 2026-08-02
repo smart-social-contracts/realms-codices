@@ -10,7 +10,6 @@ const AGORA_DEPS = [
   'notifications',
   'metrics',
   'land_registry',
-  'migration_console',
 ];
 
 /** Drive the II-bypass join flow to the Invitation step and optionally join. */
@@ -119,8 +118,8 @@ test.describe('Agora codex E2E (staging)', () => {
     await page.screenshot({ path: 'test-results/u4-realm-settings.png', fullPage: true });
   });
 
-  test('A2 — Migration Console extension loads', async ({ page }) => {
-    await page.goto(`${REALM_URL}/extensions/migration_console`, {
+  test('A2 — Import & Export extension loads', async ({ page }) => {
+    await page.goto(`${REALM_URL}/extensions/import_export`, {
       waitUntil: 'domcontentloaded',
     });
     await page.waitForTimeout(8000);
@@ -128,7 +127,7 @@ test.describe('Agora codex E2E (staging)', () => {
     const err = page.getByText(/Extension .* not found/i).or(page.getByText(/failed to load/i));
     await expect(err).not.toBeVisible({ timeout: 10_000 });
 
-    await page.screenshot({ path: 'test-results/a2-migration-console.png', fullPage: true });
+    await page.screenshot({ path: 'test-results/a2-import-export.png', fullPage: true });
   });
 
   test('A2 — Metrics extension loads', async ({ page }) => {

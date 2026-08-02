@@ -56,8 +56,8 @@ test.describe.serial('Agora lifecycle (alpha → beta → production)', () => {
       await lifecycleUiCheckpoint(page, 'agora', '01-founder-realm-settings', {
         extension: 'realm_settings',
       });
-      await openExtension(page, 'migration_console');
-      await capture(page, 'agora', '01-founder-migration-console');
+      await openExtension(page, 'import_export');
+      await capture(page, 'agora', '01-founder-import-export');
     }
   });
 

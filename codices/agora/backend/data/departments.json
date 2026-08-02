@@ -42,7 +42,7 @@
       "extensions": [
         "voting",
         "codex_viewer",
-        "migration_console"
+        "import_export"
       ]
     },
     {
@@ -82,7 +82,7 @@
         "role_manager",
         "member_manager",
         "department_docs",
-        "migration_console"
+        "import_export"
       ]
     },
     {
@@ -121,7 +121,7 @@
       "extensions": [
         "justice_litigation",
         "department_docs",
-        "migration_console"
+        "import_export"
       ]
     },
     {
@@ -159,7 +159,7 @@
       "extensions": [
         "notifications",
         "department_docs",
-        "migration_console"
+        "import_export"
       ]
     },
     {
@@ -196,7 +196,7 @@
       "fund_code": "DEPT-SOC",
       "extensions": [
         "department_docs",
-        "migration_console"
+        "import_export"
       ]
     },
     {
@@ -242,7 +242,7 @@
         "land_registry",
         "zone_selector",
         "department_docs",
-        "migration_console"
+        "import_export"
       ]
     },
     {
@@ -283,7 +283,7 @@
         "vault",
         "metrics",
         "department_docs",
-        "migration_console"
+        "import_export"
       ]
     },
     {
@@ -319,7 +319,7 @@
         "admin_dashboard",
         "realm_settings",
         "package_manager",
-        "migration_console"
+        "import_export"
       ]
     }
   ]

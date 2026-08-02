@@ -1,0 +1,102 @@
+{
+  "run_id": "smoke002",
+  "base_url": "https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io",
+  "started_slots": 6,
+  "passed": 6,
+  "failed": 0,
+  "duration_s": 29,
+  "outcomes": [
+    {
+      "slot": 10100,
+      "journey": "join-admin",
+      "role": "admin",
+      "checklist": "§2 Onboarding (admin invite)",
+      "ok": true,
+      "principal": "2nymx-2tzt7-cl5rc-hrcqo-dvuwv-5ua2a-fykbs-wq2db-7abnb-kyd5r-kqe",
+      "durationMs": 7575,
+      "consoleErrors": [
+        "Error fetching realm info: Error: Actor not initialized\n    at Object.fetch (https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:18183)\n    at https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:14532",
+        "Error fetching realm info: Error: Actor not initialized\n    at Object.fetch (https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:18183)\n    at https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:14532"
+      ]
+    },
+    {
+      "slot": 10101,
+      "journey": "extension-mount-sweep",
+      "role": "admin",
+      "checklist": "§2 Root sanity",
+      "ok": true,
+      "principal": "s5w3p-6a3xo-3cn5d-ge32b-tqscm-kqdn7-utjb6-v56pf-vqv5t-ivata-fqe",
+      "durationMs": 16852,
+      "consoleErrors": [
+        "Error fetching realm info: Error: Actor not initialized\n    at Object.fetch (https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:18183)\n    at https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:14532",
+        "Error fetching realm info: Error: Actor not initialized\n    at Object.fetch (https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:18183)\n    at https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:14532",
+        "Error fetching realm info: Error: Actor not initialized\n    at Object.fetch (https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:18183)\n    at https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/CFhkEAoR.js:1:14273\n    at $r (https://4bimo-maaaa-aaaac-bfsba-",
+        "Error fetching realm info: Error: Actor not initialized\n    at Object.fetch (https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:18183)\n    at https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/nodes/4.BHq6qBNM.js:2:37713\n    at $r (https://4bimo-maaaa-aaaac-bfsba",
+        "Error fetching realm info: Error: Actor not initialized\n    at Object.fetch (https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:18183)\n    at https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:14532\n    at async Proxy.<anonymous> (https://4bi",
+        "Error fetching realm info: Error: Actor not initialized\n    at Object.fetch (https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:18183)\n    at https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:14532"
+      ]
+    },
+    {
+      "slot": 10102,
+      "journey": "visitor-public",
+      "role": "visitor",
+      "checklist": "§2 Per-role (non-member)",
+      "ok": true,
+      "principal": "",
+      "durationMs": 4424,
+      "consoleErrors": [
+        "Error fetching realm info: Error: Actor not initialized\n    at Object.fetch (https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:18183)\n    at https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/CFhkEAoR.js:1:14273\n    at $r (https://4bimo-maaaa-aaaac-bfsba-",
+        "Error fetching realm info: Error: Actor not initialized\n    at Object.fetch (https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:18183)\n    at https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/nodes/4.BHq6qBNM.js:2:37713\n    at $r (https://4bimo-maaaa-aaaac-bfsba",
+        "Error fetching realm info: Error: Actor not initialized\n    at Object.fetch (https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:18183)\n    at https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:14532\n    at async Proxy.<anonymous> (https://4bi"
+      ]
+    },
+    {
+      "slot": 10103,
+      "journey": "join-member",
+      "role": "member",
+      "checklist": "§2 Onboarding",
+      "ok": true,
+      "principal": "nj32v-z657w-apbf5-k6uwx-hh4c6-dhzhl-k3mpk-qsa6e-r5rxj-fv4i5-wae",
+      "durationMs": 5976,
+      "consoleErrors": [
+        "Error fetching realm info: Error: Actor not initialized\n    at Object.fetch (https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:18183)\n    at https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:14532\n    at async https://4bimo-maaaa-aaaac-bfsb"
+      ]
+    },
+    {
+      "slot": 10104,
+      "journey": "member-voting",
+      "role": "member",
+      "checklist": "§3 Governance UI",
+      "ok": true,
+      "principal": "6dgtx-ex7ut-n6kjs-6meqf-7hnn2-iko2y-ch5yy-gsigk-2srll-gk4nt-3ae",
+      "durationMs": 11084,
+      "consoleErrors": [
+        "Error fetching realm info: Error: Actor not initialized\n    at Object.fetch (https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:18183)\n    at https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:14532\n    at async https://4bimo-maaaa-aaaac-bfsb",
+        "Error fetching realm info: Error: Actor not initialized\n    at Object.fetch (https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:18183)\n    at https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/CFhkEAoR.js:1:14273\n    at $r (https://4bimo-maaaa-aaaac-bfsba-",
+        "Error fetching realm info: Error: Actor not initialized\n    at Object.fetch (https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:18183)\n    at https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/nodes/4.BHq6qBNM.js:2:37713\n    at $r (https://4bimo-maaaa-aaaac-bfsba",
+        "Error fetching realm info: Error: Actor not initialized\n    at Object.fetch (https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:18183)\n    at https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:14532",
+        "TypeError: v(...)[e] is not a function",
+        "Error fetching realm info: Error: Actor not initialized\n    at Object.fetch (https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:18183)\n    at https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:14532",
+        "TypeError: Cannot read properties of null (reading 'nodes')"
+      ]
+    },
+    {
+      "slot": 10105,
+      "journey": "member-vault",
+      "role": "member",
+      "checklist": "§3 Payments UI",
+      "ok": true,
+      "principal": "nvpaf-v4pzz-7izzm-fcezr-2ggsm-v5wdq-nd6dv-y2p5j-kqjjw-4drs6-yae",
+      "durationMs": 10505,
+      "consoleErrors": [
+        "Error fetching realm info: Error: Actor not initialized\n    at Object.fetch (https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:18183)\n    at https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:14532",
+        "Error fetching realm info: Error: Actor not initialized\n    at Object.fetch (https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:18183)\n    at https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/CFhkEAoR.js:1:14273\n    at $r (https://4bimo-maaaa-aaaac-bfsba-",
+        "Error fetching realm info: Error: Actor not initialized\n    at Object.fetch (https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:18183)\n    at https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/nodes/4.BHq6qBNM.js:2:37713\n    at $r (https://4bimo-maaaa-aaaac-bfsba",
+        "Error fetching realm info: Error: Actor not initialized\n    at Object.fetch (https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:18183)\n    at https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:14532\n    at async Proxy.<anonymous> (https://4bi",
+        "Error fetching realm info: Error: Actor not initialized\n    at Object.fetch (https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:18183)\n    at https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/chunks/BM0iIdT5.js:2:14532",
+        "Failed to load tokens: AccessDeniedError: Access denied: you lack permission 'extension.sync_call'\n    at Object.L [as callSync] (https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/_app/immutable/nodes/9.CHuvTuw3.js:11:8147)\n    at async eo (https://4bimo-maaaa-aaaac-bfsba-cai.icp0.io/ext/vault/0.2.7/front",
+        "TypeError: Cannot read properties of null (reading 'nodes')"
+      ]
+    }
+  ]
+}
