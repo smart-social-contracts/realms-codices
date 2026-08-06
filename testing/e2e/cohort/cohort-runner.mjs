@@ -32,7 +32,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function parseArgs(argv) {
   const args = {
-    baseUrl: process.env.PLAYWRIGHT_BASE_URL || 'https://staging.realmsgos.org',
+    baseUrl: process.env.PLAYWRIGHT_BASE_URL || 'https://staging.gos.earth',
     members: 40,
     concurrency: 4,
     indexBase: 10_000,

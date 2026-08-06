@@ -42,7 +42,7 @@ const manifest = {
   infra: {
     file_registry_canister_id: 'iebdk-kqaaa-aaaau-agoxq-cai',
     marketplace_canister_id: 'jji3o-uyaaa-aaaah-qreja-cai',
-    ii_derivation_origin: 'https://staging.realmsgos.org',
+    ii_derivation_origin: 'https://staging.gos.earth',
   },
   test_flags: {
     test_mode: true,
@@ -54,7 +54,7 @@ const manifest = {
   },
   federation: {
     slug,
-    portal_url: `https://staging.realmsgos.org/r/${slug}`,
+    portal_url: `https://staging.gos.earth/r/${slug}`,
   },
 };
 

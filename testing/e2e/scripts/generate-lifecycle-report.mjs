@@ -132,7 +132,7 @@ export function generateLifecycleReport({
 
   const realmPath = process.env.REALM_PATH || '';
   const realmUrl = realmPath
-    ? `${process.env.PLAYWRIGHT_BASE_URL || 'https://staging.realmsgos.org'}${realmPath.startsWith('/') ? realmPath : `/${realmPath}`}`
+    ? `${process.env.PLAYWRIGHT_BASE_URL || 'https://staging.gos.earth'}${realmPath.startsWith('/') ? realmPath : `/${realmPath}`}`
     : '';
 
   const mergedRuns = { ...Object.fromEntries(pwRuns), ...testRuns };

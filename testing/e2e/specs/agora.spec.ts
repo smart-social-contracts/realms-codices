@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 
 const REALM_PATH = process.env.REALM_PATH || '/r/manualtest8agora';
 const REALM_NAME = process.env.REALM_NAME || 'ManualTest8Agora';
-const REALM_URL = `${process.env.PLAYWRIGHT_BASE_URL || 'https://staging.realmsgos.org'}${REALM_PATH}`;
+const REALM_URL = `${process.env.PLAYWRIGHT_BASE_URL || 'https://staging.gos.earth'}${REALM_PATH}`;
 
 const AGORA_DEPS = [
   'access_manager',

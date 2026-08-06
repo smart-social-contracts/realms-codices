@@ -16,7 +16,7 @@ export default defineConfig({
     ...(lifecycleE2e ? [['json', { outputFile: 'test-results/playwright-results.json' }]] : []),
   ],
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'https://staging.realmsgos.org',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'https://staging.gos.earth',
     trace: lifecycleE2e ? 'on' : 'on-first-retry',
     screenshot: 'on',
     video: lifecycleE2e ? 'on' : 'retain-on-failure',

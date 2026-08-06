@@ -8,7 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'https://staging.realmsgos.org';
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'https://staging.gos.earth';
 
 export function realmBaseUrl() {
   const realmPath = (process.env.REALM_PATH || '').trim();
