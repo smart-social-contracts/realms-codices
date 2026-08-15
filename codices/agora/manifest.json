@@ -2,6 +2,8 @@
   "id": "agora",
   "version": "0.9.5",
   "name": "Agora",
+  "description": "A migration codex for an existing public administration moving its entire IT to Realms GOS (a 1-to-1 migration). The population already exists, so onboarding is by registration code or bulk/programmatic import — no ZK passport.",
+  "repository": "https://github.com/smart-social-contracts/realms-codices/tree/main/codices/agora",
   "kind": "codex",
   "codex_api_version": 1,
   "ggg_api_version": 1,

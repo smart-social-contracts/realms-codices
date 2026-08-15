@@ -2,6 +2,8 @@
   "id": "syntropia",
   "version": "0.8.9",
   "name": "Syntropia",
+  "description": "A greenfield codex for a brand-new sovereign smart city built from scratch. Because there is no existing population, new citizens onboard with a ZK passport, pay a deposit — a house in a zone — and submit Know-Your-Citizen data before the city goes live.",
+  "repository": "https://github.com/smart-social-contracts/realms-codices/tree/main/codices/syntropia",
   "kind": "codex",
   "codex_api_version": 1,
   "ggg_api_version": 1,

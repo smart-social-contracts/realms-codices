@@ -2,6 +2,8 @@
   "id": "dominion",
   "version": "0.3.0",
   "name": "Dominion",
+  "description": "A direct democracy with taxation. Citizens propose and vote on decisions collectively.",
+  "repository": "https://github.com/smart-social-contracts/realms-codices/tree/main/codices/dominion",
   "kind": "codex",
   "codex_api_version": 1,
   "ggg_api_version": 1,
