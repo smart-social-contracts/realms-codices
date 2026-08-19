@@ -43,7 +43,7 @@ def _root_fund():
 
 def _common(invoice, fund, entry_date: str, description: str) -> dict:
     entry = {
-        "currency": invoice.currency or "REALMS",
+        "currency": invoice.currency or "",
         "entry_date": entry_date,
         "description": description,
         "fund": fund,

@@ -21,6 +21,11 @@ from ic_basilisk_toolkit.date_utils import ic_time_to_epoch, epoch_to_datetime_s
 import json
 import os
 
+try:
+    from invoice_currency import invoice_currency, no_treasury_token_error
+except ImportError:
+    from ..invoice_currency import invoice_currency, no_treasury_token_error
+
 
 # ---------------------------------------------------------------------------
 # Manifest loading
@@ -45,8 +50,7 @@ def get_params() -> dict:
 
 
 def _currency(params: dict) -> str:
-    """Realm currency symbol (manifest currency.symbol)."""
-    return params.get("currency", {}).get("symbol", "ckUSDC")
+    return invoice_currency(params)
 
 
 def _realm_stage() -> str:
@@ -109,6 +113,14 @@ def register_citizen(principal_id: str) -> dict:
 
     # Only charge once the realm is live and a fee is configured.
     if stage == "production" and fee and fee > 0:
+        if not currency:
+            return {
+                "user_id": user.id,
+                "member_id": member.id,
+                "active": True,
+                "stage": stage,
+                **no_treasury_token_error(),
+            }
         now_epoch = ic_time_to_epoch(ic.time())
         due_str = epoch_to_datetime_str(now_epoch + validity_days * 86400).replace(" ", "T")
         invoice = Invoice(

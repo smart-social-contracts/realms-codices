@@ -17,10 +17,16 @@ from _cdk import ic
 from ggg import Proposal, Vote, User, Member, Notification
 from ic_basilisk_toolkit.date_utils import ic_time_to_epoch, epoch_to_datetime_str
 import json
+import os
 
 import budget
 import governance
 import membership
+
+try:
+    from invoice_currency import invoice_currency, no_treasury_token_error
+except ImportError:
+    from ..invoice_currency import invoice_currency, no_treasury_token_error
 
 
 # ---------------------------------------------------------------------------
@@ -37,6 +43,21 @@ SANCTION_VOTE_DAYS = 5         # days to vote on major sanctions
 
 def _now_iso():
     return epoch_to_datetime_str(ic_time_to_epoch(ic.time())).replace(" ", "T")
+
+
+def _manifest() -> dict:
+    d = os.path.dirname(os.path.abspath(__file__))
+    for _ in range(3):
+        candidate = os.path.join(d, "manifest.json")
+        if os.path.exists(candidate):
+            with open(candidate) as f:
+                return json.load(f)
+        d = os.path.dirname(d)
+    return {}
+
+
+def _treasury_currency() -> str:
+    return invoice_currency(_manifest())
 
 
 def _get_enforcer_ids() -> list:
@@ -328,10 +349,15 @@ def _apply_sanction(report, meta: dict):
     target_id = meta.get("target", "")
 
     if sanction_type == "fine":
+        currency = _treasury_currency()
+        if not currency:
+            err = no_treasury_token_error()
+            ic.print(f"Report #{report.id} fine refused: {err['error']}")
+            return
         budget.record_service_payment(
             recipient="justice_fund",
             amount_btc=500 / budget.SATOSHIS_PER_BTC,
-            currency="ckBTC",
+            currency=currency,
             description=f"Enforcement fine — report #{report.id}"
         )
         ic.print(f"Fine applied to {target_id} for report #{report.id}")

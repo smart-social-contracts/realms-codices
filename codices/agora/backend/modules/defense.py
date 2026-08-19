@@ -17,9 +17,15 @@ from _cdk import ic
 from ggg import Proposal, Vote, User, Member, Transfer, Notification
 from ic_basilisk_toolkit.date_utils import ic_time_to_epoch, epoch_to_datetime_str
 import json
+import os
 
 import budget
 import governance
+
+try:
+    from invoice_currency import invoice_currency, no_treasury_token_error
+except ImportError:
+    from ..invoice_currency import invoice_currency, no_treasury_token_error
 
 
 # ---------------------------------------------------------------------------
@@ -36,6 +42,21 @@ MISSION_VOTE_DAYS = 7            # days to vote on a defense mission
 
 def _now_iso():
     return epoch_to_datetime_str(ic_time_to_epoch(ic.time())).replace(" ", "T")
+
+
+def _manifest() -> dict:
+    d = os.path.dirname(os.path.abspath(__file__))
+    for _ in range(3):
+        candidate = os.path.join(d, "manifest.json")
+        if os.path.exists(candidate):
+            with open(candidate) as f:
+                return json.load(f)
+        d = os.path.dirname(d)
+    return {}
+
+
+def _treasury_currency() -> str:
+    return invoice_currency(_manifest())
 
 
 def _get_enlisted_ids() -> list:
@@ -254,10 +275,16 @@ def _fund_mission(mission, meta: dict):
     budget_sat = meta.get("budget_satoshis", 0)
     amount_btc = budget_sat / budget.SATOSHIS_PER_BTC
 
+    currency = _treasury_currency()
+    if not currency:
+        err = no_treasury_token_error()
+        ic.print(f"Mission #{mission.id} funding refused: {err['error']}")
+        return
+
     budget.record_service_payment(
         recipient="defense_fund",
         amount_btc=amount_btc,
-        currency="ckBTC",
+        currency=currency,
         description=f"Defense mission — {mission.title}"
     )
 

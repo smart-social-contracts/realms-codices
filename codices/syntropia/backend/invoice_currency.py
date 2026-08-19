@@ -1,13 +1,17 @@
 """Resolve invoice currency: codex-pinned symbol, else realm treasury currency."""
 
+_NO_TREASURY_MESSAGE = (
+    "No treasury currency — set the treasury ledger canister in Realm Settings "
+    "so the token symbol can be resolved"
+)
 
-def invoice_currency(manifest: dict, default: str = "REALMS") -> str:
+
+def invoice_currency(manifest: dict) -> str:
     """Currency for invoices and treasury transfers.
 
     Resolution order:
       1. ``manifest["currency"]["symbol"]`` (codex-pinned or config_overrides)
-      2. ``Realm.accounting_currency`` (wizard / realm settings)
-      3. *default* (REALMS for greenfield codices)
+      2. ``Realm.accounting_currency`` (treasury ledger ICRC-1 symbol)
     """
     if not isinstance(manifest, dict):
         manifest = {}
@@ -26,4 +30,8 @@ def invoice_currency(manifest: dict, default: str = "REALMS") -> str:
                 return acct[:16]
     except Exception:
         pass
-    return (default or "REALMS")[:16]
+    return ""
+
+
+def no_treasury_token_error() -> dict:
+    return {"error": _NO_TREASURY_MESSAGE, "error_code": "no_treasury_token"}

@@ -16,9 +16,15 @@ from _cdk import ic
 from ggg import Proposal, Vote, User, Member, Transfer, Notification
 from ic_basilisk_toolkit.date_utils import ic_time_to_epoch, epoch_to_datetime_str
 import json
+import os
 
 import budget
 import governance
+
+try:
+    from invoice_currency import invoice_currency, no_treasury_token_error
+except ImportError:
+    from ..invoice_currency import invoice_currency, no_treasury_token_error
 
 
 # ---------------------------------------------------------------------------
@@ -35,6 +41,21 @@ BID_VOTE_WINDOW_DAYS = 7      # how long the community votes on bids
 
 def _now_iso():
     return epoch_to_datetime_str(ic_time_to_epoch(ic.time())).replace(" ", "T")
+
+
+def _manifest() -> dict:
+    d = os.path.dirname(os.path.abspath(__file__))
+    for _ in range(3):
+        candidate = os.path.join(d, "manifest.json")
+        if os.path.exists(candidate):
+            with open(candidate) as f:
+                return json.load(f)
+        d = os.path.dirname(d)
+    return {}
+
+
+def _treasury_currency() -> str:
+    return invoice_currency(_manifest())
 
 
 def _get_tender_proposals() -> list:
@@ -282,18 +303,22 @@ def award_contract(tender_id: str) -> dict:
     amount_sat = best["amount_satoshis"]
     amount_btc = amount_sat / budget.SATOSHIS_PER_BTC
 
+    currency = _treasury_currency()
+    if not currency:
+        return {"awarded": False, **no_treasury_token_error()}
+
     # Record payment in the budget
     budget.record_service_payment(
         recipient=bidder,
         amount_btc=amount_btc,
-        currency="ckBTC",
+        currency=currency,
         description=f"Procurement contract — tender #{tender_id}"
     )
 
     # Create transfer record
     Transfer(
         amount=amount_btc,
-        currency="ckBTC",
+        currency=currency,
         to_principal=bidder,
         status="Completed",
         metadata=json.dumps({

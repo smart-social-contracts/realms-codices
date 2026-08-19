@@ -16,8 +16,29 @@ The procurement pool is managed by budget_plan.record_expenditure().
 from ggg import Proposal, Transfer, User, Member, Notification, Treasury
 from datetime import datetime, timedelta
 import json
+import os
 
 from ggg import extension_call as extension_async_call
+
+try:
+    from invoice_currency import invoice_currency, no_treasury_token_error
+except ImportError:
+    from ..invoice_currency import invoice_currency, no_treasury_token_error
+
+
+def _manifest() -> dict:
+    d = os.path.dirname(os.path.abspath(__file__))
+    for _ in range(3):
+        candidate = os.path.join(d, "manifest.json")
+        if os.path.exists(candidate):
+            with open(candidate) as f:
+                return json.load(f)
+        d = os.path.dirname(d)
+    return {}
+
+
+def _treasury_currency() -> str:
+    return invoice_currency(_manifest())
 
 
 # ---------------------------------------------------------------------------
@@ -208,12 +229,17 @@ def _record_disbursement_accounting(proposal_id: str, project: dict,
             None,
         )
 
+        currency = _treasury_currency()
+        if not currency:
+            print("procurement: accounting skipped — no treasury token resolved")
+            return
+
         transfer_id = "PROC-" + proposal_id
         transfer = Transfer(
             id=transfer_id,
             principal_from="vault",
             principal_to=receiver,
-            instrument="ckBTC",
+            instrument=currency,
             amount=amount,
             timestamp=datetime.now().isoformat(),
             tags="procurement",

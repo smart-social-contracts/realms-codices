@@ -18,9 +18,15 @@ from ggg import Proposal, Vote, User, Member, Notification
 from ic_basilisk_toolkit.date_utils import ic_time_to_epoch, epoch_to_datetime_str
 import json
 import hashlib
+import os
 
 import budget
 import governance
+
+try:
+    from invoice_currency import invoice_currency, no_treasury_token_error
+except ImportError:
+    from ..invoice_currency import invoice_currency, no_treasury_token_error
 
 
 # ---------------------------------------------------------------------------
@@ -39,6 +45,21 @@ DEFAULT_FINE_SATOSHIS = 500    # default fine for guilty verdict
 
 def _now_iso():
     return epoch_to_datetime_str(ic_time_to_epoch(ic.time())).replace(" ", "T")
+
+
+def _manifest() -> dict:
+    d = os.path.dirname(os.path.abspath(__file__))
+    for _ in range(3):
+        candidate = os.path.join(d, "manifest.json")
+        if os.path.exists(candidate):
+            with open(candidate) as f:
+                return json.load(f)
+        d = os.path.dirname(d)
+    return {}
+
+
+def _treasury_currency() -> str:
+    return invoice_currency(_manifest())
 
 
 def _get_active_member_ids() -> list:
@@ -228,6 +249,7 @@ def process_verdicts() -> dict:
     processed = 0
     guilty_count = 0
     dismissed_count = 0
+    unfined_count = 0
 
     for case in Proposal.instances():
         if case.status != "voting":
@@ -269,7 +291,8 @@ def process_verdicts() -> dict:
         if (guilty_votes / total_votes) > GUILTY_THRESHOLD:
             case.status = "guilty"
             guilty_count += 1
-            _apply_penalty(case, meta)
+            if not _apply_penalty(case, meta):
+                unfined_count += 1
             ic.print(f"Case #{case.id} GUILTY ({guilty_votes}/{total_votes})")
         else:
             case.status = "not_guilty"
@@ -281,17 +304,24 @@ def process_verdicts() -> dict:
         "processed": processed,
         "guilty": guilty_count,
         "dismissed": dismissed_count,
+        "unfined": unfined_count,
     }
 
 
-def _apply_penalty(case, meta: dict):
-    """Record a fine for a guilty verdict."""
+def _apply_penalty(case, meta: dict) -> bool:
+    """Record a fine for a guilty verdict. False when no fine could be levied."""
     defendant_id = meta.get("defendant", "")
+
+    currency = _treasury_currency()
+    if not currency:
+        err = no_treasury_token_error()
+        ic.print(f"Case #{case.id} fine refused: {err['error']}")
+        return False
 
     budget.record_service_payment(
         recipient="justice_fund",
         amount_btc=DEFAULT_FINE_SATOSHIS / budget.SATOSHIS_PER_BTC,
-        currency="ckBTC",
+        currency=currency,
         description=f"Fine from case #{case.id}"
     )
 
@@ -308,6 +338,7 @@ def _apply_penalty(case, meta: dict):
             color="red",
             metadata=f"case_id:{case.id}"
         )
+    return True
 
 
 def _notify_acquittal(case, meta: dict):

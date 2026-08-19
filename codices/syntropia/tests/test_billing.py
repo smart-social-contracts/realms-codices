@@ -3,9 +3,11 @@
 #         for non-payment
 import json
 import monthly_billing
-from ggg import User, Member, Invoice, Notification
+from ggg import User, Member, Invoice, Notification, Realm
 
 ts = "b" + str(id(object()))[-6:]
+
+Realm(name="Syntropia", accounting_currency="ckBTC")
 
 # Setup: users with membership
 user_alice = User(id=ts + "_alice", name="Alice")
@@ -36,7 +38,7 @@ billing_mod = monthly_billing
 print("=== TEST 1: MONTHLY INVOICE ===")
 inv_result = billing_mod.create_monthly_invoice(user_alice.id)
 assert "error" not in inv_result, "Invoice creation should succeed: " + str(inv_result)
-print("Invoice created: id=" + str(inv_result.get("invoice_id")) + " amount=" + str(inv_result.get("amount_ckbtc")))
+print("Invoice created: id=" + str(inv_result.get("invoice_id")) + " amount=" + str(inv_result.get("amount")))
 
 inv_result_bob = billing_mod.create_monthly_invoice(user_bob.id)
 assert "error" not in inv_result_bob

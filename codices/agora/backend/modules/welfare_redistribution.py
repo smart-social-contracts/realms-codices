@@ -22,14 +22,35 @@ from _cdk import ic
 from ggg import User, Member, Transfer, Notification, Invoice
 from ic_basilisk_toolkit.date_utils import ic_time_to_epoch, epoch_to_datetime_str
 import json
+import os
 
 import budget
 import governance
 
 try:
+    from invoice_currency import invoice_currency, no_treasury_token_error
+except ImportError:
+    from ..invoice_currency import invoice_currency, no_treasury_token_error
+
+try:
     from ggg import extension_call as extension_async_call
 except Exception:
     extension_async_call = None
+
+
+def _manifest() -> dict:
+    d = os.path.dirname(os.path.abspath(__file__))
+    for _ in range(3):
+        candidate = os.path.join(d, "manifest.json")
+        if os.path.exists(candidate):
+            with open(candidate) as f:
+                return json.load(f)
+        d = os.path.dirname(d)
+    return {}
+
+
+def _treasury_currency() -> str:
+    return invoice_currency(_manifest())
 
 
 # ---------------------------------------------------------------------------
@@ -137,6 +158,10 @@ def distribute_welfare() -> dict:
 
     per_member_btc = per_member_sat / budget.SATOSHIS_PER_BTC
 
+    currency = _treasury_currency()
+    if not currency:
+        return {"distributed": False, **no_treasury_token_error()}
+
     ic.print(f"=== Welfare distribution: {available_sat} sat / {len(eligible)} members "
              f"= {per_member_sat} sat each ===")
 
@@ -146,14 +171,14 @@ def distribute_welfare() -> dict:
         budget.record_welfare_distribution(
             user_id=user.id,
             amount_btc=per_member_btc,
-            currency="ckBTC",
+            currency=currency,
             description=f"Welfare distribution — {welfare_percent}% of budget"
         )
 
         # Create Transfer record
         Transfer(
             amount=per_member_btc,
-            currency="ckBTC",
+            currency=currency,
             status="Completed",
             metadata=json.dumps({
                 "type": "welfare",
@@ -167,7 +192,7 @@ def distribute_welfare() -> dict:
         Notification(
             topic="welfare",
             title="Welfare Payment Received",
-            message=f"You received a welfare distribution of {per_member_btc:.8f} ckBTC "
+            message=f"You received a welfare distribution of {per_member_btc:.8f} {currency} "
                     f"({per_member_sat} satoshis).",
             user=user,
             read=False,

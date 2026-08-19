@@ -8,54 +8,50 @@ from _cdk import ic
 from ggg import Invoice, Notification
 from ic_basilisk_toolkit.date_utils import ic_time_to_epoch, epoch_to_datetime_str
 
+from invoice_currency import invoice_currency, no_treasury_token_error
+
+
 def user_register_posthook(user):
     """Custom user registration hook - creates welcome invoice."""
+    currency = invoice_currency({})
+    if not currency:
+        err = no_treasury_token_error()
+        ic.print(f"❌ Welcome invoice skipped: {err['error']}")
+        return
+
     try:
         now_epoch = ic_time_to_epoch(ic.time())
         due_date = epoch_to_datetime_str(now_epoch + 86400).replace(" ", "T")
-        
-        # Create 1 satoshi invoice and 1 REALMS invoice for the new user
 
-        invoice_ckbtc = Invoice(
-            amount=0.00000001,  # 1 satoshi
-            currency="ckBTC",
+        invoice = Invoice(
+            amount=0.00000001,
+            currency=currency,
             due_date=due_date,
             status="Pending",
             user=user,
-            metadata="Welcome fee - 1 satoshi invoice"
+            metadata="Welcome fee - registration invoice",
         )
 
-        invoice_realms = Invoice(
-            amount=1,  # 1 REALMS
-            currency="REALMS",
-            due_date=due_date,
-            status="Pending",
-            user=user,
-            metadata="Welcome fee - 1 REALMS invoice"
-        )
-        
-        # Get the deposit address info
         vault_principal = ic.id().to_str()
-        subaccount_hex_ckbtc = invoice_ckbtc.get_subaccount_hex()
-        subaccount_hex_realms = invoice_realms.get_subaccount_hex()
-        
-        ic.print(f"✅ Created welcome invoices {invoice_ckbtc.id} and {invoice_realms.id} for user {user.id}")
+        subaccount_hex = invoice.get_subaccount_hex()
 
-        ic.print(f"   Deposit to: {vault_principal} (subaccount: {subaccount_hex_ckbtc[:16]}...)")
-        ic.print(f"   Amount: 1 satoshi, expires in 1 day")
-        
-        ic.print(f"   Deposit to: {vault_principal} (subaccount: {subaccount_hex_realms[:16]}...)")
-        ic.print(f"   Amount: 1 REALMS, expires in 1 day")
-        
+        ic.print(
+            f"✅ Created welcome invoice {invoice.id} for user {user.id}"
+        )
+        ic.print(
+            f"   Deposit to: {vault_principal} "
+            f"(subaccount: {subaccount_hex[:16]}...)"
+        )
+        ic.print(f"   Amount: 0.00000001 {currency}, expires in 1 day")
 
-        # Notify the user about their welcome invoice
         Notification(
             topic="welcome",
             title="Welcome! Please complete your registration",
-            message=f"Please pay any of the invoices to complete your registration."
-            + f"Deposit {invoice_ckbtc.amount} ckBTC to: {vault_principal} (subaccount: {subaccount_hex_ckbtc[:16]}...)."
-            + f"Deposit {invoice_realms.amount} REALMS to: {vault_principal} (subaccount: {subaccount_hex_realms[:16]}...)."
-            + "Expires in 1 day.",
+            message=(
+                f"Please pay your welcome invoice to complete your registration. "
+                f"Deposit {invoice.amount} {currency} to: {vault_principal} "
+                f"(subaccount: {subaccount_hex[:16]}...). Expires in 1 day."
+            ),
             sender="Administration",
             recipient=user.id,
             user=user,
@@ -63,10 +59,10 @@ def user_register_posthook(user):
             icon="wallet",
             href="/extensions/member_dashboard#my_taxes",
             color="green",
-            metadata=f"invoice_id:{invoice_ckbtc.id}, invoice_id:{invoice_realms.id}"
+            metadata=f"invoice_id:{invoice.id}",
         )
-        
+
     except Exception as e:
         ic.print(f"❌ Error creating invoice: {e}")
-    
+
     return

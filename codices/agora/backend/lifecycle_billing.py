@@ -30,6 +30,11 @@ def issue_membership_invoices(manifest: dict, codex_label: str) -> dict:
     from invoice_currency import invoice_currency
 
     currency = invoice_currency(manifest)
+    if not currency:
+        from invoice_currency import no_treasury_token_error
+
+        return {"success": False, **no_treasury_token_error()}
+
     fees = manifest.get("fees", {}) or {}
     amount = fees.get("monthly_membership") or fees.get("registration") or 0
     validity_days = manifest.get("membership", {}).get("invoice_validity_days", 30)
@@ -105,6 +110,11 @@ def run_payroll(manifest: dict, codex_label: str) -> dict:
     from invoice_currency import invoice_currency
 
     currency = invoice_currency(manifest)
+    if not currency:
+        from invoice_currency import no_treasury_token_error
+
+        return {"success": False, **no_treasury_token_error()}
+
     now = int(ic.time()) // 1_000_000_000
 
     payments = []

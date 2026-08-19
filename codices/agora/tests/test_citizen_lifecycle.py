@@ -45,7 +45,7 @@ def fresh_env():
 
 def make_realm(stage):
     """Create the single Realm at a given lifecycle stage."""
-    return Realm(name="Agora", status=stage)
+    return Realm(name="Agora", status=stage, accounting_currency="ckUSDC")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

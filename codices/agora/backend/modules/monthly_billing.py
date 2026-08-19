@@ -27,6 +27,7 @@ from ic_basilisk_toolkit.date_utils import (
     date_str_to_epoch,
 )
 import json
+import os
 
 # Accounting entities for accurate metrics
 from ggg import LedgerEntry, Fund, FiscalPeriod, Budget
@@ -36,6 +37,26 @@ from ggg import EntryType, Category
 import membership
 # Import budget module for recording transactions
 import budget
+
+try:
+    from invoice_currency import invoice_currency, no_treasury_token_error
+except ImportError:
+    from ..invoice_currency import invoice_currency, no_treasury_token_error
+
+
+def _manifest() -> dict:
+    d = os.path.dirname(os.path.abspath(__file__))
+    for _ in range(3):
+        candidate = os.path.join(d, "manifest.json")
+        if os.path.exists(candidate):
+            with open(candidate) as f:
+                return json.load(f)
+        d = os.path.dirname(d)
+    return {}
+
+
+def _treasury_currency() -> str:
+    return invoice_currency(_manifest())
 
 
 # ---------------------------------------------------------------------------
@@ -69,18 +90,21 @@ def create_monthly_invoice(user_id: str) -> dict:
     if not user:
         return {"created": False, "reason": "User not found"}
 
+    treasury_currency = _treasury_currency()
+    if not treasury_currency:
+        return {"created": False, **no_treasury_token_error()}
+
     now_epoch = ic_time_to_epoch(ic.time())
     due_date = epoch_to_datetime_str(now_epoch + INVOICE_VALIDITY_DAYS * 86400).replace(" ", "T")
     period = epoch_to_date_str(now_epoch)[:7]
 
-    # Create ckBTC invoice
-    inv_ckbtc = Invoice(
+    inv_treasury = Invoice(
         amount=MONTHLY_FEE_CKBTC,
-        currency="ckBTC",
+        currency=treasury_currency,
         due_date=due_date,
         status="Pending",
         user=user,
-        metadata=f"Monthly dues {period} - ckBTC"
+        metadata=f"Monthly dues {period} - {treasury_currency}"
     )
 
     # Create AGO invoice
@@ -95,11 +119,11 @@ def create_monthly_invoice(user_id: str) -> dict:
 
     # Deposit address info
     vault_principal = ic.id().to_str()
-    sub_ckbtc = inv_ckbtc.get_subaccount_hex()
+    sub_treasury = inv_treasury.get_subaccount_hex()
     sub_ago = inv_ago.get_subaccount_hex()
 
     ic.print(f"Created monthly invoices for user {user_id}: "
-             f"ckBTC #{inv_ckbtc.id} ({MONTHLY_FEE_CKBTC}), "
+             f"{treasury_currency} #{inv_treasury.id} ({MONTHLY_FEE_CKBTC}), "
              f"AGO #{inv_ago.id} ({MONTHLY_FEE_AGO})")
 
     Notification(
@@ -107,8 +131,8 @@ def create_monthly_invoice(user_id: str) -> dict:
         title=f"Monthly Dues — {period}",
         message=(
             f"Your monthly dues invoice is ready. "
-            f"Pay {MONTHLY_FEE_CKBTC} ckBTC to {vault_principal} "
-            f"(subaccount: {sub_ckbtc[:16]}...) "
+            f"Pay {MONTHLY_FEE_CKBTC} {treasury_currency} to {vault_principal} "
+            f"(subaccount: {sub_treasury[:16]}...) "
             f"OR {MONTHLY_FEE_AGO} AGO to {vault_principal} "
             f"(subaccount: {sub_ago[:16]}...). "
             f"Due in {INVOICE_VALIDITY_DAYS} days."
@@ -118,13 +142,14 @@ def create_monthly_invoice(user_id: str) -> dict:
         icon="receipt",
         href="/extensions/member_dashboard#my_taxes",
         color="blue",
-        metadata=f"invoice_id:{inv_ckbtc.id},invoice_id:{inv_ago.id}"
+        metadata=f"invoice_id:{inv_treasury.id},invoice_id:{inv_ago.id}"
     )
 
     return {
         "created": True,
-        "invoice_ckbtc_id": inv_ckbtc.id,
+        "invoice_treasury_id": inv_treasury.id,
         "invoice_ago_id": inv_ago.id,
+        "currency": treasury_currency,
         "period": period,
         "due_date": due_date,
     }
@@ -149,7 +174,9 @@ def record_invoice_payment(invoice_id: str) -> dict:
 
     inv.status = "Paid"
     user = inv.user
-    currency = inv.currency or "ckBTC"
+    currency = (inv.currency or "").strip()
+    if not currency:
+        return {"recorded": False, **no_treasury_token_error()}
     amount = inv.amount or 0
 
     ic.print(f"Invoice #{invoice_id} paid: {amount} {currency} by user {user.id if user else '?'}")

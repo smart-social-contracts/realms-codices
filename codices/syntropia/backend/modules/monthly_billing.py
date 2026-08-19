@@ -15,16 +15,36 @@ Designed to run as a scheduled task via:
 from ggg import User, Member, Invoice, Notification, Transfer
 from datetime import datetime, timedelta
 import json
+import os
 
 from ggg import extension_call as extension_async_call
+
+try:
+    from invoice_currency import invoice_currency, no_treasury_token_error
+except ImportError:
+    from ..invoice_currency import invoice_currency, no_treasury_token_error
+
+
+def _manifest() -> dict:
+    d = os.path.dirname(os.path.abspath(__file__))
+    for _ in range(3):
+        candidate = os.path.join(d, "manifest.json")
+        if os.path.exists(candidate):
+            with open(candidate) as f:
+                return json.load(f)
+        d = os.path.dirname(d)
+    return {}
+
+
+def _invoice_currency() -> str:
+    return invoice_currency(_manifest())
 
 
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
 
-MONTHLY_FEE_SATOSHIS = 1000          # 1000 satoshis = 0.00001 ckBTC
-INVOICE_CURRENCY = "ckBTC"
+MONTHLY_FEE_SATOSHIS = 1000          # 1000 satoshis
 GRACE_PERIOD_DAYS = 30               # days before warning
 KICK_AFTER_DAYS = 60                 # days before revocation
 
@@ -34,16 +54,20 @@ KICK_AFTER_DAYS = 60                 # days before revocation
 # ---------------------------------------------------------------------------
 
 def create_monthly_invoice(user_id: str) -> dict:
-    """Create a monthly ckBTC invoice for a member."""
+    """Create a monthly invoice for a member."""
     user = User[user_id]
     if not user:
         return {"error": "User not found"}
 
+    currency = _invoice_currency()
+    if not currency:
+        return no_treasury_token_error()
+
     due_date = (datetime.now() + timedelta(days=GRACE_PERIOD_DAYS)).isoformat()
 
     invoice = Invoice(
-        amount=MONTHLY_FEE_SATOSHIS / 1e8,  # convert satoshis to ckBTC
-        currency=INVOICE_CURRENCY,
+        amount=MONTHLY_FEE_SATOSHIS / 1e8,
+        currency=currency,
         due_date=due_date,
         status="Pending",
         user=user,
@@ -53,7 +77,8 @@ def create_monthly_invoice(user_id: str) -> dict:
     return {
         "invoice_id": invoice.id,
         "user_id": user_id,
-        "amount_ckbtc": MONTHLY_FEE_SATOSHIS / 1e8,
+        "amount": MONTHLY_FEE_SATOSHIS / 1e8,
+        "currency": currency,
         "due_date": due_date,
         "status": "Pending",
     }

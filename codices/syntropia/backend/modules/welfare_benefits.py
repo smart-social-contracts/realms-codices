@@ -17,8 +17,29 @@ Designed to run as a scheduled task via:
 from ggg import User, Member, Transfer, Treasury, Instrument, Notification
 from datetime import datetime
 import json
+import os
 
 from ggg import extension_call as extension_async_call
+
+try:
+    from invoice_currency import invoice_currency, no_treasury_token_error
+except ImportError:
+    from ..invoice_currency import invoice_currency, no_treasury_token_error
+
+
+def _manifest() -> dict:
+    d = os.path.dirname(os.path.abspath(__file__))
+    for _ in range(3):
+        candidate = os.path.join(d, "manifest.json")
+        if os.path.exists(candidate):
+            with open(candidate) as f:
+                return json.load(f)
+        d = os.path.dirname(d)
+    return {}
+
+
+def _treasury_currency() -> str:
+    return invoice_currency(_manifest())
 
 
 # ---------------------------------------------------------------------------
@@ -117,6 +138,10 @@ def distribute_social_security() -> dict:
     if per_member <= 0:
         return {"error": "Per-member share is zero — pool exhausted or too many members"}
 
+    currency = _treasury_currency()
+    if not currency:
+        return no_treasury_token_error()
+
     budget_pid = share_info["budget_proposal_id"]
     eligible = [m for m in _get_active_members()
                 if check_eligibility(m.id).get("eligible")]
@@ -131,7 +156,7 @@ def distribute_social_security() -> dict:
             id=txn_id,
             principal_from="system",
             principal_to=member.user.id,
-            instrument="ckBTC",
+            instrument=currency,
             amount=per_member,
             status="completed",
             tags="social_security",
@@ -160,7 +185,7 @@ def distribute_social_security() -> dict:
         Notification(
             topic="social_security",
             title="Social Security Payment",
-            message="You received " + str(per_member / 1e8) + " ckBTC as your social security benefit.",
+            message="You received " + str(per_member / 1e8) + " " + currency + " as your social security benefit.",
             user=member.user,
             read=False,
             icon="wallet",

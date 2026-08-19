@@ -107,7 +107,11 @@ def on_user_register(args: str) -> str:
             return json.dumps({"success": False, "error": "user not found"})
 
         manifest = _manifest()
-        currency = manifest.get("currency", {}).get("symbol", "DOM")
+        from invoice_currency import invoice_currency, no_treasury_token_error
+
+        currency = invoice_currency(manifest)
+        if not currency:
+            return json.dumps({"success": False, **no_treasury_token_error()})
         fee = manifest.get("fees", {}).get("registration", 1.0)
         validity_days = manifest.get("membership", {}).get("invoice_validity_days", 30)
 
