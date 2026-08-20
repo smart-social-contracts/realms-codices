@@ -4,11 +4,9 @@ Tests for quarter_governance.py — quarter-dependent codex logic.
 Validates:
   - Tax splitting: capital keeps 100%, quarters split local/federal
   - Budget allocation: capital distributes proportionally by population
-  - Voting scope: local proposals restricted to quarter residents,
-    federal proposals restricted to capital submission
 """
 
-from ggg import Realm, Quarter, QuarterConfig, User, Member, Proposal, Vote
+from ggg import Realm, Quarter, QuarterConfig
 
 import quarter_governance as qg
 
@@ -37,13 +35,6 @@ def _setup_quarter(quarter_id, local_tax_rate=0.0, welfare_percent=30,
         welfare_percent=welfare_percent,
         voting_window_days=voting_window_days,
     )
-
-
-def _add_active_member(user_id, home_quarter=None):
-    """Create an active member for testing."""
-    u = User(id=user_id, home_quarter=home_quarter or "")
-    Member(user=u, identity_verification="verified")
-    return u
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -136,110 +127,7 @@ print("  non-capital allocation rejected: OK")
 
 
 # ══════════════════════════════════════════════════════════════════════════
-# 3. Voting Scope Tests
-# ══════════════════════════════════════════════════════════════════════════
-
-reset_registry()
-
-print("Testing local proposal submission on quarter...")
-
-_setup_quarter(QUARTER_1_ID, voting_window_days=5)
-resident = _add_active_member("resident-1", home_quarter=QUARTER_1_ID)
-
-result = qg.submit_proposal(
-    "resident-1", "Build a Park", "Green space for Quarter 1",
-    "treasury_spend", scope="local"
-)
-assert result["submitted"], f"Local proposal should succeed: {result}"
-assert result["scope"] == "local"
-assert result["quarter"] == QUARTER_1_ID
-proposal_id = result["proposal_id"]
-print("  local proposal on quarter: OK")
-
-# ── Resident can vote on local proposal ───────────────────────────────────
-
-print("Testing resident can vote on local proposal...")
-
-result = qg.cast_vote("resident-1", proposal_id, "yes")
-assert result["voted"], f"Resident should be able to vote: {result}"
-assert result["scope"] == "local"
-print("  resident votes on local: OK")
-
-# ── Outsider cannot vote on local proposal ────────────────────────────────
-
-print("Testing outsider blocked from local proposal vote...")
-
-outsider = _add_active_member("outsider-1", home_quarter=QUARTER_2_ID)
-result = qg.cast_vote("outsider-1", proposal_id, "yes")
-assert not result["voted"], f"Outsider should be blocked: {result}"
-assert "quarter residents" in result["reason"].lower()
-print("  outsider blocked from local vote: OK")
-
-# ── Federal proposal rejected on quarter ──────────────────────────────────
-
-print("Testing federal proposal rejected on quarter...")
-
-result = qg.submit_proposal(
-    "resident-1", "Change Federal Tax", "Reduce to 5%",
-    "welfare_policy", scope="federal"
-)
-assert not result["submitted"]
-assert "capital" in result["reason"].lower()
-print("  federal proposal on quarter rejected: OK")
-
-# ── Federal proposal allowed on capital ───────────────────────────────────
-
-reset_registry()
-
-print("Testing federal proposal on capital...")
-
-_setup_capital()
-capital_member = _add_active_member("capital-member-1", home_quarter=CAPITAL_ID)
-
-result = qg.submit_proposal(
-    "capital-member-1", "Federation Tax Rate", "Change to 5%",
-    "welfare_policy", scope="federal"
-)
-assert result["submitted"], f"Federal proposal on capital should work: {result}"
-assert result["scope"] == "federal"
-federal_proposal_id = result["proposal_id"]
-print("  federal proposal on capital: OK")
-
-# ── Any member can vote on federal proposal ───────────────────────────────
-
-print("Testing any member can vote on federal proposal...")
-
-# A member whose home_quarter is a different quarter can still vote on federal
-other_member = _add_active_member("quarter-member-1", home_quarter=QUARTER_1_ID)
-result = qg.cast_vote("quarter-member-1", federal_proposal_id, "no")
-assert result["voted"], f"Any member should vote on federal: {result}"
-assert result["scope"] == "federal"
-print("  cross-quarter federal vote: OK")
-
-# ── Duplicate vote rejected ───────────────────────────────────────────────
-
-print("Testing duplicate vote rejected...")
-
-result = qg.cast_vote("quarter-member-1", federal_proposal_id, "yes")
-assert not result["voted"]
-assert "already voted" in result["reason"].lower()
-print("  duplicate vote rejected: OK")
-
-# ── Non-member cannot submit ──────────────────────────────────────────────
-
-print("Testing non-member cannot submit proposal...")
-
-result = qg.submit_proposal(
-    "random-user", "Anything", "Description",
-    "treasury_spend", scope="local"
-)
-assert not result["submitted"]
-assert "active members" in result["reason"].lower()
-print("  non-member submission rejected: OK")
-
-
-# ══════════════════════════════════════════════════════════════════════════
-# 4. Quarter Context Tests
+# 3. Quarter Context Tests
 # ══════════════════════════════════════════════════════════════════════════
 
 reset_registry()

@@ -8,27 +8,24 @@ runs on every quarter, but behavior differs based on:
   - ``Realm.is_capital``           — am I the capital?
   - ``QuarterConfig``              — local parameters per quarter
 
-Three areas of quarter-specific behavior:
+Two areas of quarter-specific behavior:
 
   1. **Taxes** — quarters collect local revenue and forward a federal share
      to the capital.  The capital keeps all revenue locally.
   2. **Budget allocation** — the capital redistributes federal tax revenue
      to quarters proportionally by population.
-  3. **Voting scope** — "local" proposals are voted on only by quarter
-     residents; "federal" proposals can only be submitted on the capital
-     and are voted on by all federation members.
+
+Realm-wide votes use the GOS federal-vote mechanism (``propose_federal_vote``),
+not this module.
 """
 
 from _cdk import ic
 from ggg import (
-    Realm, Quarter, QuarterConfig, User, Member,
-    Proposal, Vote, Notification,
+    Realm, Quarter, QuarterConfig,
     LedgerEntry, Fund, FiscalPeriod, Budget,
     EntryType, Category, Transfer,
 )
 from ic_basilisk_toolkit.date_utils import ic_time_to_epoch, epoch_to_datetime_str
-import json
-import os
 
 
 # ---------------------------------------------------------------------------
@@ -39,8 +36,6 @@ FEDERAL_TAX_RATE = 0.10          # 10% of quarter revenue goes to capital
 SATOSHIS_PER_BTC = 100_000_000
 
 DEFAULT_VOTING_WINDOW_DAYS = 7
-DEFAULT_QUORUM_PERCENT = 20
-DEFAULT_APPROVAL_THRESHOLD = 0.5
 DEFAULT_WELFARE_PERCENT = 30
 
 
@@ -51,19 +46,6 @@ DEFAULT_WELFARE_PERCENT = 30
 def _now_iso():
     """Current time as ISO 8601 string (from ic.time())."""
     return epoch_to_datetime_str(ic_time_to_epoch(ic.time())).replace(" ", "T")
-
-
-def _load_manifest() -> dict:
-    """Load manifest.json from the codex package (searches upward: the
-    module may live at the package root, in backend/, or backend/modules/)."""
-    d = os.path.dirname(os.path.abspath(__file__))
-    for _ in range(3):
-        candidate = os.path.join(d, "manifest.json")
-        if os.path.exists(candidate):
-            with open(candidate) as f:
-                return json.load(f)
-        d = os.path.dirname(d)
-    raise FileNotFoundError("manifest.json not found in codex package")
 
 
 def get_quarter_context() -> dict:
@@ -99,15 +81,6 @@ def get_quarter_context() -> dict:
 
 def _btc_to_satoshis(btc_amount: float) -> int:
     return int(round(btc_amount * SATOSHIS_PER_BTC))
-
-
-def _is_active_member(user_id: str) -> bool:
-    """Check if a user is an active (verified) member."""
-    for member in Member.instances():
-        if (member.user and member.user.id == user_id
-                and member.identity_verification == "verified"):
-            return True
-    return False
 
 
 # ---------------------------------------------------------------------------
@@ -251,159 +224,7 @@ def allocate_federal_budget(total_federal_revenue_sat: int) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# 3. Voting — Scope-Dependent Proposal Submission and Voting
-# ---------------------------------------------------------------------------
-
-def submit_proposal(user_id: str, title: str, description: str,
-                    proposal_type: str, scope: str = "local",
-                    details: dict = None) -> dict:
-    """Submit a governance proposal with scope awareness.
-
-    Scopes:
-      - "local"   — voted on only by this quarter's residents.
-      - "federal" — can only be submitted on the capital; voted on by all.
-
-    Args:
-        user_id: proposer's principal.
-        title: short title.
-        description: full description.
-        proposal_type: one of the manifest-defined types.
-        scope: "local" or "federal".
-        details: type-specific data dict.
-
-    Returns result dict.
-    """
-    ctx = get_quarter_context()
-
-    if not _is_active_member(user_id):
-        return {"submitted": False, "reason": "Only active members can submit proposals."}
-
-    if scope not in ("local", "federal"):
-        return {"submitted": False, "reason": f"Invalid scope: {scope}"}
-
-    # Federal proposals can only be submitted on the capital
-    if scope == "federal" and not ctx["is_capital"]:
-        return {
-            "submitted": False,
-            "reason": "Federal proposals must be submitted on the capital.",
-        }
-
-    manifest = _load_manifest()
-    gov = manifest.get("governance", {})
-    allowed_types = gov.get("proposal_types", [])
-    if proposal_type not in allowed_types:
-        return {"submitted": False, "reason": f"Invalid proposal type: {proposal_type}"}
-
-    voting_days = ctx["voting_window_days"]
-    now_epoch = ic_time_to_epoch(ic.time())
-    deadline = epoch_to_datetime_str(now_epoch + voting_days * 86400).replace(" ", "T")
-
-    metadata = json.dumps({
-        "type": proposal_type,
-        "scope": scope,
-        "quarter": ctx["canister_id"],
-        "details": details or {},
-        "proposer": user_id,
-        "submitted_at": epoch_to_datetime_str(now_epoch).replace(" ", "T"),
-    })
-
-    user = User[user_id]
-    proposal = Proposal(
-        title=title,
-        description=description,
-        status="voting",
-        deadline=deadline,
-        proposer=user,
-        metadata=metadata,
-    )
-
-    ic.print(
-        f"Proposal #{proposal.id} [{scope}] submitted by {user_id}: "
-        f"[{proposal_type}] {title}"
-    )
-
-    return {
-        "submitted": True,
-        "proposal_id": proposal.id,
-        "title": title,
-        "type": proposal_type,
-        "scope": scope,
-        "quarter": ctx["canister_id"],
-        "deadline": deadline,
-    }
-
-
-def cast_vote(user_id: str, proposal_id: str, vote_choice: str) -> dict:
-    """Cast a vote on a proposal with scope enforcement.
-
-    - Local proposals: only residents of this quarter can vote.
-    - Federal proposals: any active member can vote.
-    """
-    ctx = get_quarter_context()
-
-    if not _is_active_member(user_id):
-        return {"voted": False, "reason": "Only active members can vote."}
-
-    if vote_choice not in ("yes", "no"):
-        return {"voted": False, "reason": "Vote must be 'yes' or 'no'."}
-
-    proposal = Proposal[proposal_id]
-    if not proposal:
-        # Also try load by id
-        proposal = Proposal.load(proposal_id)
-    if not proposal:
-        return {"voted": False, "reason": "Proposal not found."}
-
-    if proposal.status != "voting":
-        return {"voted": False, "reason": f"Proposal not open (status: {proposal.status})."}
-
-    # Parse scope from metadata
-    try:
-        meta = json.loads(proposal.metadata) if proposal.metadata else {}
-    except (json.JSONDecodeError, TypeError):
-        meta = {}
-
-    scope = meta.get("scope", "local")
-
-    # Enforce local scope: only home-quarter residents can vote
-    if scope == "local":
-        user = User[user_id]
-        if not user:
-            user = User.load(user_id)
-        home_quarter = getattr(user, "home_quarter", "") if user else ""
-        if home_quarter != ctx["canister_id"]:
-            return {
-                "voted": False,
-                "reason": "Only quarter residents can vote on local proposals.",
-            }
-
-    # Check for duplicate votes
-    for v in Vote.instances():
-        if (v.proposal and v.proposal.id == proposal_id
-                and v.user and v.user.id == user_id):
-            return {"voted": False, "reason": "You have already voted on this proposal."}
-
-    user = User[user_id]
-    vote = Vote(
-        proposal=proposal,
-        user=user,
-        vote=vote_choice,
-        metadata=json.dumps({"voted_at": _now_iso()}),
-    )
-
-    ic.print(f"Vote cast on proposal #{proposal_id} by {user_id}: {vote_choice}")
-
-    return {
-        "voted": True,
-        "vote_id": vote.id,
-        "proposal_id": proposal_id,
-        "choice": vote_choice,
-        "scope": scope,
-    }
-
-
-# ---------------------------------------------------------------------------
-# 4. Tax Summary Query
+# 3. Tax Summary Query
 # ---------------------------------------------------------------------------
 
 def get_tax_summary() -> dict:
