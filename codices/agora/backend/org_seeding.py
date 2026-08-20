@@ -43,14 +43,43 @@ def _position_specs(spec):
                 "headcount": int(p.get("headcount", 1) or 1),
                 "salary_amount": int(p.get("salary_amount", 0) or 0),
                 "salary_period": p.get("salary_period", "monthly"),
+                "inherit_from_capital": bool(p.get("inherit_from_capital", True)),
             }
             for p in positions
             if (p.get("title") or p.get("profile"))
         ]
     return [
-        {"title": p, "profile": p, "headcount": 1, "salary_amount": 0, "salary_period": "monthly"}
+        {
+            "title": p,
+            "profile": p,
+            "headcount": 1,
+            "salary_amount": 0,
+            "salary_period": "monthly",
+            "inherit_from_capital": True,
+        }
         for p in spec.get("profiles", [])
     ]
+
+
+def _apply_target_policy(dept, spec, *, is_new: bool) -> None:
+    """Persist ``target_policy`` on Department (issue #301). Never touches live ``policy_*``."""
+    target = spec.get("target_policy")
+    if not target:
+        return
+    m = int(target.get("threshold_m", 0) or 0)
+    n = int(target.get("threshold_n", 0) or 0)
+    q = int(target.get("quorum_percent", 0) or 0)
+    if is_new:
+        dept.target_policy_threshold_m = m
+        dept.target_policy_threshold_n = n
+        dept.target_policy_quorum_percent = q
+        return
+    if not int(getattr(dept, "target_policy_threshold_m", 0) or 0):
+        dept.target_policy_threshold_m = m
+    if not int(getattr(dept, "target_policy_threshold_n", 0) or 0):
+        dept.target_policy_threshold_n = n
+    if not int(getattr(dept, "target_policy_quorum_percent", 0) or 0):
+        dept.target_policy_quorum_percent = q
 
 
 def seed_organizations(dept_data, realm):
@@ -126,7 +155,8 @@ def seed_organizations(dept_data, realm):
 
         # 2. Department org with policy defaults.
         dept = Department[name]
-        if not dept:
+        is_new_dept = not dept
+        if is_new_dept:
             policy = spec.get("policy", {}) or {}
             dept = Department(
                 name=name,
@@ -137,6 +167,7 @@ def seed_organizations(dept_data, realm):
                 policy_quorum_percent=int(policy.get("quorum_percent", 0)),
             )
             n_depts += 1
+        _apply_target_policy(dept, spec, is_new=is_new_dept)
 
         # 3. Budget envelope (Fund link).
         fund_code = (spec.get("fund_code") or "").strip()
@@ -167,7 +198,8 @@ def seed_organizations(dept_data, realm):
             if Position is None:
                 break
             key = f"{name}/{pspec['title']}"
-            if not Position[key]:
+            existing_pos = Position[key]
+            if not existing_pos:
                 Position(
                     key=key,
                     title=pspec["title"],
@@ -177,9 +209,12 @@ def seed_organizations(dept_data, realm):
                     headcount=pspec["headcount"],
                     salary_amount=pspec["salary_amount"],
                     salary_period=pspec["salary_period"],
+                    inherit_from_capital=pspec.get("inherit_from_capital", True),
                     status="open",
                 )
                 n_positions += 1
+            elif getattr(existing_pos, "inherit_from_capital", None) is None:
+                existing_pos.inherit_from_capital = pspec.get("inherit_from_capital", True)
 
         # 6. One multi-use staff invite per position. Redeeming appoints the
         #    redeemer to the seat (join_realm side effect). Pre-existing

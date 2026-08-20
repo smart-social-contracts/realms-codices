@@ -13,13 +13,15 @@
           "title": "speaker",
           "profile": "speaker",
           "headcount": 1,
-          "salary_amount": 5000
+          "salary_amount": 5000,
+          "inherit_from_capital": true
         },
         {
           "title": "congress_member",
           "profile": "congress_member",
           "headcount": 5,
-          "salary_amount": 4000
+          "salary_amount": 4000,
+          "inherit_from_capital": true
         }
       ],
       "permissions": [
@@ -52,13 +54,15 @@
           "title": "registrar",
           "profile": "registrar",
           "headcount": 2,
-          "salary_amount": 3000
+          "salary_amount": 3000,
+          "inherit_from_capital": true
         },
         {
           "title": "kyc_officer",
           "profile": "kyc_officer",
           "headcount": 3,
-          "salary_amount": 2500
+          "salary_amount": 2500,
+          "inherit_from_capital": true
         }
       ],
       "permissions": [
@@ -92,13 +96,15 @@
           "title": "judge",
           "profile": "judge",
           "headcount": 2,
-          "salary_amount": 5000
+          "salary_amount": 5000,
+          "inherit_from_capital": true
         },
         {
           "title": "court_clerk",
           "profile": "court_clerk",
           "headcount": 3,
-          "salary_amount": 2500
+          "salary_amount": 2500,
+          "inherit_from_capital": true
         }
       ],
       "permissions": [
@@ -130,13 +136,15 @@
           "title": "defense_director",
           "profile": "defense_director",
           "headcount": 1,
-          "salary_amount": 4500
+          "salary_amount": 4500,
+          "inherit_from_capital": true
         },
         {
           "title": "security_officer",
           "profile": "security_officer",
           "headcount": 4,
-          "salary_amount": 2800
+          "salary_amount": 2800,
+          "inherit_from_capital": true
         }
       ],
       "permissions": [
@@ -167,13 +175,15 @@
           "title": "benefits_officer",
           "profile": "benefits_officer",
           "headcount": 2,
-          "salary_amount": 2800
+          "salary_amount": 2800,
+          "inherit_from_capital": true
         },
         {
           "title": "social_worker",
           "profile": "social_worker",
           "headcount": 4,
-          "salary_amount": 2500
+          "salary_amount": 2500,
+          "inherit_from_capital": true
         }
       ],
       "permissions": [
@@ -203,19 +213,22 @@
           "title": "land_officer",
           "profile": "land_officer",
           "headcount": 2,
-          "salary_amount": 3000
+          "salary_amount": 3000,
+          "inherit_from_capital": true
         },
         {
           "title": "planner",
           "profile": "planner",
           "headcount": 2,
-          "salary_amount": 3200
+          "salary_amount": 3200,
+          "inherit_from_capital": true
         },
         {
           "title": "engineer",
           "profile": "engineer",
           "headcount": 3,
-          "salary_amount": 3000
+          "salary_amount": 3000,
+          "inherit_from_capital": true
         }
       ],
       "permissions": [
@@ -248,13 +261,15 @@
           "title": "treasurer",
           "profile": "treasurer",
           "headcount": 1,
-          "salary_amount": 4500
+          "salary_amount": 4500,
+          "inherit_from_capital": true
         },
         {
           "title": "finance_officer",
           "profile": "finance_officer",
           "headcount": 3,
-          "salary_amount": 2800
+          "salary_amount": 2800,
+          "inherit_from_capital": true
         }
       ],
       "permissions": [
@@ -288,7 +303,8 @@
           "title": "admin",
           "profile": "admin",
           "headcount": 2,
-          "salary_amount": 4000
+          "salary_amount": 4000,
+          "inherit_from_capital": true
         }
       ],
       "permissions": [
