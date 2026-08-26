@@ -22,5 +22,8 @@ jobs:
           git clone --depth 1 --no-recurse-submodules https://github.com/smart-social-contracts/realms.git /tmp/realms
           pip install /tmp/realms/cli
 
-      - name: Run codex tests
+      - name: Run Agora tests
         run: realms test codices/agora --verbose
+
+      - name: Run Syntropia tests
+        run: realms test codices/syntropia --verbose

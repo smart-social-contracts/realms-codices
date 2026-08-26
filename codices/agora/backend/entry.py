@@ -38,6 +38,7 @@ _NON_CONFIG_KEYS = {
     "doc_url", "permissions", "parameters",
     # Capability-bridge plumbing (issue #265), not realm config.
     "ggg_api_version", "capabilities", "sandbox_module",
+    "codex_modules",
 }
 
 
@@ -314,7 +315,11 @@ def on_user_register(args: str) -> str:
 
             membership_codex = Codex["membership"]
             if membership_codex and membership_codex.code:
-                ns = {"ic": ic, "__builtins__": __builtins__}
+                ns = {
+                    "ic": ic,
+                    "__builtins__": __builtins__,
+                    "__name__": "membership",
+                }
                 exec(compile(membership_codex.code, "membership.py", "exec"), ns)
                 if "activate_member" in ns:
                     ns["activate_member"](user.id)

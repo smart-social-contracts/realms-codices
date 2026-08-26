@@ -45,6 +45,7 @@ _NON_CONFIG_KEYS = {
     "doc_url", "permissions", "parameters",
     # Capability-bridge plumbing (issue #265), not realm config.
     "ggg_api_version", "capabilities", "sandbox_module",
+    "codex_modules",
 }
 
 

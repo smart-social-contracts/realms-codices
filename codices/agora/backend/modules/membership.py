@@ -10,11 +10,11 @@ Activation model:
     ``identity_verification = "verified"`` (the realm-wide "active member"
     signal used by governance, justice, welfare, etc.).
   - During the migration phases (alpha/beta) members owe nothing; a registration
-    invoice is only issued once the realm is live (see user_registration_hook).
+    invoice is only issued once the realm is live (see entry.on_user_register).
 
-This codex also provides:
+This module also provides:
   - activate_member(): create/activate a member on registration (idempotent)
-  - deactivate_member(): suspend a member (used by monthly_billing)
+  - deactivate_member(): suspend a member
   - reactivate_member(): restore membership after paying overdue bills
 """
 
@@ -137,7 +137,7 @@ def check_membership_status(user_id: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Suspension / reactivation (used by monthly_billing once live)
+# Suspension / reactivation
 # ---------------------------------------------------------------------------
 
 def deactivate_member(user_id: str, reason: str = "Non-payment of dues") -> dict:

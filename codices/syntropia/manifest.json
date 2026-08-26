@@ -198,6 +198,9 @@
       }
     }
   },
+  "codex_modules": [
+    "quarter_assignment"
+  ],
   "data_files": {
     "departments": "data/departments.json",
     "justice": "data/justice.json",
