@@ -125,3 +125,8 @@ def test_membership_invoice_becomes_tax_revenue_and_is_idempotent():
     payment = _LedgerEntry.transactions["TXN-INV-PAY-inv-tax"]
     assert payment[-1]["entry_type"] == "revenue"
     assert payment[-1]["category"] == "tax"
+
+
+test_deposit_remains_a_liability_after_payment()
+test_membership_invoice_becomes_tax_revenue_and_is_idempotent()
+print("\n✅ All invoice_accounting tests passed!")

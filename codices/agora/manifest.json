@@ -188,6 +188,9 @@
       }
     }
   },
+  "codex_modules": [
+    "membership"
+  ],
   "data_files": {
     "departments": "data/departments.json",
     "justice": "data/justice.json",
