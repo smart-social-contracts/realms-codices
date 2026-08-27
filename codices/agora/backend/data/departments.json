@@ -29,7 +29,8 @@
         "governance.update",
         "proposal.create",
         "org.appoint",
-        "org.set_policy"
+        "org.set_policy",
+        "codex.revert"
       ],
       "policy": {
         "threshold_m": 1,
