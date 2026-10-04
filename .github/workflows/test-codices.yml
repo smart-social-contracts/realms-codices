@@ -19,7 +19,7 @@ jobs:
 
       - name: Install realms CLI
         run: |
-          git clone --depth 1 --no-recurse-submodules https://github.com/smart-social-contracts/realms.git /tmp/realms
+          git clone --depth 1 --no-recurse-submodules https://github.com/smart-social-contracts/realms-gos.git /tmp/realms
           pip install /tmp/realms/cli
 
       - name: Run Agora tests
