@@ -55,7 +55,7 @@ meaningful when the bypass flags are off.
    (with reason), screenshots for failures, browser console errors, and the
    exact backend query outputs used as evidence.
 2. For each FAIL: a minimal reproduction (URL, identity, steps) suitable for
-   a GitHub issue on `smart-social-contracts/realms`. File the issues if the
+   a GitHub issue on `smart-social-contracts/realms-gos`. File the issues if the
    operator asked for that; otherwise include them in the report.
 3. A final verdict: is the codex releasable? List blocking vs cosmetic
    findings separately.
