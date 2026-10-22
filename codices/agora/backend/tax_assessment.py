@@ -41,6 +41,15 @@ def invoice_id(code: str, subject: str, period: str) -> str:
     return "tax_" + digest[:28]
 
 
+def _invoice_currency():
+    # Installed, siblings exist only as ``_runtime_ext_<codex>.<module>``.
+    try:
+        from . import invoice_currency
+    except ImportError:
+        import invoice_currency
+    return invoice_currency
+
+
 def _eligible(user, tax) -> bool:
     from ggg import user_has_profile
 
@@ -132,8 +141,8 @@ class _Run:
 def assess(params: dict, manifest: dict, codex_label: str) -> dict:
     """Assess one page. Returns counts and ``next_cursor`` ("" when done)."""
     from ggg import Land, LandStatus, TaxPolicy, User
-    from invoice_currency import invoice_currency, no_treasury_token_error
 
+    currencies = _invoice_currency()
     policy = TaxPolicy.adopted()
     if policy is None:
         return {"success": False, "error": "No tax policy is adopted"}
@@ -143,9 +152,9 @@ def assess(params: dict, manifest: dict, codex_label: str) -> dict:
     if not taxes:
         return {"success": False, "error": "The adopted tax policy has no enabled taxes"}
 
-    currency = invoice_currency(manifest)
+    currency = currencies.invoice_currency(manifest)
     if not currency:
-        return {"success": False, **no_treasury_token_error()}
+        return {"success": False, **currencies.no_treasury_token_error()}
 
     count = max(1, min(int(params.get("count") or 25), MAX_BATCH))
     phase, from_id = _parse_cursor(params.get("cursor") or "")
