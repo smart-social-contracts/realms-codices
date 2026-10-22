@@ -14,6 +14,7 @@ Hooks implemented:
   seed                — idempotent org-chart re-seed (admin re-run)
   on_user_register    — migration onboarding: activation + phase-aware invoice
   on_stage_change     — beta: tax/membership invoicing starts (issue #253)
+  assess_taxes        — invoices under the adopted tax policy, one page per call
   on_treasury_send    — treasury transfers through the vault extension
 
 Extension methods (extension_sync_call "agora"):
@@ -452,6 +453,30 @@ def run_payroll(args: str) -> str:
         return json.dumps(result)
     except Exception as e:
         ic.print(f"Error in Agora run_payroll: {e}")
+        return json.dumps({"success": False, "error": str(e)})
+
+
+def _tax_assessment():
+    try:
+        from . import tax_assessment
+    except ImportError:
+        import tax_assessment
+    return tax_assessment
+
+
+def assess_taxes(args: str) -> str:
+    """Invoice one page of taxpayers under the adopted tax policy.
+
+    Called by core (``tax.assess``, after its own rights check) with
+    ``{"cursor", "count"}``; returns ``next_cursor`` until the run is done.
+    The policy is read from the realm, not taken from ``args``.
+    """
+    try:
+        params = json.loads(args) if args else {}
+        result = _tax_assessment().assess(params, _config(), REALM_NAME)
+        return json.dumps(result)
+    except Exception as e:
+        ic.print(f"Error in Agora assess_taxes: {e}")
         return json.dumps({"success": False, "error": str(e)})
 
 
