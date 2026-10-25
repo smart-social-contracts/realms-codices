@@ -12,7 +12,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 BACKEND = pathlib.Path(os.environ.get("REALM_BACKEND", ROOT.parent / "src" / "realm_backend"))
 SDK = {}
-exec((BACKEND / "sdk.py").read_text(), SDK)
+exec((BACKEND / "core" / "sdk.py").read_text(), SDK)
 USERS = [{"id": "alice", "status": "active", "profiles": ["member"]},
          {"id": "founder", "status": "active", "profiles": ["member", "admin"]}]
 READS = {"user_list": {"users": USERS, "next": None},
