@@ -10,21 +10,17 @@ Because legitimacy is **earned** (not inherited from an existing administration)
 
 The public dashboard shows a **go-live countdown**, a **live citizen counter**, and progress toward **critical mass**. **Before the production phase, member voting is not executable — only admins (the founders) can make fundamental changes.**
 
-## Live spine
+## Hooks (`backend/hooks.py`)
 
-The host calls `backend/entry.py` (in-process fallback) or `backend/sandbox_hooks.py` (sandboxed path). Do not add `init.py`, `adjustments.py`, or `*_codex.py` files — those mechanisms are gone.
+| Hook | What it does |
+|------|--------------|
+| `init` | Enforces open registration, names the realm if unnamed, seeds departments, positions and courts |
+| `on_user_register` | Deposit invoice (a house in a zone) and the three steps to citizenship |
+| `on_stage_change` | Entering beta: membership invoices, payroll, and a request to every citizen to submit their real identity |
+| `assign_quarter` | Home quarter of a joiner: the preferred one if it has room, else the least populated |
 
-| File | Role |
-|------|------|
-| `backend/entry.py` | Hook API: `get_config`, `init`, `seed`, `on_user_register`, `on_invoice_accounting`, `on_stage_change`, `on_federation_message`, `run_payroll`, identity review methods |
-| `backend/sandbox_hooks.py` | Sandboxed `init`, `on_user_register` |
-| `backend/org_seeding.py` | Idempotent department / position / invite seeding |
-| `backend/invoice_currency.py` | Invoice currency from pinned symbol or realm treasury |
-| `backend/invoice_accounting.py` | Deposit stays a liability; membership invoices become tax revenue |
-| `backend/lifecycle_billing.py` | Beta membership invoices + period-idempotent payroll |
-| `backend/modules/quarter_assignment.py` | Host federation looks up Codex `quarter_assignment` |
-| `backend/data/*.json` | Departments, justice template + license, zones |
-| `manifest.json` | Package metadata, `codex_modules: ["quarter_assignment"]` |
+Identity submission and review are realm operations (`identity_submit`, `identity_review`); invoice
+accounting is done by the realm's treasury.
 
 ## Territory mode
 
@@ -35,15 +31,13 @@ The host calls `backend/entry.py` (in-process fallback) or `backend/sandbox_hook
 - `passport_verification` — Rarimo ZK passport onboarding.
 - Plus the shared civic stack declared in `manifest.json` (`access_manager`, `member_manager`, `justice_litigation`, `land_registry`, …).
 
-## Reference data (JSON)
+## Reference data
 
-- `departments.json` — initial departments, profiles, and permission assignments.
-- `justice.json` / `justice_license.json` — court hierarchy and the license authorizing the constitutional court.
-- `zones.json` — founding land zones.
+`manifest.json → seed`: departments (permissions, fund, policy, salaried positions) and the court hierarchy of the Justice department.
 
 ## Quarters
 
-Syntropia uses **predefined quarters/zones** for now. Dynamic quarter creation as the population grows is a future host capability (`should_deploy_quarter` in `quarter_assignment.py` is the policy hook).
+Syntropia uses **predefined quarters/zones** for now. Placement is the `assign_quarter` hook; capacity is `quarter.max_population` in the manifest (0 = unlimited). Scaling out is the realm's own job.
 
 ## Usage
 

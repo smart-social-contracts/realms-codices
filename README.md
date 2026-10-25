@@ -6,58 +6,54 @@ extension** (issue #244): an extension package whose manifest declares
 (distro behavior), and integrates with the core through a versioned hook API
 — exactly one codex is installed per realm.
 
-## Package layout (unified extension pipeline)
+## Package layout
 
 ```
 <codex_id>/
-├── manifest.json         id, version, kind: codex, codex_api_version,
-│                         dependencies, config blocks (fees, governance, …)
+├── manifest.json     id, version, kind: codex, codex_api_version: 2, hooks, capabilities,
+│                     config blocks (fees, governance, onboarding, …) and `seed` data
 └── backend/
-    ├── entry.py          hook implementations (see below)
-    ├── *.py              helpers importable from entry.py (e.g. org_seeding)
-    ├── data/*.json       reference data (departments, zones, …)
-    └── modules/*.py      governance modules — each becomes a Codex DB
-                          entity (codex_change proposal targets, task shims)
+    └── hooks.py      the hooks, one self-contained module
 ```
 
-Publish with `realms codex publish` (delegates to the extension publisher,
-uploading under `ext/<id>/<version>/`); install with
-`install_codex_from_registry` or directly via
-`install_extension_from_registry`.
+A codex runs in the realm's sandbox (a fresh Basilisk subinterpreter per hook call). `hooks.py`
+imports only `ggg_sdk`, the SDK the realm injects (`src/realm_backend/sdk.py` in realms-gos):
 
-## Hook API (v1)
+```python
+from ggg_sdk import hook, realm
 
-Core calls the codex at these `entry.py` functions (all take a JSON string
-argument, all optional except `get_config` and `init`):
+@hook
+def on_user_register(args):
+    invoice = realm.invoice(args["user"], realm.setting("fees.registration"), "registration")
+    realm.notify(args["user"], "Welcome", "Please settle your registration invoice.")
+    return {"invoice": invoice["invoice"]}
+```
 
-- `get_config` — realm configuration blocks (fees, governance, onboarding, …)
-- `init` — post-install realm setup (idempotent; enforce realm settings here)
-- `seed` — idempotent data/org seeding
-- `on_user_register` — called after user registration (`{"user_id": ...}`)
-- `on_treasury_send` — async treasury transfer hook
-- `check_lifecycle_transition` — verdict on stage transitions
-  (`{"allowed": bool, "missing": [...]}`)
-- `get_dashboard_config`, `get_extension_overrides`
+Reads come from the context the realm passes (`realm.config`, `realm.info`, `realm.now`,
+`realm.stage`) or from `realm.call(op, **args)`, a read operation. Writes are recorded as
+`(op, args)` effects that the realm applies through its operations after the hook returns.
+`capabilities` lists the operations (by name: `invoice_create`, `notification_send`, …) the codex
+may read or apply; the realm's Cedar guardrails refuse anything else. Shared helpers (seeding
+departments and courts, billing members, payroll) live in the SDK.
 
-## Manifest keys (excerpt)
+Install with the realm's `codex_install` operation, governed realm-wide: either
+`{"codex": "agora", "version": "1.0.0"}` (pulled from the file registry namespace
+`ext/<id>/<version>`, marketplace-approved) or `{"manifest": …, "source": …}` (its checksum must be
+allowlisted in the realm's trust policy). `codex_revert` goes back to the previous version.
 
-- `kind` — must be `"codex"`; the file registry only accepts this from
-  curated publishers, and the realm requires the `codex.install` permission.
-- `codex_api_version` — hook contract version (currently `1`); installs are
-  refused when the realm's core does not support the declared version.
-- `dependencies` — extensions installed with the codex. Either a list
-  (latest versions) or a dict with version pins resolved by the file
-  registry: `{"voting": "1.1.x", "vault": "^2.0.0"}`.
-- `extension_overrides` — optional replacements for system extensions
-  (extensions whose manifest has `"system": true`, e.g. `member_dashboard`,
-  `public_dashboard`): `{"member_dashboard": "agora_member_dashboard"}`.
-  Override extensions are installed as implicit dependencies; the realm
-  backend then routes calls, sidebar entries, and frontend navigation for
-  the base id to the replacement.
-- `onboarding.registration.default_profile` — profile granted on codeless
-  open registration (defaults to `member`).
-- `entity_method_overrides` — **deprecated** (replaced by the hook API);
-  only legacy packages under the old `codex/` registry namespace still use it.
+## Hooks (codex_api_version 2)
+
+All optional; the manifest's `hooks` lists the ones a codex implements.
+
+- `init` — after install: enforce realm settings, seed data (idempotent)
+- `on_user_register` — `{"user"}` after someone joins
+- `on_stage_change` — `{"stage"}` when the realm moves through its lifecycle
+- `assign_quarter` — `{"user", "preferred", "quarters": [{"id", "name", "population"}]}` → `{"quarter"}`
+
+## Tests
+
+`pytest tests` runs every codex's hooks with the SDK against canned reads
+(`REALM_BACKEND=<realms-gos>/src/realm_backend`).
 
 ## End-to-end testing
 
