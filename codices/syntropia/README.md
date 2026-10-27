@@ -24,7 +24,7 @@ accounting is done by the realm's treasury.
 
 ## Territory mode
 
-`greenfield` — see `manifest.json → onboarding.territory_mode` and `docs/reference/ONBOARDING_SCENARIOS.md`.
+`greenfield` (`manifest.json → onboarding.territory_mode`). Informational: the realm does not read it.
 
 ## Dependencies (extensions)
 

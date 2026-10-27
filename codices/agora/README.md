@@ -14,7 +14,7 @@ The realm follows the standard lifecycle (`alpha → beta → production → …
 
 ## Territory mode
 
-`incumbent` — see `manifest.json → onboarding.territory_mode` and `docs/reference/ONBOARDING_SCENARIOS.md`.
+`incumbent` (`manifest.json → onboarding.territory_mode`). Informational: the realm does not read it.
 
 ## Dependencies (extensions)
 
