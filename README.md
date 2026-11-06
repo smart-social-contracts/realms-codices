@@ -61,11 +61,8 @@ argument, all optional except `get_config` and `init`):
 
 ## End-to-end testing
 
-Each codex ships an agent-executable test plan in
-`codices/<codex>/E2E_TEST_PROMPT.md`. Give an agent that prompt together with
-the shared preamble `testing/E2E_AGENT_GUIDE.md` (staging environment,
-authentication, Playwright conventions, universal checks) and it will drive a
-real browser through the wizard, founder/member/civil-servant journeys, and
-backend assertions, producing a pass/fail report. Prompt files are
-documentation only — the registry publisher does not ship `.md` files with
-the package.
+The journeys a codex must pass (join as admin or member, public visitor,
+voting, vault, extension mount sweep, lifecycle phases) and the PASS/FAIL
+report format are written down in [docs/e2e-journeys.md](docs/e2e-journeys.md).
+They are to be built as deterministic geister scenarios running the real realm
+wasm and the codex on PocketIC.
