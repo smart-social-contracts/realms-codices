@@ -183,15 +183,38 @@ It reads each release's commit with git, so it needs the full history (`git fetc
 
 ## Propose a change
 
-The town's own layer is the folder of the town: edit its chapters in a pull request or in your own copy.
-The checksum pins the bytes, so a proposal does not need the pull request merged. Then:
+The town's own layer is the folder of the town: edit its chapters in a pull request or in your own copy and
+commit them. The checksum pins the bytes, so a proposal does not need the pull request merged, but the commit
+must be one the realm can fetch (pushed to GitHub).
 
-1. `realms legislation propose` writes the **change list**, a small file that names the chapters to set or
-   remove, their checksums, and which codex it replaces, and prints the address and checksum to submit as
-   the proposal. (The command is being built: realms-codices#12.)
-2. The change list goes in `changes/<your source id>/`, for example
-   `changes/eu/es/vc/46250-valencia/2026-11-20-ibi-bonus-2027.json`.
-3. The realm votes on the proposal under its own voting rules. Merge the pull request once it passes, so
+1. **See what the realm would run.** `realms legislation resolve` prints the realm's layer paths, the flattened
+   view of each domain and the id of the codex, from the committed files:
+
+   ```
+   realms legislation resolve legislation --realm eu/es/vc/46250-valencia --commit HEAD \
+       --sync-source eu/es/vc --sync-source eu/es/vc/emshi
+   ```
+
+   `--sync-source` takes the records of the realms you sync from out of this tree's `releases.json`. Add
+   `--facts FILE` (GGG's fact schema) to print the Cedar of the forbids as well. Only committed files are read,
+   never the working copy.
+2. **Write the change list.** `realms legislation propose` names the chapters to set or remove, their checksums
+   and which codex it replaces, writes the **change list** and prints the address and checksum to submit as the
+   proposal:
+
+   ```
+   realms legislation propose legislation --realm eu/es/vc/46250-valencia --commit <commit> \
+       --set eu/es/vc/46250-valencia/tax --replaces <codex id> \
+       --summary "es=IBI 2027: bonificación por familia numerosa" \
+       --url <where the change list will be served> \
+       --out changes/eu/es/vc/46250-valencia/2026-11-20-ibi-bonus-2027.json
+   ```
+
+   `<codex id>` is the id of the codex the realm runs now, which the realm shows in its codex status. Give
+   `--network` and `--canister` instead of `--replaces` and the command reads it from the realm. It reaches a
+   network only when you give it a network.
+3. The change list goes in `changes/<your source id>/`, as above.
+4. The realm votes on the proposal under its own voting rules. Merge the pull request once it passes, so
    that `main` shows what is in force.
 
 Legislation from above (a new release of Spain's chapters, say) reaches a realm as a release it chooses
