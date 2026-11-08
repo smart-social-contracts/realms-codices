@@ -1,0 +1,29 @@
+name: Check legislation
+
+on:
+  push:
+    branches: [main, feat/layered-codex]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # A release's checksums are the bytes at the release's own commit, so the check reads history.
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install realms CLI
+        # The layout rules and the chapter checks live in `realms legislation check`; this repository has none of its own.
+        run: |
+          git clone --depth 1 --no-recurse-submodules -b feat/layered-codex https://github.com/smart-social-contracts/realms-gos.git /tmp/realms
+          pip install /tmp/realms/cli
+
+      - name: Check legislation
+        run: realms legislation check legislation
