@@ -5,6 +5,12 @@ on:
     branches: [main, feat/layered-codex]
   pull_request:
 
+env:
+  # The realms-gos commit whose `realms` CLI checks this tree. It is pinned because the branch it comes from moves,
+  # and goes away when it merges into main. To bump it, open a pull request here that changes this line to the
+  # realms-gos commit you want, after that commit has the rules the tree needs; this check then runs with it.
+  REALMS_GOS_COMMIT: b16510a3b57fb9538e2bc95e315e4c1e67db94ad
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -19,11 +25,23 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Install realms CLI
-        # The layout rules and the chapter checks live in `realms legislation check`; this repository has none of its own.
+      - name: Install the realms CLI, at the pinned commit
+        # The rules live in `realms legislation check`; this repository has no checker of its own. The
+        # `legislation` extra is cedarpy, which decides the forbids as Cedar does.
         run: |
-          git clone --depth 1 --no-recurse-submodules -b feat/layered-codex https://github.com/smart-social-contracts/realms-gos.git /tmp/realms
-          pip install /tmp/realms/cli
+          git init -q /tmp/realms
+          git -C /tmp/realms fetch -q --depth 1 https://github.com/smart-social-contracts/realms-gos.git "$REALMS_GOS_COMMIT"
+          git -C /tmp/realms checkout -q FETCH_HEAD
+          pip install "/tmp/realms/cli[legislation]"
+
+      - name: Cedar analysis tools
+        # The Cedar CLI and cvc5 that prove no forbid errors, by version and checksum
+        # (scripts/cedar_tools.sh in realms-gos), cached under the versions they have.
+        uses: actions/cache@v4
+        with:
+          path: .cache/cedar-tools
+          key: cedar-tools-cli-4.14.1-cvc5-1.3.1
+      - run: /tmp/realms/scripts/cedar_tools.sh .cache/cedar-tools >> "$GITHUB_ENV"
 
       - name: Check legislation
         run: realms legislation check legislation

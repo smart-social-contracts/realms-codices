@@ -165,20 +165,62 @@ One entry per release, newest last:
   fetches them from. So the commit comes first. Commit the chapters, then add the entry with that commit's
   hash and the checksums (`git show <commit>:legislation/eu/es/tax.py | sha256sum`). Editing a chapter after
   its release is fine: it is the next release, or a proposal, in progress.
+- **Cut a release in a pull request only after the chapters' commit is already on the branch it merges into.**
+  A release is a later commit than its chapters. If the chapters and the release travel in one pull request
+  that is squashed or rebased when merged, the commit the release names is gone, and the check says it is not
+  in the history. Merge the chapters first, then open the release. Merge pull requests here with a merge
+  commit.
 - **The tree's path is part of every release**: a release names its files as `legislation/<source>/<domain>.py`
   at its commit, so moving or renaming `legislation/` breaks every release already made.
 - This file is a copy for convenience. The source's own published record is the authority.
+
+## Test cases
+
+A chapter may have test cases in `<domain>.cases.json`, beside it. They run when the tree is checked, on the
+codex of a realm: the one a case names in `realm` (a source id, such as `eu/es/vc/46250-valencia`), else the
+chapter's own source with the sources above it. Times are in UTC. A case has a `name`, one kind of test, and
+what it expects:
+
+```json
+[
+  {"name": "Spain asks for no bonus by default", "call": "ibi_bonus", "args": ["User:alice"], "returns": 0},
+  {"name": "València: more than 1.24 % is forbidden", "realm": "eu/es/vc/46250-valencia",
+   "forbid": "tax_policy_propose", "each": "taxes", "facts": {"code": "ibi_urban", "rate": 1240001},
+   "fires": ["eu/es/tax/ibi_urban_cap"]},
+  {"name": "an ordinance needs 15 working days", "guard": "proposal_create", "now": 1800000000,
+   "args": {"action": {"Code": {}}, "effective_at": null}, "denies": "an ordinance takes effect at the earliest 15 working days after the vote closes (Art. 65.2)"}
+]
+```
+
+- `call` calls a public member of the domain: a helper with `args`, or a setting. `returns` is its value in
+  plain data (a rate is its whole number, a period is `{"count": 3, "unit": "Month"}`).
+- `guard` runs the domain's `check_<operation>` on `args`, with the `approvals` (department names) and the
+  time `now` in seconds. `denies` is the reason, or `null` for a guard that allows.
+- `forbid` evaluates the realm's forbids on the operation (and the `each` list) with the `facts`. `fires`
+  lists the ids of the forbids that fire, `<source>/<domain>/<name>`; none that must not fire.
+
+A case that does not come out as written is a problem, with the case's name. Hooks and `compute_` methods
+read GGG and are not run by the check.
 
 ## Check your changes
 
 ```
 git clone --depth 1 -b feat/layered-codex https://github.com/smart-social-contracts/realms-gos.git /tmp/realms
-pip install /tmp/realms/cli
+pip install "/tmp/realms/cli[legislation]"
+/tmp/realms/scripts/cedar_tools.sh .cache/cedar-tools     # prints CEDAR_CLI=... and CVC5=...; export both
 realms legislation check legislation
 ```
 
-It holds the tree to the rules above, then loads every realm's chapters the way the realm does and prints
-each refusal as `<source>/<domain>.py:<line>: <reason>`. The same command runs on every pull request here.
+It holds the tree to the rules above, loads every realm's chapters the way the realm does and prints each
+refusal as `<source>/<domain>.py:<line>: <reason>`. Then, for every forbid, it binds it to GGG's fact
+schema (the `F` rules), checks that Python and Cedar decide the same on generated facts, and proves with the
+Cedar CLI and cvc5 that Cedar never errors on it: Cedar skips a forbid that errors, so one that could would
+allow what it forbids. It runs the test cases. A refusal in a layer is printed once, though every realm
+below the layer runs it.
+
+The same command runs on every pull request here, with the realms-gos commit named in
+`.github/workflows/check-legislation.yml`. To use a newer one, change that commit in a pull request.
+Without the Cedar tools the command stops and says so; `--no-analysis` goes without them, for a draft on a laptop.
 It reads each release's commit with git, so it needs the full history (`git fetch --unshallow`).
 
 ## Propose a change
