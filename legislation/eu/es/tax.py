@@ -34,6 +34,8 @@ class Tax(above("tax")):
         """GGG asks for the invoice items of each subject of each entry."""
         if entry.code != "ibi_urban" or subject.assessed_value is None:     # a parcel never assessed owes no IBI yet
             return []
+        # Each invoice line is rounded once: the quota, then the bonus on the rounded quota (Art. 74 forgives a share of
+        # the cuota as it is billed), so the two lines add up to what the bonus leaves.
         gross = subject.assessed_value.times(entry.rate)            # nearest cent, half away from zero
         net = gross - gross.times(self.ibi_bonus(subject.owner))
         items = [{"concept": entry.code, "amount": gross, "legislation": "TRLRHL Art. 71.1"}]
