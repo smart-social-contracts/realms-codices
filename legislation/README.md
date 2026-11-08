@@ -39,7 +39,8 @@ changes/                          change lists, one per proposal
 - **Releases.** A source others take its legislation from has a `releases.json`. A town's own layer has
   none: its proposals are its record.
 - **The `realm` domain** (what the realm itself does when it starts a codex or admits a member) is
-  filled only in the realm's own layer, so `realm.py` never sits beside a `releases.json`.
+  filled only in the realm's own layer. A source that is also a realm (Spain, say) may keep a `realm.py` beside
+  its `releases.json`: no release lists it, and no other realm loads it.
 
 ## `source.json`
 
@@ -53,7 +54,8 @@ changes/                          change lists, one per proposal
 ```
 
 `id` is the folder's path. `name` is the official name in each language. `created_by` is the act that
-created the source. `publisher.realm` is the canister id of the source's own realm, or `null`.
+created the source; leave it out when none did, as for a municipality older than any statute.
+`publisher.realm` is the canister id of the source's own realm, or `null`.
 
 ## A chapter
 
@@ -163,6 +165,8 @@ One entry per release, newest last:
   fetches them from. So the commit comes first. Commit the chapters, then add the entry with that commit's
   hash and the checksums (`git show <commit>:legislation/eu/es/tax.py | sha256sum`). Editing a chapter after
   its release is fine: it is the next release, or a proposal, in progress.
+- **The tree's path is part of every release**: a release names its files as `legislation/<source>/<domain>.py`
+  at its commit, so moving or renaming `legislation/` breaks every release already made.
 - This file is a copy for convenience. The source's own published record is the authority.
 
 ## Check your changes
