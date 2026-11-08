@@ -198,9 +198,15 @@ what it expects:
   time `now` in seconds. `denies` is the reason, or `null` for a guard that allows.
 - `forbid` evaluates the realm's forbids on the operation (and the `each` list) with the `facts`. `fires`
   lists the ids of the forbids that fire, `<source>/<domain>/<name>`; none that must not fire.
+- `compute` runs the domain's `compute_<operation>` the way the realm does. `args` are its arguments (for
+  `tax_assess`, the tax `entry` and the `subject`, `"Land:L-1"`), `decimals` those of the token the amounts are in,
+  and `records` the rows of GGG's entities the chapter may read, `{"Land": [{"id": "L-1", "owner":
+  "User:alice", "assessed_value": 20000000}], "Human": [...], "Attribute": [...]}`. `returns` is what it answers,
+  the invoice items. A parcel's `assessed_value` is money in those decimals, a row that leaves it out is a parcel
+  never assessed.
 
-A case that does not come out as written is a problem, with the case's name. Hooks and `compute_` methods
-read GGG and are not run by the check.
+A case that does not come out as written is a problem, with the case's name. Hooks read GGG and are not run by
+the check.
 
 ## Check your changes
 
