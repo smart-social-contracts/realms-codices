@@ -211,8 +211,8 @@ must be one the realm can fetch (pushed to GitHub).
    ```
 
    `<codex id>` is the id of the codex the realm runs now, which the realm shows in its codex status. Give
-   `--network` and `--canister` instead of `--replaces` and the command reads it from the realm. It reaches a
-   network only when you give it a network.
+   `--network`, `--canister` and `--identity` instead of `--replaces` and the command reads it from the realm,
+   saying where first. It reaches a network only when you give it all three.
 3. The change list goes in `changes/<your source id>/`, as above.
 4. The realm votes on the proposal under its own voting rules. Merge the pull request once it passes, so
    that `main` shows what is in force.
