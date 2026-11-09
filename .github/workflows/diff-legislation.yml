@@ -17,7 +17,7 @@ concurrency:
 env:
   # The realms-gos commit whose `realms` CLI analyses the change; pinned like the one that checks (check-legislation.yml),
   # and bumped the same way.
-  REALMS_GOS_COMMIT: 1c7282b298fb28c0f53eea3cdf6de02691b1ba93
+  REALMS_GOS_COMMIT: 50afec28234b38e6204800b72f2b880b6d484310
   # Seconds after which the analysis starts no query (realms legislation diff --budget): the realms it did not reach are
   # listed as not analysed, which fails. The job itself is stopped at 30 minutes, after the installs and this budget.
   ANALYSIS_BUDGET: "1200"
