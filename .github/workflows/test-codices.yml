@@ -17,13 +17,8 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Install realms CLI
-        run: |
-          git clone --depth 1 --no-recurse-submodules https://github.com/smart-social-contracts/realms-gos.git /tmp/realms
-          pip install /tmp/realms/cli
+      - name: Fetch the realm SDK
+        run: git clone --depth 1 --no-recurse-submodules https://github.com/smart-social-contracts/realms-gos.git ../realms-gos
 
-      - name: Run Agora tests
-        run: realms test codices/agora --verbose
-
-      - name: Run Syntropia tests
-        run: realms test codices/syntropia --verbose
+      - name: Run codex hook tests
+        run: pip install pytest && REALM_BACKEND=../realms-gos/src/realm_backend pytest tests -q

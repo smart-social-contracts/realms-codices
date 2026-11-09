@@ -1,26 +1,29 @@
 {
   "id": "agora",
-  "version": "0.9.8",
+  "version": "1.0.0",
   "name": "Agora",
   "description": "A migration codex for an existing public administration moving its entire IT to Realms GOS (a 1-to-1 migration). The population already exists, so onboarding is by registration code or bulk/programmatic import — no ZK passport.",
   "repository": "https://github.com/smart-social-contracts/realms-codices/tree/main/codices/agora",
   "kind": "codex",
-  "codex_api_version": 1,
-  "ggg_api_version": 1,
-  "sandbox_module": "sandbox_hooks.py",
+  "codex_api_version": 2,
+  "hooks": [
+    "init",
+    "on_user_register",
+    "on_stage_change"
+  ],
   "capabilities": [
-    "config.get",
-    "currency.get",
-    "time.now",
-    "user.get",
-    "realm.get",
-    "member.activate",
-    "invoice.create",
-    "notification.create",
-    "treasury.transfer",
-    "realm.apply_init_policy",
-    "org.seed_template",
-    "justice.seed_template"
+    "user_list",
+    "department_list",
+    "realm_configure",
+    "department_create",
+    "department_set_policy",
+    "fund_create",
+    "profile_create",
+    "position_create",
+    "court_create",
+    "invoice_create",
+    "notification_send",
+    "payroll_run"
   ],
   "show_in_sidebar": false,
   "dependencies": [
@@ -188,19 +191,219 @@
       }
     }
   },
-  "codex_modules": [
-    "membership"
-  ],
-  "data_files": {
-    "departments": "data/departments.json",
-    "justice": "data/justice.json",
-    "justice_license": "data/justice_license.json",
-    "zones": "data/zones.json"
-  },
-  "entry_access": {
-    "default": "realm.admin",
-    "functions": {
-      "get_config": "realm.data_view"
+  "seed": {
+    "departments": [
+      {
+        "name": "Congress",
+        "description": "Supreme legislative authority. Receives root from the creator at the Beta transition and holds all realm permissions from then on; decides the move to Live by vote.",
+        "fund": "DEPT-CONGRESS",
+        "permissions": [
+          "governance.update",
+          "proposal.create",
+          "proposal.manage",
+          "org.appoint",
+          "org.set_policy",
+          "codex.revert",
+          "realm.configure"
+        ],
+        "positions": [
+          {
+            "title": "speaker",
+            "headcount": 1,
+            "salary": 5000
+          },
+          {
+            "title": "congress_member",
+            "headcount": 5,
+            "salary": 4000
+          }
+        ]
+      },
+      {
+        "name": "Civil Registry",
+        "description": "Population register, identity records, and migration of existing citizens into the realm.",
+        "fund": "DEPT-CIVREG",
+        "permissions": [
+          "user.add",
+          "user.view",
+          "user.edit",
+          "invite.manage"
+        ],
+        "positions": [
+          {
+            "title": "registrar",
+            "headcount": 2,
+            "salary": 3000
+          },
+          {
+            "title": "clerk",
+            "headcount": 5,
+            "salary": 2200
+          }
+        ]
+      },
+      {
+        "name": "Justice",
+        "description": "Courts, dispute resolution, and enforcement oversight.",
+        "fund": "DEPT-JUST",
+        "permissions": [
+          "dispute.view_all",
+          "dispute.assign",
+          "resolution.draft",
+          "resolution.issue"
+        ],
+        "positions": [
+          {
+            "title": "judge",
+            "headcount": 2,
+            "salary": 5000
+          },
+          {
+            "title": "court_clerk",
+            "headcount": 3,
+            "salary": 2500
+          }
+        ]
+      },
+      {
+        "name": "Defense",
+        "description": "Civil protection, emergency response, and public security.",
+        "fund": "DEPT-DEF",
+        "permissions": [
+          "enforcement.record",
+          "enforcement.escalate"
+        ],
+        "positions": [
+          {
+            "title": "defense_director",
+            "headcount": 1,
+            "salary": 4500
+          },
+          {
+            "title": "security_officer",
+            "headcount": 4,
+            "salary": 2800
+          }
+        ]
+      },
+      {
+        "name": "Social Security",
+        "description": "Welfare benefits, pensions, social support, and redistribution programs.",
+        "fund": "DEPT-SOC",
+        "permissions": [
+          "treasury.view",
+          "transfer.create"
+        ],
+        "positions": [
+          {
+            "title": "benefits_officer",
+            "headcount": 3,
+            "salary": 2800
+          },
+          {
+            "title": "social_worker",
+            "headcount": 5,
+            "salary": 2500
+          }
+        ]
+      },
+      {
+        "name": "Infrastructure",
+        "description": "Land zones, public works, and the geographic organization of quarters.",
+        "fund": "DEPT-INFRA",
+        "permissions": [
+          "nft.mint",
+          "tender.manage"
+        ],
+        "positions": [
+          {
+            "title": "land_officer",
+            "headcount": 2,
+            "salary": 3000
+          },
+          {
+            "title": "engineer",
+            "headcount": 4,
+            "salary": 3000
+          },
+          {
+            "title": "operator",
+            "headcount": 4,
+            "salary": 2200
+          }
+        ]
+      },
+      {
+        "name": "Economy",
+        "description": "Public finances, treasury, budgets, and (future) tax declarations and collection.",
+        "fund": "DEPT-ECON",
+        "policy": {
+          "m": 2,
+          "n": 3
+        },
+        "permissions": [
+          "treasury.view",
+          "treasury.manage",
+          "transfer.create",
+          "tax.assess",
+          "org.manage_budget"
+        ],
+        "positions": [
+          {
+            "title": "treasurer",
+            "headcount": 1,
+            "salary": 4500
+          },
+          {
+            "title": "tax_officer",
+            "headcount": 4,
+            "salary": 2800
+          }
+        ]
+      },
+      {
+        "name": "Administration",
+        "description": "Realm operations, role management, and lifecycle administration.",
+        "fund": "DEPT-ADMIN",
+        "permissions": [
+          "role.assign",
+          "role.revoke",
+          "realm.configure",
+          "extension.install"
+        ],
+        "positions": [
+          {
+            "title": "admin",
+            "headcount": 2,
+            "salary": 4000
+          }
+        ]
+      }
+    ],
+    "justice": {
+      "department": "Justice",
+      "courts": [
+        {
+          "name": "Supreme Court",
+          "level": "supreme",
+          "jurisdiction": "Realm-wide",
+          "scope": "capital"
+        },
+        {
+          "name": "Court of Appeals",
+          "level": "appellate",
+          "jurisdiction": "Realm-wide — Appeals",
+          "scope": "capital",
+          "parent": "Supreme Court"
+        },
+        {
+          "name": "District Court",
+          "level": "first_instance",
+          "jurisdiction": "General",
+          "scope": "quarter",
+          "parent": "Court of Appeals"
+        }
+      ]
     }
   }
 }
