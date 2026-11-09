@@ -18,7 +18,7 @@ class Tax(above("tax")):
         each="taxes", legislation="TRLRHL Art. 72.1, 72.3")
 
     ibi_urban_cap = forbid("tax_policy_propose",
-        (F.code == "ibi_urban") & F.rate.is_some() & (F.rate > pct("1.10")
+        (F.code == "ibi_urban") & F.rate.is_some() & (F.rate > pct("1.00")
             + when(S.capital, pct("0.07")) + when(S.surface_public_transport, pct("0.07"))
             + when(S.services_beyond_art26, pct("0.06"))),
         each="taxes", legislation="TRLRHL Art. 72.3")
