@@ -229,6 +229,28 @@ The same command runs on every pull request here, with the realms-gos commit nam
 Without the Cedar tools the command stops and says so; `--no-analysis` goes without them, for a draft on a laptop.
 It reads each release's commit with git, so it needs the full history (`git fetch --unshallow`).
 
+## What a change does
+
+On a pull request that changes `legislation/`, a comment says what the change does to every realm it reaches, proved
+with Cedar's symbolic analysis and not sampled:
+
+- what is **newly forbidden** and **newly allowed** for each operation, as a range where the difference is one
+  ("`code = "ibi_urban"`: rate more than 1.14 % and at most 1.24 % newly forbidden"), with the request that breaks
+  it otherwise, for the realm as it is and, for a change to a source, for every setting of that source;
+- an operation **nothing** can pass, a forbid that **never fires** and a forbid that **can error** (a failure), and a
+  forbid the others already cover (a warning);
+- the **flattened view** of the domains the change reaches, before and after, with the highest rate each cap allows;
+- the realms and domains it reaches, the **test cases**, and the generated Cedar.
+
+A failure turns the check red. To read the same report on your machine, with the Cedar tools of the section above:
+
+```
+realms legislation diff legislation --base <the commit your branch left> --head HEAD
+```
+
+It reads both commits with git. Add `--change-list FILE` to analyse one realm's change list, whose chapters' commit
+is the head.
+
 ## Propose a change
 
 The town's own layer is the folder of the town: edit its chapters in a pull request or in your own copy and
