@@ -11,6 +11,9 @@ env:
   # realms-gos commit you want, after that commit has the rules the tree needs; this check then runs with it.
   REALMS_GOS_COMMIT: cf1cc07759508316ce4aa19e70167b856a39c1c6
 
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
