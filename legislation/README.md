@@ -236,13 +236,17 @@ with Cedar's symbolic analysis and not sampled:
 
 - what is **newly forbidden** and **newly allowed** for each operation, as a range where the difference is one
   ("`code = "ibi_urban"`: rate more than 1.14 % and at most 1.24 % newly forbidden"), with the request that breaks
-  it otherwise, for the realm as it is and, for a change to a source, for every setting of that source;
+  it otherwise, for the realm as it is and, for a change to a source, for each combination of the Boolean settings the
+  change reads;
 - an operation **nothing** can pass, a forbid that **never fires** and a forbid that **can error** (a failure), and a
   forbid the others already cover (a warning);
 - the **flattened view** of the domains the change reaches, before and after, with the highest rate each cap allows;
 - the realms and domains it reaches, the **test cases**, and the generated Cedar.
 
-A failure turns the check red. To read the same report on your machine, with the Cedar tools of the section above:
+A failure turns the check red. The analysis stops starting queries after 20 minutes: a realm it did not reach is
+listed as `not analysed (time budget)`, which is a failure too, so a pull request cannot pass on what was not
+analysed. A report longer than a comment holds is cut there, and the run's summary has it whole. To read the same
+report on your machine, with the Cedar tools of the section above:
 
 ```
 realms legislation diff legislation --base <the commit your branch left> --head HEAD
