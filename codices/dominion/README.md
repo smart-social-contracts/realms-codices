@@ -1,55 +1,19 @@
 # Dominion Codex
 
-A demo codex package for realms focused on **taxation** and **governance automation**.
+A demo codex for a direct democracy with taxation, in its own currency (`DOM`).
 
-## Overview
+## Hooks (`backend/hooks.py`)
 
-Dominion implements a taxation-oriented governance model with progressive tax rates and automated collection. It emphasizes fiscal responsibility and structured governance.
+| Hook | What it does |
+|------|--------------|
+| `init` | Names the realm if unnamed |
+| `on_user_register` | Registration invoice in DOM and a welcome notice (pay, then verify with ZK passport) |
 
-## Codices
-
-### `tax_collection.py`
-Automated tax calculation and collection system.
-
-**Features:**
-- Progressive tax rates (10% / 20% / 30% based on income brackets)
-- Automatic income calculation from transfer history
-- Tax payment processing via Transfer records
-
-**Tax Brackets:**
-| Income | Rate |
-|--------|------|
-| ≤ 10,000 | 10% |
-| ≤ 50,000 | 20% |
-| > 50,000 | 30% |
-
-### `governance_automation.py`
-Democratic proposal and voting system.
-
-**Features:**
-- Create governance proposals with voting deadlines
-- Automatic vote tallying when deadlines pass
-- Proposal status tracking (active, passed, rejected)
-
-### `satoshi_transfer.py`
-Scheduled micro-transfer demonstration.
-
-**Features:**
-- Sends 1 satoshi to a target principal on schedule
-- Demonstrates scheduled task execution
-- Integrates with vault extension for ckBTC transfers
-
-### `init.py`
-Realm configuration and manifest loading.
-
-**Features:**
-- Loads realm settings from `manifest.json`
-- Updates realm metadata (name, description, logo)
-- Configures entity method overrides
+Taxes (progressive brackets on income: 10% ≤ 10,000, 20% ≤ 50,000, 30% above) are adopted as the
+realm's tax policy and assessed by the realm (`tax_policy_propose`, `tax_assess`); proposals and votes
+are the realm's own operations.
 
 ## Usage
-
-This codex is automatically loaded when creating a realm with the `dominion` template:
 
 ```bash
 realms realm create --template dominion

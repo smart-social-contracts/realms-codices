@@ -1,23 +1,30 @@
 {
   "id": "syntropia",
-  "version": "0.8.9",
+  "version": "1.0.0",
   "name": "Syntropia",
   "description": "A greenfield codex for a brand-new sovereign smart city built from scratch. Because there is no existing population, new citizens onboard with a ZK passport, pay a deposit — a house in a zone — and submit Know-Your-Citizen data before the city goes live.",
   "repository": "https://github.com/smart-social-contracts/realms-codices/tree/main/codices/syntropia",
   "kind": "codex",
-  "codex_api_version": 1,
-  "ggg_api_version": 1,
-  "sandbox_module": "sandbox_hooks.py",
+  "codex_api_version": 2,
+  "hooks": [
+    "init",
+    "on_user_register",
+    "on_stage_change",
+    "assign_quarter"
+  ],
   "capabilities": [
-    "config.get",
-    "currency.get",
-    "time.now",
-    "user.get",
-    "invoice.create",
-    "notification.create",
-    "realm.apply_init_policy",
-    "org.seed_template",
-    "justice.seed_template"
+    "user_list",
+    "department_list",
+    "realm_configure",
+    "department_create",
+    "department_set_policy",
+    "fund_create",
+    "profile_create",
+    "position_create",
+    "court_create",
+    "invoice_create",
+    "notification_send",
+    "payroll_run"
   ],
   "show_in_sidebar": false,
   "dependencies": [
@@ -198,22 +205,210 @@
       }
     }
   },
-  "codex_modules": [
-    "quarter_assignment"
-  ],
-  "data_files": {
-    "departments": "data/departments.json",
-    "justice": "data/justice.json",
-    "justice_license": "data/justice_license.json",
-    "zones": "data/zones.json"
+  "quarter": {
+    "max_population": 0
   },
-  "entry_access": {
-    "default": "realm.admin",
-    "functions": {
-      "get_config": "realm.data_view",
-      "submit_identity": "identity.submit",
-      "review_identity": "identity.review",
-      "list_identity_attestations": "identity.review"
+  "seed": {
+    "departments": [
+      {
+        "name": "Congress",
+        "description": "Supreme legislative authority. Receives root from the creator at the Beta transition and holds all realm permissions from then on; decides the move to Live by vote.",
+        "fund": "DEPT-CONGRESS",
+        "permissions": [
+          "governance.update",
+          "proposal.create",
+          "proposal.manage",
+          "org.appoint",
+          "org.set_policy",
+          "codex.revert",
+          "realm.configure"
+        ],
+        "positions": [
+          {
+            "title": "speaker",
+            "headcount": 1,
+            "salary": 5000
+          },
+          {
+            "title": "congress_member",
+            "headcount": 5,
+            "salary": 4000
+          }
+        ]
+      },
+      {
+        "name": "Citizenship & Identity",
+        "description": "ZK passport onboarding, Know-Your-Citizen review, and deposit verification.",
+        "fund": "DEPT-CITIZEN",
+        "permissions": [
+          "user.view",
+          "user.edit",
+          "identity.review"
+        ],
+        "positions": [
+          {
+            "title": "registrar",
+            "headcount": 2,
+            "salary": 3000
+          },
+          {
+            "title": "kyc_officer",
+            "headcount": 3,
+            "salary": 2500
+          }
+        ]
+      },
+      {
+        "name": "Justice",
+        "description": "Constitutional court and dispute resolution.",
+        "fund": "DEPT-JUST",
+        "permissions": [
+          "dispute.view_all",
+          "dispute.assign",
+          "resolution.draft",
+          "resolution.issue"
+        ],
+        "positions": [
+          {
+            "title": "judge",
+            "headcount": 2,
+            "salary": 5000
+          },
+          {
+            "title": "court_clerk",
+            "headcount": 3,
+            "salary": 2500
+          }
+        ]
+      },
+      {
+        "name": "Defense",
+        "description": "Civil protection, emergency response, and security of the city.",
+        "fund": "DEPT-DEF",
+        "permissions": [
+          "enforcement.record",
+          "enforcement.escalate"
+        ],
+        "positions": [
+          {
+            "title": "defense_director",
+            "headcount": 1,
+            "salary": 4500
+          },
+          {
+            "title": "security_officer",
+            "headcount": 4,
+            "salary": 2800
+          }
+        ]
+      },
+      {
+        "name": "Social Security",
+        "description": "Welfare benefits, social support, and redistribution programs.",
+        "fund": "DEPT-SOC",
+        "permissions": [
+          "treasury.view",
+          "transfer.create"
+        ],
+        "positions": [
+          {
+            "title": "benefits_officer",
+            "headcount": 2,
+            "salary": 2800
+          },
+          {
+            "title": "social_worker",
+            "headcount": 4,
+            "salary": 2500
+          }
+        ]
+      },
+      {
+        "name": "Infrastructure",
+        "description": "Zones, housing allocation, public works, and quarter planning as the city grows.",
+        "fund": "DEPT-INFRA",
+        "permissions": [
+          "nft.mint",
+          "tender.manage"
+        ],
+        "positions": [
+          {
+            "title": "land_officer",
+            "headcount": 2,
+            "salary": 3000
+          },
+          {
+            "title": "planner",
+            "headcount": 2,
+            "salary": 3200
+          },
+          {
+            "title": "engineer",
+            "headcount": 3,
+            "salary": 3000
+          }
+        ]
+      },
+      {
+        "name": "Economy",
+        "description": "Deposits (a house in a zone), treasury, budgets, and realm finances.",
+        "fund": "DEPT-ECON",
+        "permissions": [
+          "treasury.view",
+          "treasury.manage",
+          "transfer.create",
+          "tax.assess",
+          "org.manage_budget"
+        ],
+        "positions": [
+          {
+            "title": "treasurer",
+            "headcount": 1,
+            "salary": 4500
+          },
+          {
+            "title": "finance_officer",
+            "headcount": 3,
+            "salary": 2800
+          }
+        ]
+      },
+      {
+        "name": "Administration",
+        "description": "Founders and admins — the only actors who can make fundamental changes before go-live.",
+        "fund": "DEPT-ADMIN",
+        "permissions": [
+          "role.assign",
+          "role.revoke",
+          "realm.configure",
+          "extension.install"
+        ],
+        "positions": [
+          {
+            "title": "admin",
+            "headcount": 2,
+            "salary": 4000
+          }
+        ]
+      }
+    ],
+    "justice": {
+      "department": "Justice",
+      "courts": [
+        {
+          "name": "Constitutional Court",
+          "level": "supreme",
+          "jurisdiction": "City-wide",
+          "scope": "capital"
+        },
+        {
+          "name": "Community Court",
+          "level": "first_instance",
+          "jurisdiction": "General",
+          "scope": "quarter",
+          "parent": "Constitutional Court"
+        }
+      ]
     }
   }
 }
