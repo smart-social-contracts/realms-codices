@@ -1,0 +1,143 @@
+name: Diff legislation
+
+# On a pull request that changes legislation/: what the change does to every realm it reaches, proved with Cedar's
+# SymCC, posted as a comment (realms legislation diff; docs/codices/layered-codex.md §12.3). The analysis runs in a job
+# that can only read; the job that writes the comment runs nothing from the pull request: it posts the report file.
+on:
+  pull_request:
+    paths:
+      - "legislation/**"
+      - ".github/workflows/diff-legislation.yml"
+
+# One analysis per pull request: a new push stops the one running for the old head.
+concurrency:
+  group: diff-legislation-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  # The realms-gos commit whose `realms` CLI analyses the change; pinned like the one that checks (check-legislation.yml),
+  # and bumped the same way.
+  REALMS_GOS_COMMIT: 50afec28234b38e6204800b72f2b880b6d484310
+  # Seconds after which the analysis starts no query (realms legislation diff --budget): the realms it did not reach are
+  # listed as not analysed, which fails. The job itself is stopped at 30 minutes, after the installs and this budget.
+  ANALYSIS_BUDGET: "1200"
+  MARKER: "<!-- realms-legislation-diff -->"
+
+permissions:
+  contents: read
+
+jobs:
+  diff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install the realms CLI, at the pinned commit
+        run: |
+          git init -q /tmp/realms
+          git -C /tmp/realms fetch -q --depth 1 https://github.com/smart-social-contracts/realms-gos.git "$REALMS_GOS_COMMIT"
+          git -C /tmp/realms checkout -q FETCH_HEAD
+          pip install "/tmp/realms/cli[legislation]"
+
+      - name: Cedar analysis tools
+        uses: actions/cache@v4
+        with:
+          path: .cache/cedar-tools
+          key: cedar-tools-cli-4.14.1-cvc5-1.3.1
+      - run: /tmp/realms/scripts/cedar_tools.sh .cache/cedar-tools >> "$GITHUB_ENV"
+
+      - name: Analyse the change
+        id: analyse
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # from where the branch left the base, so that what the base gained since is not part of the change
+          base=$(git merge-base "$BASE_SHA" "$HEAD_SHA")
+          status=0
+          realms legislation diff legislation --base "$base" --head "$HEAD_SHA" --budget "$ANALYSIS_BUDGET" --out report.md 2> analyse.log || status=$?
+          if [ ! -s report.md ]; then
+            printf '%s\n## Legislation analysis\n\nThe analysis could not run:\n\n```\n%s\n```\n' "$MARKER" "$(cat analyse.log)" > report.md
+            [ "$status" != 0 ] || status=1
+          fi
+          # A comment holds 65 536 characters and a job summary 1 MiB: the longer report is cut at a line, its open
+          # code block and details closed, and says where the whole is (the artifact of this run).
+          python3 - <<'PY'
+          import os
+
+          def cut(text, limit, note):
+              if len(text) <= limit:
+                  return text
+              head = text[: limit - len(note) - 100]
+              head = head[: head.rfind("\n")]
+              if head.count("```") % 2:
+                  head += "\n```"
+              head += "\n</details>" * max(0, head.count("<details>") - head.count("</details>"))
+              return head + "\n\n" + note + "\n"
+
+          report = open("report.md", encoding="utf-8").read()
+          url = os.environ["RUN_URL"]
+          open("comment.md", "w", encoding="utf-8").write(
+              cut(report, 64000, f"**The report is longer than a comment can hold and is cut here: read it whole in the [summary of this run]({url}).**")
+          )
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write(cut(report, 250000, "**The report is cut here: the artifact `legislation-report` of this run has it whole.**"))
+          PY
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: legislation-report
+          path: |
+            report.md
+            comment.md
+
+      - name: Fail when the report lists a failure
+        if: steps.analyse.outputs.status != '0'
+        run: exit ${{ steps.analyse.outputs.status }}
+
+  comment:
+    needs: diff
+    # Not when the run was cancelled (a newer push stopped it: that one comments). A pull request from a fork has a
+    # token that cannot write: its report is in the job summary of the run above.
+    if: ${{ !cancelled() && needs.diff.result != 'skipped' && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      # actions/download-artifact v4.3.0, by commit: the job that writes runs nothing it has not been pinned to
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        continue-on-error: true
+        with:
+          name: legislation-report
+
+      - name: Post the report on the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ ! -s comment.md ]; then
+            printf '%s\n## Legislation analysis\n\nThe analysis did not finish (its job timed out or stopped before it wrote a report): see [the run](%s).\n' "$MARKER" "$RUN_URL" > comment.md
+          fi
+          # the report's own comment, found by its marker on the bot's comments, not the last comment of the bot
+          id=$(gh api --paginate "repos/$GH_REPO/issues/$PULL_REQUEST/comments" \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- realms-legislation-diff -->"))) | .id' | tail -n 1)
+          if [ -n "$id" ]; then
+            gh api --method PATCH "repos/$GH_REPO/issues/comments/$id" -F body=@comment.md > /dev/null
+          else
+            gh pr comment "$PULL_REQUEST" --body-file comment.md
+          fi
