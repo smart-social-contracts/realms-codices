@@ -188,7 +188,7 @@ what it expects:
    "forbid": "tax_policy_propose", "each": "taxes", "facts": {"code": "ibi_urban", "rate": 1240001},
    "fires": ["eu/es/tax/ibi_urban_cap"]},
   {"name": "an ordinance needs 15 working days", "guard": "proposal_create", "now": 1800000000,
-   "args": {"action": {"Code": {}}, "effective_at": null}, "denies": "an ordinance takes effect at the earliest 15 working days after the vote closes (Art. 65.2)"}
+   "args": {"action": {"op": "codex_install", "args": {"url": "https://example.org/change.json", "checksum": "sha256:x"}}, "effective_at": null}, "denies": "an ordinance takes effect at the earliest 15 working days after the vote closes (Art. 65.2)"}
 ]
 ```
 
