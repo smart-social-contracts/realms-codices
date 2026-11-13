@@ -8,8 +8,10 @@ class LocalRegime(above("local_regime")):
 
     @extension(legislation="Ley 7/1985 Art. 65.2")
     def check_proposal_create(self, args):
+        record = type(args)     # an action, or its args, that is no record is for the realm to refuse: this guard cannot judge it
         action = args.action
-        if action is None or action.op != "codex_install" or "checksum" not in action.args:   # only this realm's own change of legislation
+        if not isinstance(action, record) or action.op != "codex_install" \
+                or not isinstance(action.args, record) or "checksum" not in action.args:   # only this realm's own change of legislation
             return None
         earliest_close_day = self.local_day(self.now())      # a vote may close as soon as its outcome is certain
         if args.effective_at is None \
