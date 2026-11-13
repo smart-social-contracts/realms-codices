@@ -51,16 +51,16 @@
     "version": "2.6.1",
     "published": "2026-11-13",
     "effective_from": "2027-01-01",
-    "commit": "d8ea3f5611d2e9bd97de81367a73cdbac7abe277",
+    "commit": "32fbb3c09b02d313490c212165cd3c040ad167b3",
     "chapters": {
       "data_protection": "sha256:c88a657b741a332f5e63c97d2a06bc859833a5de371161005c2f5625d37f47bb",
       "language": "sha256:0f13de1ea79d9c311bdd2adeb33204e214ed01eb1ed65f98896c22bc7197c8d4",
-      "local_regime": "sha256:fbdb6357b2b3d5345e325bd6ad81cec173a68e83f812a821cf29e55f8676b2ac",
+      "local_regime": "sha256:0ced9ce94e124edf0a53ce3d7acd58ec9fc7d240dff27ca34dc7c512137e9e2c",
       "procedure": "sha256:7792a2b0756ca8d6dbc3e4e6f030d7f6ab4114f1a8763bfc198ad793f252fe3a",
       "register": "sha256:fb56a3e6460e72ea8849d8d343aa2816933053ddbf9d8c91e8d9274e53e56fc6",
       "tax": "sha256:a41bba00bc798b73e85d30d8b04f993536f1d4530d20047a9b98c51b7dd0350b"
     },
     "calendar": "sha256:b8935ae502bdc311dc336f8850613e47e30e7712042d435810641a1db67ba0f9",
-    "notes": {"en": "The notice of an ordinance to the state and the region waits for the codex an install names", "es": "El aviso de una ordenanza al Estado y a la comunidad espera al codex que nombra una instalación"}
+    "notes": {"en": "The notice of an ordinance waits for the codex an install names; the guard on an ordinance leaves an action it cannot read to the realm", "es": "El aviso de una ordenanza espera al codex que nombra una instalación; la salvaguarda de una ordenanza deja al realm la acción que no sabe leer"}
   }
 ]
