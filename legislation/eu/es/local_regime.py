@@ -18,6 +18,9 @@ class LocalRegime(above("local_regime")):
 
     @extension(legislation="Ley 7/1985 Art. 65.2")
     def on_codex_install(self, event):
+        codex = event.result.get("codex")     # an install that only starts its job has no codex to name yet
+        if codex is None:
+            return
         for authority in ("AGE", "GVA"):
             self.ggg.notification_send(recipient=Ref("external", authority), topic="ordinance",
-                                       title="Comunicació d'acord", body=event.result["codex"])
+                                       title="Comunicació d'acord", body=codex)
