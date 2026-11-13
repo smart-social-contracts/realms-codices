@@ -13,6 +13,8 @@ class LocalRegime(above("local_regime")):
         if not isinstance(action, record) or action.op != "codex_install" \
                 or not isinstance(action.args, record) or "checksum" not in action.args:   # only this realm's own change of legislation
             return None
+        if args.effective_at is not None and not isinstance(args.effective_at, int):    # no time: the realm refuses it
+            return None
         earliest_close_day = self.local_day(self.now())      # a vote may close as soon as its outcome is certain
         if args.effective_at is None \
                 or self.local_day(args.effective_at) < self.legislation.procedure.working_days_after(earliest_close_day, 15):

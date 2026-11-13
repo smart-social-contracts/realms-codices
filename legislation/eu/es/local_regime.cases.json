@@ -21,5 +21,11 @@
   {"name": "an install whose args are a text is left to the realm, even one that says checksum", "guard": "proposal_create", "now": 1800000000,
    "args": {"action": {"op": "codex_install", "args": "checksum"}, "effective_at": null}, "denies": null},
   {"name": "an action that is a text is left to the realm", "guard": "proposal_create", "now": 1800000000,
-   "args": {"action": "codex_install", "effective_at": null}, "denies": null}
+   "args": {"action": "codex_install", "effective_at": null}, "denies": null},
+  {"name": "an ordinance whose date is a text is left to the realm, which refuses it", "guard": "proposal_create", "now": 1800000000,
+   "args": {"action": {"op": "codex_install", "args": {"url": "https://example.org/change.json", "checksum": "sha256:x"}}, "effective_at": "tomorrow"}, "denies": null},
+  {"name": "an ordinance whose date is a list is left to the realm, which refuses it", "guard": "proposal_create", "now": 1800000000,
+   "args": {"action": {"op": "codex_install", "args": {"url": "https://example.org/change.json", "checksum": "sha256:x"}}, "effective_at": []}, "denies": null},
+  {"name": "an ordinance whose date is a record is left to the realm, which refuses it", "guard": "proposal_create", "now": 1800000000,
+   "args": {"action": {"op": "codex_install", "args": {"url": "https://example.org/change.json", "checksum": "sha256:x"}}, "effective_at": {}}, "denies": null}
 ]
