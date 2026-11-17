@@ -16,7 +16,7 @@
    "args": {"action": {"op": "codex_install"}, "effective_at": null}, "denies": null},
   {"name": "an install whose args are null is left to the realm, which files it as it does one with no args", "guard": "proposal_create", "now": 1800000000,
    "args": {"action": {"op": "codex_install", "args": null}, "effective_at": null}, "denies": null},
-  {"name": "an install whose args are a list is left to the realm", "guard": "proposal_create", "now": 1800000000,
+  {"name": "an install whose args are a list is left to the realm, which refuses it", "guard": "proposal_create", "now": 1800000000,
    "args": {"action": {"op": "codex_install", "args": []}, "effective_at": null}, "denies": null},
   {"name": "an install whose args are a text is left to the realm, even one that says checksum", "guard": "proposal_create", "now": 1800000000,
    "args": {"action": {"op": "codex_install", "args": "checksum"}, "effective_at": null}, "denies": null},
