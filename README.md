@@ -34,7 +34,8 @@ realms-gos checkout this repository is a submodule of.
 
 ## End-to-end testing
 
-Each codex has an agent-executable test plan, `codices/<id>/E2E_TEST_PROMPT.md`. Give it to an
-agent together with the shared preamble `testing/E2E_AGENT_GUIDE.md`: the agent drives a browser
-through the setup wizard and the founder, member and civil-servant journeys, and reports pass or
-fail. These files are documentation; they are not published with the package.
+The journeys a codex must pass (join as admin or member, public visitor,
+voting, vault, extension mount sweep, lifecycle phases) and the PASS/FAIL
+report format are written down in [docs/e2e-journeys.md](docs/e2e-journeys.md).
+They are to be built as deterministic geister scenarios running the real realm
+wasm and the codex on PocketIC.
