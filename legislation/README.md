@@ -31,16 +31,17 @@ changes/                          change lists, one per proposal
 - **A source** is a folder with a `source.json`. Its id is its path under `legislation/`:
   `eu/es/vc/46250-valencia`. Folder names are lowercase letters, digits and `-`. The number in a town's
   folder is only a name.
-- **A chapter** is a file `<domain>.py`, where `<domain>` is one of GGG's domains: `realm`, `tax`,
-  `procedure`, `register`, `local_regime`, `water`, `data_protection`, `language`, `treasury`,
-  `federation`. A missing file is an empty chapter. No other `.py` file is allowed in a source.
+- **A chapter** is a file `<subject_matter>.py`, where `<subject_matter>` is a subject matter id this
+  repository chooses, such as `tax` or `procedure`: lowercase letters, digits and `_`, starting with a
+  letter, at most 64 characters. Realms GOS checks that shape and keeps no list of them. A missing file is
+  an empty chapter. No other `.py` file is allowed in a source.
 - **A calendar** is a `calendar.json`, at most one per source, with the holidays of that level. A source
   that sets none has no file.
 - **Releases.** A source others take its legislation from has a `releases.json`. A town's own layer has
   none: its proposals are its record.
-- **The `realm` domain** (what the realm itself does when it starts a codex or admits a member) is
-  filled only in the realm's own layer. A source that is also a realm (Spain, say) may keep a `realm.py` beside
-  its `releases.json`: no release lists it, and no other realm loads it.
+- **The `realm` subject matter** (by convention, what the realm itself does when it starts a codex or
+  admits a member) is a subject matter like any other: a source that publishes releases lists its
+  `realm.py` in them, and the realms that follow it run it, unless their own layer overrides it.
 
 ## `source.json`
 
@@ -73,8 +74,8 @@ class Procedure(above("procedure")):
         return self.calendar.add(day, working_days(n))
 ```
 
-- One class per file, named after the domain in CamelCase (`data_protection` is `DataProtection`), and it
-  extends `above("<its domain>")`: the same domain one layer up, whatever version of it the realm runs.
+- One class per file, named after the subject matter in CamelCase (`data_protection` is `DataProtection`), and it
+  extends `above("<its subject_matter>")`: the same subject matter one layer up, whatever version of it the realm runs.
 - Imports come only from `realms.legislation` and from `ggg`, which only reads (see below).
 - Methods are named after GGG operations. `on_<op>(self, event)` runs after the operation;
   `check_<op>(self, args)` runs before it and returns `None` or `self.deny(reason)`;
@@ -85,8 +86,8 @@ class Procedure(above("procedure")):
 - No default arguments, no `exec`, `eval`, `open`, `setattr` or dunder attributes, no nested classes. An
   attribute is set only on `self` or on the event the hook was given, and `self` and the event are never
   rebound.
-- A chapter calls another domain only if it lists it in `uses = ["procedure"]`, and then reaches it with
-  `self.legislation.procedure`. Domains may not use each other in a circle.
+- A chapter calls another subject matter only if it lists it in `uses = ["procedure"]`, and then reaches it with
+  `self.legislation.procedure`. Subject matters may not use each other in a circle.
 
 ### Reading GGG
 
@@ -170,13 +171,13 @@ One entry per release, newest last:
   that is squashed or rebased when merged, the commit the release names is gone, and the check says it is not
   in the history. Merge the chapters first, then open the release. Merge pull requests here with a merge
   commit.
-- **The tree's path is part of every release**: a release names its files as `legislation/<source>/<domain>.py`
+- **The tree's path is part of every release**: a release names its files as `legislation/<source>/<subject_matter>.py`
   at its commit, so moving or renaming `legislation/` breaks every release already made.
 - This file is a copy for convenience. The source's own published record is the authority.
 
 ## Test cases
 
-A chapter may have test cases in `<domain>.cases.json`, beside it. They run when the tree is checked, on the
+A chapter may have test cases in `<subject_matter>.cases.json`, beside it. They run when the tree is checked, on the
 codex of a realm: the one a case names in `realm` (a source id, such as `eu/es/vc/46250-valencia`), else the
 chapter's own source with the sources above it. Times are in UTC. A case has a `name`, one kind of test, and
 what it expects:
@@ -192,13 +193,13 @@ what it expects:
 ]
 ```
 
-- `call` calls a public member of the domain: a helper with `args`, or a setting. `returns` is its value in
+- `call` calls a public member of the subject matter: a helper with `args`, or a setting. `returns` is its value in
   plain data (a rate is its whole number, a period is `{"count": 3, "unit": "Month"}`).
-- `guard` runs the domain's `check_<operation>` on `args`, with the `approvals` (department names) and the
+- `guard` runs the subject matter's `check_<operation>` on `args`, with the `approvals` (department names) and the
   time `now` in seconds. `denies` is the reason, or `null` for a guard that allows.
 - `forbid` evaluates the realm's forbids on the operation (and the `each` list) with the `facts`. `fires`
-  lists the ids of the forbids that fire, `<source>/<domain>/<name>`; none that must not fire.
-- `compute` runs the domain's `compute_<operation>` the way the realm does. `args` are its arguments (for
+  lists the ids of the forbids that fire, `<source>/<subject_matter>/<name>`; none that must not fire.
+- `compute` runs the subject matter's `compute_<operation>` the way the realm does. `args` are its arguments (for
   `tax_assess`, the tax `entry` and the `subject`, `"Land:L-1"`), `decimals` those of the token the amounts are in,
   and `records` the rows of GGG's entities the chapter may read, `{"Land": [{"id": "L-1", "owner":
   "User:alice", "assessed_value": 20000000}], "Human": [...], "Attribute": [...]}`. `returns` is what it answers,
@@ -218,7 +219,7 @@ realms legislation check legislation
 ```
 
 It holds the tree to the rules above, loads every realm's chapters the way the realm does and prints each
-refusal as `<source>/<domain>.py:<line>: <reason>`. Then, for every forbid, it binds it to GGG's fact
+refusal as `<source>/<subject_matter>.py:<line>: <reason>`. Then, for every forbid, it binds it to GGG's fact
 schema (the `F` rules), checks that Python and Cedar decide the same on generated facts, and proves with the
 Cedar CLI and cvc5 that Cedar never errors on it: Cedar skips a forbid that errors, so one that could would
 allow what it forbids. It runs the test cases. A refusal in a layer is printed once, though every realm
@@ -240,8 +241,8 @@ with Cedar's symbolic analysis and not sampled:
   change reads;
 - an operation **nothing** can pass, a forbid that **never fires** and a forbid that **can error** (a failure), and a
   forbid the others already cover (a warning);
-- the **flattened view** of the domains the change reaches, before and after, with the highest rate each cap allows;
-- the realms and domains it reaches, the **test cases**, and the generated Cedar.
+- the **flattened view** of the subject matters the change reaches, before and after, with the highest rate each cap allows;
+- the realms and subject matters it reaches, the **test cases**, and the generated Cedar.
 
 A failure turns the check red. The analysis stops starting queries after 20 minutes: a realm it did not reach is
 listed as `not analysed (time budget)`, which is a failure too, so a pull request cannot pass on what was not
@@ -262,7 +263,7 @@ commit them. The checksum pins the bytes, so a proposal does not need the pull r
 must be one the realm can fetch (pushed to GitHub).
 
 1. **See what the realm would run.** `realms legislation resolve` prints the realm's layer paths, the flattened
-   view of each domain and the id of the codex, from the committed files:
+   view of each subject matter and the id of the codex, from the committed files:
 
    ```
    realms legislation resolve legislation --realm eu/es/vc/46250-valencia --commit HEAD \
