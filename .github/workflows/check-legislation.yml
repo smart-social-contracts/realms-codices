@@ -9,7 +9,7 @@ env:
   # The realms-gos commit whose `realms` CLI checks this tree. It is pinned because the branch it comes from moves,
   # and goes away when it merges into main. To bump it, open a pull request here that changes this line to the
   # realms-gos commit you want, after that commit has the rules the tree needs; this check then runs with it.
-  REALMS_GOS_COMMIT: cf1cc07759508316ce4aa19e70167b856a39c1c6
+  REALMS_GOS_COMMIT: e43f6144b3d4223dd94285b2b653ac7b9ac0d6b8
 
 permissions:
   contents: read
