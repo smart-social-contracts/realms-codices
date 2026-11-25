@@ -70,6 +70,17 @@ def test_dominion_invoices_in_its_own_currency():
     assert (op, invoice["symbol"], invoice["amount"]) == ("invoice_create", "DOM", 100_000_000)
 
 
+def test_syntropia_onboarding_needs_no_outside_verifier():
+    """Every step a citizen is asked to take works with the realm alone; a ZK passport verifier is optional."""
+    manifest = json.loads((ROOT / "codices" / "syntropia" / "manifest.json").read_text())
+    assert "passport_verification" not in manifest["dependencies"]
+    asked = manifest["onboarding"]["identity_requirements"] + manifest["membership"]["activation_requires"]
+    assert not {"passport_zk", "passport_verified"} & set(asked)
+    _, (_, (op, notice)) = run("syntropia", "on_user_register", {"user": "bob"})
+    steps = notice["body"].split("\n\n")[1]
+    assert op == "notification_send" and "Pay your deposit" in steps and "Passport" not in steps
+
+
 def test_syntropia_deposit_identity_requests_and_quarters():
     _, effects = run("syntropia", "on_user_register", {"user": "bob"})
     assert effects[0][1]["amount"] == 1_000_000

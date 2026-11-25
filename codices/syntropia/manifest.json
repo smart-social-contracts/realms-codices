@@ -1,8 +1,8 @@
 {
   "id": "syntropia",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "Syntropia",
-  "description": "A greenfield codex for a brand-new sovereign smart city built from scratch. Because there is no existing population, new citizens onboard with a ZK passport, pay a deposit — a house in a zone — and submit Know-Your-Citizen data before the city goes live.",
+  "description": "A greenfield codex for a brand-new sovereign smart city built from scratch. Because there is no existing population, new citizens pay a deposit — a house in a zone — and submit Know-Your-Citizen data, reviewed by the Citizenship & Identity department, before the city goes live.",
   "repository": "https://github.com/smart-social-contracts/realms-codices/tree/main/codices/syntropia",
   "kind": "codex",
   "codex_api_version": 2,
@@ -37,7 +37,6 @@
     "metrics",
     "notifications",
     "package_manager",
-    "passport_verification",
     "procurement",
     "role_manager",
     "system_info",
@@ -53,7 +52,6 @@
       "default_profile": "member"
     },
     "identity_requirements": [
-      "passport_zk",
       "deposit_paid",
       "kyc_submitted"
     ]
@@ -171,7 +169,6 @@
   },
   "membership": {
     "activation_requires": [
-      "passport_verified",
       "deposit_paid",
       "kyc_submitted"
     ],
@@ -238,7 +235,7 @@
       },
       {
         "name": "Citizenship & Identity",
-        "description": "ZK passport onboarding, Know-Your-Citizen review, and deposit verification.",
+        "description": "Know-Your-Citizen review, identity proofs (including ZK passports where a verifier is installed), and deposit verification.",
         "fund": "DEPT-CITIZEN",
         "permissions": [
           "user.view",
