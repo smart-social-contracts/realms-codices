@@ -7,7 +7,7 @@ codex is a realm's laws and settings as code; each realm runs exactly one.
 |---|---|
 | [`agora`](codices/agora) | An existing public administration moving to Realms one-to-one |
 | [`dominion`](codices/dominion) | A direct democracy with taxation, in its own currency (DOM) |
-| [`syntropia`](codices/syntropia) | A greenfield smart city: ZK passport, a deposit and Know-Your-Citizen data before go-live |
+| [`syntropia`](codices/syntropia) | A greenfield smart city: a deposit and Know-Your-Citizen data before go-live (ZK passport optional) |
 
 ```text
 codices/<id>/
