@@ -70,6 +70,16 @@ def test_dominion_invoices_in_its_own_currency():
     assert (op, invoice["symbol"], invoice["amount"]) == ("invoice_create", "DOM", 100_000_000)
 
 
+def test_dominion_sends_no_one_to_an_extension_it_does_not_install():
+    manifest = json.loads((ROOT / "codices" / "dominion" / "manifest.json").read_text())
+    assert "passport_verification" not in manifest.get("dependencies", [])
+    assert "passport_verified" not in manifest["membership"]["activation_requires"]
+    _, (_, (op, notice)) = run("dominion", "on_user_register", {"user": "bob"})
+    asked, optional = notice["body"].split("\n\n")
+    assert op == "notification_send" and "registration invoice" in asked and "Passport" not in asked
+    assert optional.startswith("If this realm offers *Passport Verification*")
+
+
 def test_syntropia_onboarding_needs_no_outside_verifier():
     """Every step a citizen is asked to take works with the realm alone; a ZK passport verifier is optional."""
     manifest = json.loads((ROOT / "codices" / "syntropia" / "manifest.json").read_text())

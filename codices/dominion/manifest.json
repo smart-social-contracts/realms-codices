@@ -1,6 +1,6 @@
 {
   "id": "dominion",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "name": "Dominion",
   "description": "A direct democracy with taxation. Citizens propose and vote on decisions collectively.",
   "repository": "https://github.com/smart-social-contracts/realms-codices/tree/main/codices/dominion",
@@ -42,7 +42,6 @@
   },
   "membership": {
     "activation_requires": [
-      "passport_verified",
       "invoice_paid"
     ],
     "invoice_validity_days": 30
