@@ -50,8 +50,9 @@ Time control replaces the waiting periods the browser suite had to sit out.
 
 - Agora: joining without an invite is refused; no invoice on join; the seeded
   departments exist; a position invite code grants that position's seat only.
-- Dominion: no departments are seeded; registration issues an initial invoice;
-  membership activates only after passport verification and payment.
+- Dominion: no departments are seeded; registration issues an initial invoice and
+  a welcome notice asking for it to be paid. The realm does not hold membership
+  back for the payment or for a passport.
 - Syntropia: open registration admits citizens; it never offers the admin
   profile; the seeded departments exist; a position invite code grants that
   position's seat only.
